@@ -14,20 +14,15 @@ class AuthResponseDto {
   factory AuthResponseDto.fromJson(Map<String, dynamic> json) {
     // Handle nested user object
     final userData = json['user'] ?? json;
-    
+
     return AuthResponseDto(
-      token: json['token'] ?? json['access_token'] ?? '',
+      token: json['accessToken'] ?? json['token'] ?? json['access_token'] ?? '',
       user: AuthUserDto.fromJson(userData),
       needProfile: json['needProfile'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'token': token,
-      'user': user.toJson(),
-      'needProfile': needProfile,
-    };
+    return {'token': token, 'user': user.toJson(), 'needProfile': needProfile};
   }
 }
-

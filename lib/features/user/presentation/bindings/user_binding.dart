@@ -5,8 +5,10 @@ import 'package:pixel_love/features/user/data/datasources/user_remote_datasource
 import 'package:pixel_love/features/user/data/repositories/user_repository_impl.dart';
 import 'package:pixel_love/features/user/domain/repositories/user_repository.dart';
 import 'package:pixel_love/features/user/domain/usecases/complete_profile_usecase.dart';
+import 'package:pixel_love/features/user/domain/usecases/onboard_usecase.dart';
 import 'package:pixel_love/features/user/domain/usecases/update_profile_usecase.dart';
 import 'package:pixel_love/features/user/presentation/controllers/user_controller.dart';
+import 'package:pixel_love/features/user/presentation/controllers/onboard_controller.dart';
 
 class UserBinding extends Bindings {
   @override
@@ -22,6 +24,7 @@ class UserBinding extends Bindings {
     );
 
     Get.lazyPut(() => CompleteProfileUseCase(Get.find<UserRepository>()));
+    Get.lazyPut(() => OnboardUseCase(Get.find<UserRepository>()));
     Get.lazyPut(() => UpdateProfileUseCase(Get.find<UserRepository>()));
 
     Get.lazyPut(
@@ -29,6 +32,12 @@ class UserBinding extends Bindings {
         Get.find<CompleteProfileUseCase>(),
         Get.find<UpdateProfileUseCase>(),
         storageService,
+      ),
+    );
+
+    Get.lazyPut(
+      () => OnboardController(
+        Get.find<OnboardUseCase>(),
       ),
     );
   }

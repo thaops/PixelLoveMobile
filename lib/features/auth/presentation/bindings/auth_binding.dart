@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:pixel_love/core/network/dio_api.dart';
+import 'package:pixel_love/core/services/socket_service.dart';
 import 'package:pixel_love/core/services/storage_service.dart';
 import 'package:pixel_love/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:pixel_love/features/auth/data/repositories/auth_repository_impl.dart';
@@ -16,6 +17,7 @@ class AuthBinding extends Bindings {
     final dioApi = Get.find<DioApi>();
     final storage = Get.find<GetStorage>();
     final storageService = Get.find<StorageService>();
+    final socketService = Get.find<SocketService>();
 
     Get.lazyPut<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(dioApi),
@@ -38,6 +40,7 @@ class AuthBinding extends Bindings {
         Get.find<GetMeUseCase>(),
         Get.find<LogoutUseCase>(),
         storageService,
+        socketService,
       ),
     );
   }

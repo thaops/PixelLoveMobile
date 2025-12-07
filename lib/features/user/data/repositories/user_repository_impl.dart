@@ -64,4 +64,50 @@ class UserRepositoryImpl implements UserRepository {
       error: (error) => ApiResult.error(error),
     );
   }
+
+  @override
+  Future<ApiResult<User>> onboard({
+    required String nickname,
+    required String gender,
+    required String birthDate,
+  }) async {
+    final result = await _remoteDataSource.onboard(
+      nickname: nickname,
+      gender: gender,
+      birthDate: birthDate,
+    );
+
+    return result.when(
+      success: (dto) {
+        final user = dto.toEntity();
+
+        // Get current token from storage
+        final token = _storageService.getToken() ?? '';
+
+        // Get existing AuthUser to preserve accessToken
+        final existingAuthUser = _storageService.getUser();
+
+        // Create/Update AuthUser with new user data
+        final authUser = AuthUser(
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+          dob: user.dob,
+          zodiac: user.zodiac,
+          mode: user.mode,
+          coupleCode: user.coupleCode,
+          coupleRoomId: user.coupleRoomId,
+          coins: user.coins,
+          accessToken: existingAuthUser?.accessToken ?? token,
+        );
+
+        // Save updated user to storage
+        _storageService.saveUser(authUser);
+
+        return ApiResult.success(user);
+      },
+      error: (error) => ApiResult.error(error),
+    );
+  }
 }

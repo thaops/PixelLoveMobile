@@ -144,7 +144,6 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Positioned(left: 0, right: 0, bottom: 0, child: _buildLoginSection()),
         _buildOnboardingContent(),
         Positioned(
           left: 32,
@@ -152,6 +151,7 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
           bottom: 360,
           child: _buildPaginationDots(),
         ),
+        Positioned(left: 0, right: 0, bottom: 0, child: _buildLoginSection()),
       ],
     );
   }
@@ -331,13 +331,13 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
                     backgroundColor: const Color(0xFFFF6B9D),
                     textColor: Colors.white,
                   ),
-                  _buildPrimaryButton(
-                    onPressed: widget.controller.loginWithGoogle,
-                    imagePath: 'assets/images/img-fb.png',
-                    label: 'Đăng nhập với Facebook',
-                    backgroundColor: const Color.fromARGB(255, 38, 139, 227),
-                    textColor: Colors.white,
-                  ),
+                  // _buildPrimaryButton(
+                  //   onPressed: widget.controller.loginWithGoogle,
+                  //   imagePath: 'assets/images/img-fb.png',
+                  //   label: 'Đăng nhập với Facebook',
+                  //   backgroundColor: const Color.fromARGB(255, 38, 139, 227),
+                  //   textColor: Colors.white,
+                  // ),
                 ],
               );
             }),
@@ -432,7 +432,6 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Image.asset(imagePath, width: 24, height: 24),
-
                 Text(
                   label,
                   style: TextStyle(
@@ -442,7 +441,6 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
                     letterSpacing: 0.3,
                   ),
                 ),
-
                 const SizedBox(width: 12),
               ],
             ),

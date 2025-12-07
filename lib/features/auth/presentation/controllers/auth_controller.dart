@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:pixel_love/core/services/socket_service.dart';
 import 'package:pixel_love/core/services/storage_service.dart';
 import 'package:pixel_love/features/auth/domain/entities/auth_user.dart';
 import 'package:pixel_love/features/auth/domain/usecases/get_me_usecase.dart';
@@ -12,12 +13,14 @@ class AuthController extends GetxController {
   final GetMeUseCase _getMeUseCase;
   final LogoutUseCase _logoutUseCase;
   final StorageService _storageService;
+  final SocketService _socketService;
 
   AuthController(
     this._loginGoogleUseCase,
     this._getMeUseCase,
     this._logoutUseCase,
     this._storageService,
+    this._socketService,
   );
 
   final _isLoading = false.obs;
@@ -72,36 +75,39 @@ class AuthController extends GetxController {
       // 3. Send accessToken to backend
       final result = await _loginGoogleUseCase.call(idToken);
 
-      result.when(
-        success: (response) {
-          print('✅ Login success');
+      if (result.isSuccess && result.data != null) {
+        final response = result.data!;
 
-          // 4. Save token
-          _storageService.saveToken(response.token);
+        // 4. Save token (await to ensure it's saved before navigation)
+        await _storageService.saveToken(response.token);
+        print(
+          '✅ Token saved: ${response.token.isNotEmpty ? response.token.substring(0, 20) : "EMPTY"}...',
+        );
+        print('✅ Full token: ${response.token}');
 
-          // 5. Save user
-          _currentUser.value = response.user;
-          _storageService.saveUser(response.user);
-          _needProfile.value = response.needProfile;
+        // 5. Save user
+        _currentUser.value = response.user;
+        await _storageService.saveUser(response.user);
+        _needProfile.value = response.needProfile;
 
-          // 6. Navigate based on needProfile
-          if (response.needProfile) {
-            print('→ Navigate to CompleteProfile');
-            Get.offAllNamed(AppRoutes.completeProfile);
-          } else {
-            print('→ Navigate to Home');
-            Get.offAllNamed(AppRoutes.home);
-          }
-        },
-        error: (error) {
-          _errorMessage.value = error.message;
-          Get.snackbar(
-            'Login Failed',
-            error.message,
-            snackPosition: SnackPosition.BOTTOM,
-          );
-        },
-      );
+        // 6. Connect to events socket
+        await _socketService.connectEvents();
+        print('✅ Events socket connected');
+
+        // 7. Navigate based on needProfile
+        if (response.needProfile) {
+          Get.offAllNamed(AppRoutes.onboard);
+        } else {
+          Get.offAllNamed(AppRoutes.onboard);
+        }
+      } else if (result.error != null) {
+        _errorMessage.value = result.error!.message;
+        Get.snackbar(
+          'Login Failed',
+          result.error!.message,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
     } catch (e) {
       _errorMessage.value = 'Google login error: $e';
       Get.snackbar(
@@ -144,6 +150,7 @@ class AuthController extends GetxController {
   Future<void> logout() async {
     await _logoutUseCase.call();
     await _googleSignIn.signOut();
+    _socketService.disconnectEvents();
     _currentUser.value = null;
     _needProfile.value = false;
     Get.offAllNamed(AppRoutes.login);

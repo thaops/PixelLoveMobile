@@ -2,12 +2,15 @@ import 'package:get/get.dart';
 import 'package:pixel_love/features/auth/presentation/bindings/auth_binding.dart';
 import 'package:pixel_love/features/auth/presentation/pages/auth_screen.dart';
 import 'package:pixel_love/features/auth/presentation/pages/complete_profile_screen.dart';
+import 'package:pixel_love/features/couple/presentation/bindings/couple_binding.dart';
+import 'package:pixel_love/features/couple/presentation/pages/couple_connection_screen.dart';
 import 'package:pixel_love/features/pet/presentation/bindings/pet_binding.dart';
 import 'package:pixel_love/features/pet/presentation/pages/pet_screen.dart';
 import 'package:pixel_love/features/startup/splash_screen.dart';
 import 'package:pixel_love/features/startup/startup_binding.dart';
 import 'package:pixel_love/features/test_map/test_map.dart';
 import 'package:pixel_love/features/user/presentation/bindings/user_binding.dart';
+import 'package:pixel_love/features/user/presentation/pages/onboard_screen.dart';
 import 'package:pixel_love/features/user/presentation/pages/user_profile_screen.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/views/home_screen.dart';
@@ -28,6 +31,16 @@ class AppPages {
       name: AppRoutes.completeProfile,
       page: () => const CompleteProfileScreen(),
       bindings: [UserBinding()],
+    ),
+    GetPage(
+      name: AppRoutes.onboard,
+      page: () => const OnboardScreen(),
+      bindings: [UserBinding()],
+    ),
+    GetPage(
+      name: AppRoutes.coupleConnection,
+      page: () => const CoupleConnectionScreen(),
+      binding: CoupleBinding(),
     ),
     GetPage(name: AppRoutes.testMap, page: () => const TestMap()),
     GetPage(

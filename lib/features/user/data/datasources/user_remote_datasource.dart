@@ -8,6 +8,11 @@ abstract class UserRemoteDataSource {
     required String dob,
   });
   Future<ApiResult<UserDto>> updateProfile(Map<String, dynamic> data);
+  Future<ApiResult<UserDto>> onboard({
+    required String nickname,
+    required String gender,
+    required String birthDate,
+  });
 }
 
 class UserRemoteDataSourceImpl implements UserRemoteDataSource {
@@ -22,10 +27,7 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
   }) async {
     return await _dioApi.post(
       '/auth/update-profile',
-      data: {
-        'name': name,
-        'dob': dob,
-      },
+      data: {'name': name, 'dob': dob},
       fromJson: (json) {
         final userData = json['user'] ?? json;
         return UserDto.fromJson(userData);
@@ -39,6 +41,22 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       '/user/update',
       data: data,
       fromJson: (json) => UserDto.fromJson(json),
+    );
+  }
+
+  @override
+  Future<ApiResult<UserDto>> onboard({
+    required String nickname,
+    required String gender,
+    required String birthDate,
+  }) async {
+    return await _dioApi.post(
+      '/users/onboard',
+      data: {'nickname': nickname, 'gender': gender, 'birthDate': birthDate},
+      fromJson: (json) {
+        final userData = json['user'] ?? json;
+        return UserDto.fromJson(userData);
+      },
     );
   }
 }

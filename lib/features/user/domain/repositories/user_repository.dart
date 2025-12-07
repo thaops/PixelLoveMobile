@@ -7,4 +7,9 @@ abstract class UserRepository {
     required String dob,
   });
   Future<ApiResult<User>> updateProfile(Map<String, dynamic> data);
+  Future<ApiResult<User>> onboard({
+    required String nickname,
+    required String gender,
+    required String birthDate,
+  });
 }
