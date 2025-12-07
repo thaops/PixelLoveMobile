@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pixel_love/features/auth/presentation/controllers/auth_controller.dart';
@@ -8,19 +9,78 @@ class AuthScreen extends GetView<AuthController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFFFFE5F1), // Pastel pink
-              const Color(0xFFFFF4E6), // Cream yellow
-              const Color(0xFFE8F5E9), // Pastel green
-            ],
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFFFFE5F1), // Pastel pink
+                  const Color(0xFFFFF4E6), // Cream yellow
+                  const Color(0xFFE8F5E9), // Pastel green
+                ],
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(child: _AuthScreenContent(controller: controller)),
+          // Decorative icons in background
+          Positioned(
+            top: 80,
+            right: 40,
+            child: Icon(
+              Icons.favorite,
+              size: 60,
+              color: Colors.pink.shade200.withOpacity(0.3),
+            ),
+          ),
+          Positioned(
+            top: 150,
+            left: 30,
+            child: Icon(
+              Icons.favorite_border,
+              size: 45,
+              color: Colors.purple.shade200.withOpacity(0.25),
+            ),
+          ),
+          Positioned(
+            top: 250,
+            right: 80,
+            child: Icon(
+              Icons.favorite,
+              size: 35,
+              color: Colors.red.shade200.withOpacity(0.2),
+            ),
+          ),
+          Positioned(
+            bottom: 200,
+            left: 50,
+            child: Icon(
+              Icons.favorite_border,
+              size: 50,
+              color: Colors.pink.shade200.withOpacity(0.25),
+            ),
+          ),
+          Positioned(
+            bottom: 350,
+            right: 20,
+            child: Icon(
+              Icons.favorite,
+              size: 40,
+              color: Colors.purple.shade200.withOpacity(0.2),
+            ),
+          ),
+          Positioned(
+            top: 100,
+            left: 80,
+            child: Icon(
+              Icons.favorite_border,
+              size: 30,
+              color: Colors.red.shade200.withOpacity(0.2),
+            ),
+          ),
+          SafeArea(child: _AuthScreenContent(controller: controller)),
+        ],
       ),
     );
   }
@@ -38,6 +98,7 @@ class _AuthScreenContent extends StatefulWidget {
 class _AuthScreenContentState extends State<_AuthScreenContent> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  Timer? _autoScrollTimer;
 
   @override
   void initState() {
@@ -48,22 +109,49 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
         setState(() {
           _currentPage = page;
         });
+        _resetAutoScroll();
+      }
+    });
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_pageController.hasClients) {
+        final nextPage = (_currentPage + 1) % 3;
+        _pageController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
       }
     });
   }
 
+  void _resetAutoScroll() {
+    _startAutoScroll();
+  }
+
   @override
   void dispose() {
+    _autoScrollTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
       children: [
-        Expanded(child: _buildOnboardingContent()),
-        _buildLoginSection(),
+        Positioned(left: 0, right: 0, bottom: 0, child: _buildLoginSection()),
+        _buildOnboardingContent(),
+        Positioned(
+          left: 32,
+          right: 32,
+          bottom: 360,
+          child: _buildPaginationDots(),
+        ),
       ],
     );
   }
@@ -72,22 +160,69 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
     return PageView.builder(
       controller: _pageController,
       itemCount: 3,
+      physics: const BouncingScrollPhysics(),
       itemBuilder: (context, index) {
-        return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 20),
-                _buildIllustration(index),
-                const SizedBox(height: 40),
-                _buildTitle(index),
-                const SizedBox(height: 12),
-                _buildSubtitle(index),
-                const SizedBox(height: 20),
-              ],
-            ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.0, 0.1),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Center(
+                  key: ValueKey(index),
+                  child: _buildIllustration(index),
+                ),
+              ),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(-0.1, 0.0),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: _buildTitle(index, key: ValueKey('title_$index')),
+              ),
+              const SizedBox(height: 8),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(-0.1, 0.0),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: _buildSubtitle(index, key: ValueKey('subtitle_$index')),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         );
       },
@@ -95,284 +230,165 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
   }
 
   Widget _buildIllustration(int index) {
-    return Container(
-      width: 240,
-      height: 240,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Background bubbles
-          ...List.generate(3, (i) {
-            return Positioned(
-              left: i * 60.0,
-              top: i * 40.0,
-              child: Container(
-                width: 40 - (i * 8),
-                height: 40 - (i * 8),
-                decoration: BoxDecoration(
-                  color: _getBubbleColor(index, i).withOpacity(0.3),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            );
-          }),
-          // Main illustration based on index
-          _buildCoupleIllustration(index),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCoupleIllustration(int index) {
-    switch (index) {
-      case 0:
-        return _buildIllustration1();
-      case 1:
-        return _buildIllustration2();
-      case 2:
-        return _buildIllustration3();
-      default:
-        return _buildIllustration1();
-    }
-  }
-
-  Widget _buildIllustration1() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildPerson(Colors.pink.shade200, Icons.favorite),
-        const SizedBox(width: 20),
-        _buildPerson(Colors.blue.shade200, Icons.favorite),
-      ],
-    );
-  }
-
-  Widget _buildIllustration2() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildPerson(Colors.pink.shade200, Icons.chat_bubble_outline),
-            const SizedBox(width: 20),
-            _buildPerson(Colors.blue.shade200, Icons.chat_bubble_outline),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Icon(Icons.favorite, color: Colors.red.shade300, size: 32),
-      ],
-    );
-  }
-
-  Widget _buildIllustration3() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildPerson(Colors.pink.shade200, Icons.celebration),
-            const SizedBox(width: 20),
-            _buildPerson(Colors.blue.shade200, Icons.celebration),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.star, color: Colors.amber.shade300, size: 24),
-            const SizedBox(width: 8),
-            Icon(Icons.star, color: Colors.amber.shade300, size: 24),
-            const SizedBox(width: 8),
-            Icon(Icons.star, color: Colors.amber.shade300, size: 24),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPerson(Color color, IconData icon) {
-    return Container(
-      width: 70,
-      height: 70,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Icon(icon, color: Colors.white, size: 36),
-    );
-  }
-
-  Color _getBubbleColor(int pageIndex, int bubbleIndex) {
-    final colors = [
-      [Colors.pink.shade200, Colors.purple.shade200, Colors.blue.shade200],
-      [Colors.orange.shade200, Colors.yellow.shade200, Colors.green.shade200],
-      [Colors.cyan.shade200, Colors.teal.shade200, Colors.indigo.shade200],
+    final imagePaths = [
+      'assets/images/img-couple1.png',
+      'assets/images/img-couple2.png',
+      'assets/images/img-couple3.png',
     ];
-    return colors[pageIndex][bubbleIndex % 3];
+
+    return Image.asset(
+      imagePaths[index],
+      width: 230,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return const Icon(Icons.image, size: 100, color: Colors.grey);
+      },
+    );
   }
 
-  Widget _buildTitle(int index) {
+  Widget _buildTitle(int index, {Key? key}) {
     final titles = [
       'Kết nối tình yêu',
       'Trò chuyện thân mật',
       'Tạo kỷ niệm đẹp',
     ];
-    return Text(
-      titles[index],
-      style: TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.w700,
-        color: const Color(0xFF4A4A4A),
-        letterSpacing: -0.5,
-        height: 1.2,
+    return Align(
+      key: key,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        titles[index],
+        style: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF4A4A4A),
+          letterSpacing: -0.5,
+          height: 1.2,
+        ),
+        textAlign: TextAlign.left,
       ),
-      textAlign: TextAlign.center,
     );
   }
 
-  Widget _buildSubtitle(int index) {
+  Widget _buildSubtitle(int index, {Key? key}) {
     final subtitles = [
       'Tìm kiếm và kết nối với người bạn đời của bạn một cách dễ dàng và an toàn',
       'Trò chuyện riêng tư, chia sẻ khoảnh khắc đáng nhớ với người thương',
       'Lưu giữ những kỷ niệm đẹp, tạo album ảnh và nhật ký tình yêu của bạn',
     ];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Text(
-        subtitles[index],
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w400,
-          color: const Color(0xFF7A7A7A),
-          height: 1.4,
+    return Align(
+      key: key,
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 0),
+        child: Text(
+          subtitles[index],
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF7A7A7A),
+            height: 1.4,
+          ),
+          textAlign: TextAlign.left,
         ),
-        textAlign: TextAlign.center,
       ),
     );
   }
 
   Widget _buildLoginSection() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      height: 400,
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
+        image: DecorationImage(
+          image: AssetImage('assets/images/img-login-section.png'),
+          fit: BoxFit.fitWidth,
+          alignment: Alignment.bottomCenter,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildPaginationDots(),
-          const SizedBox(height: 32),
-          Obx(() {
-            if (widget.controller.isLoading) {
-              return const SizedBox(
-                height: 56,
-                child: Center(child: CircularProgressIndicator(strokeWidth: 3)),
-              );
-            }
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Obx(() {
+              if (widget.controller.isLoading) {
+                return const SizedBox(
+                  height: 56,
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 3),
+                  ),
+                );
+              }
 
-            return Column(
-              children: [
-                _buildPrimaryButton(
-                  onPressed: widget.controller.loginWithGoogle,
-                  icon: Icons.g_mobiledata,
-                  label: 'Đăng nhập với Google',
-                  backgroundColor: const Color(0xFFFF6B9D),
-                  textColor: Colors.white,
-                ),
-                const SizedBox(height: 16),
-                _buildSecondaryButton(
-                  onPressed: () {
-                    // TODO: Implement email login
-                    Get.snackbar(
-                      'Thông báo',
-                      'Tính năng đăng nhập bằng Email đang được phát triển',
-                      snackPosition: SnackPosition.BOTTOM,
-                    );
-                  },
-                  icon: Icons.email_outlined,
-                  label: 'Đăng nhập với Email',
-                ),
-              ],
-            );
-          }),
-          const SizedBox(height: 24),
-          Obx(() {
-            if (widget.controller.errorMessage.isNotEmpty) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.red.shade200, width: 1),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: Colors.red.shade400,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        widget.controller.errorMessage,
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+              return Column(
+                spacing: 16,
+                children: [
+                  _buildPrimaryButton(
+                    onPressed: widget.controller.loginWithGoogle,
+                    imagePath: 'assets/images/img-google.png',
+                    label: 'Đăng nhập với Google',
+                    backgroundColor: const Color(0xFFFF6B9D),
+                    textColor: Colors.white,
+                  ),
+                  _buildPrimaryButton(
+                    onPressed: widget.controller.loginWithGoogle,
+                    imagePath: 'assets/images/img-fb.png',
+                    label: 'Đăng nhập với Facebook',
+                    backgroundColor: const Color.fromARGB(255, 38, 139, 227),
+                    textColor: Colors.white,
+                  ),
+                ],
+              );
+            }),
+            const SizedBox(height: 24),
+            Obx(() {
+              if (widget.controller.errorMessage.isNotEmpty) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEBEE),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.red.shade200, width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Colors.red.shade400,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.controller.errorMessage,
+                          style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-          _buildDisclaimer(),
-        ],
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }),
+            _buildDisclaimer(),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildPaginationDots() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: List.generate(3, (index) {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
@@ -393,7 +409,7 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
 
   Widget _buildPrimaryButton({
     required VoidCallback onPressed,
-    required IconData icon,
+    required String imagePath,
     required String label,
     required Color backgroundColor,
     required Color textColor,
@@ -402,36 +418,34 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: backgroundColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: backgroundColor.withOpacity(0.4),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: textColor, size: 24),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Image.asset(imagePath, width: 24, height: 24),
+
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: const Color(0xFF4A4A4A),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 0.3,
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(width: 12),
+              ],
+            ),
           ),
         ),
       ),
