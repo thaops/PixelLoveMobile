@@ -1,0 +1,20 @@
+name: feature_simple
+description: Generate a simple feature skeleton following Clean Architecture (no questions, just structure)
+version: 1.0.0
+
+environment:
+  mason: ">=0.1.0 <0.2.0"
+
+vars:
+  feature_name:
+    type: string
+    description: Name of the feature (e.g., login, profile, home)
+    prompt: What is the feature name?
+    default: new_feature
+
+  model_name:
+    type: string
+    description: Name of the main domain model
+    prompt: What is the main domain model name?
+    default: item
+

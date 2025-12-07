@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "729972399696",
+    "project_id": "pixellove",
+    "storage_bucket": "pixellove.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:729972399696:android:389e39cd87fb63900afb55",
+        "android_client_info": {
+          "package_name": "com.pixellove.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "729972399696-df9j3pvoh04hqs8savu919kva93s538f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.pixellove.app",
+            "certificate_hash": "adc0508c3ae833a1ee1cd6d076cadc2b2b6e2f5f"
+          }
+        },
+        {
+          "client_id": "729972399696-4nk4bb4e7h4704hojtjna7917sfom7ro.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD48envl7jSZykRawdkPcCARc_NL2mD1MU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "729972399696-4nk4bb4e7h4704hojtjna7917sfom7ro.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "729972399696-0305tva3s76vpbj38hbktbht7q7i11q7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.pixellove.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
