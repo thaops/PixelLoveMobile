@@ -43,27 +43,15 @@ class CoupleConnectionController extends GetxController {
   }
 
   void _setupSocketListeners() {
-    // Listen couplePaired event (cả User A và User B đều nhận)
     _socketService.onCouplePaired = (data) {
-      print('💑 Couple paired event received: $data');
       _handleCouplePaired(data);
     };
 
-    // Listen coupleRoomUpdated event
     _socketService.onCoupleRoomUpdated = (data) {
-      print('🏠 Couple room updated: $data');
       // Có thể update UI nếu cần
     };
 
-    // Listen coupleBrokenUp event
     _socketService.onCoupleBrokenUp = (data) {
-      print('💔 Couple broken up: $data');
-      Get.snackbar(
-        'Thông báo',
-        'Kết nối đã bị hủy',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      // Navigate về couple connection screen
       Get.offAllNamed(AppRoutes.coupleConnection);
     };
   }
@@ -72,22 +60,8 @@ class CoupleConnectionController extends GetxController {
     final partner = data['partner'] as Map<String, dynamic>?;
 
     if (partner != null) {
-      final partnerName = partner['nickname'] ?? partner['displayName'] ?? 'Đối phương';
-
-      // Hiển thị notification
-      Get.snackbar(
-        'Kết nối thành công! 💑',
-        'Bạn đã kết nối với $partnerName',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 3),
-        backgroundColor: const Color(0xFFE8F5E9),
-        colorText: const Color(0xFF2E7D32),
-      );
-
-      // Navigate đến home screen sau 1 giây
-      Future.delayed(const Duration(seconds: 1), () {
+    
         Get.offAllNamed(AppRoutes.home);
-      });
     }
   }
 
@@ -111,11 +85,9 @@ class CoupleConnectionController extends GetxController {
       result.when(
         success: (code) {
           _coupleCode.value = code;
-          print('✅ Code created: ${code.code}');
         },
         error: (error) {
           _errorMessage.value = error.message;
-          Get.snackbar('Lỗi', error.message, snackPosition: SnackPosition.BOTTOM);
         },
       );
     } catch (e) {
@@ -133,34 +105,29 @@ class CoupleConnectionController extends GetxController {
         success: (preview) {
           _partnerPreview.value = preview;
           _canConnect.value = preview.canPair;
-          print('✅ Preview: codeValid=${preview.codeValid}, canPair=${preview.canPair}');
         },
         error: (error) {
           _partnerPreview.value = null;
           _canConnect.value = false;
-          print('❌ Preview error: ${error.message}');
         },
       );
     } catch (e) {
-      print('❌ Preview exception: $e');
+        print('❌ Preview exception: $e');
     }
   }
 
   Future<void> copyCode() async {
     if (_coupleCode.value == null) return;
-    // TODO: Implement clipboard copy
-    Get.snackbar('Đã copy', 'Mã ghép đã được sao chép', snackPosition: SnackPosition.BOTTOM);
+
   }
 
   Future<void> shareCode() async {
     if (_coupleCode.value == null) return;
-    // TODO: Implement share functionality
-    Get.snackbar('Chia sẻ', 'Chức năng chia sẻ đang phát triển', snackPosition: SnackPosition.BOTTOM);
+   
   }
 
   Future<void> connect() async {
     if (!_canConnect.value || _inputCode.value.trim().isEmpty) {
-      Get.snackbar('Lỗi', 'Vui lòng nhập mã hợp lệ', snackPosition: SnackPosition.BOTTOM);
       return;
     }
 
@@ -172,40 +139,30 @@ class CoupleConnectionController extends GetxController {
 
       result.when(
         success: (response) {
-          print('✅ Pair success: ${response.message}');
-          
-          // ⚠️ LƯU Ý: Socket event 'couplePaired' sẽ được emit tự động từ backend
-          // Không cần navigate ở đây, vì socket listener sẽ xử lý trong _handleCouplePaired()
-          // Nếu socket không hoạt động, có thể navigate fallback sau 2 giây
+   
           Future.delayed(const Duration(seconds: 2), () {
             if (Get.currentRoute == AppRoutes.coupleConnection) {
-              // Nếu vẫn ở màn hình này, có thể socket chưa nhận event
-              // Navigate fallback
               Get.offAllNamed(AppRoutes.home);
             }
           });
         },
         error: (error) {
           _errorMessage.value = error.message;
-          Get.snackbar('Lỗi', error.message, snackPosition: SnackPosition.BOTTOM);
         },
       );
     } catch (e) {
       _errorMessage.value = 'Lỗi kết nối: $e';
-      Get.snackbar('Lỗi', _errorMessage.value, snackPosition: SnackPosition.BOTTOM);
     } finally {
       _isLoading.value = false;
     }
   }
 
   void scanQR() {
-    // TODO: Implement QR scanner
-    Get.snackbar('QR Scanner', 'Chức năng quét QR đang phát triển', snackPosition: SnackPosition.BOTTOM);
+
   }
 
   @override
   void onClose() {
-    // Clear socket listeners khi controller bị dispose
     _socketService.onCouplePaired = null;
     _socketService.onCoupleRoomUpdated = null;
     _socketService.onCoupleBrokenUp = null;

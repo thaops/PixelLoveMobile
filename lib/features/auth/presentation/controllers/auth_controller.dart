@@ -53,7 +53,6 @@ class AuthController extends GetxController {
       _isLoading.value = true;
       _errorMessage.value = '';
 
-      // 1. Get Google user
       final googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
@@ -61,40 +60,27 @@ class AuthController extends GetxController {
         return;
       }
 
-      // 2. Get accessToken (backend requires accessToken!)
       final googleAuth = await googleUser.authentication;
       final idToken = googleAuth.idToken;
-
-      print('idToken: $idToken');
 
       if (idToken == null) {
         _errorMessage.value = 'Failed to get Google access token';
         return;
       }
 
-      // 3. Send accessToken to backend
       final result = await _loginGoogleUseCase.call(idToken);
 
       if (result.isSuccess && result.data != null) {
         final response = result.data!;
 
-        // 4. Save token (await to ensure it's saved before navigation)
         await _storageService.saveToken(response.token);
-        print(
-          '✅ Token saved: ${response.token.isNotEmpty ? response.token.substring(0, 20) : "EMPTY"}...',
-        );
-        print('✅ Full token: ${response.token}');
 
-        // 5. Save user
         _currentUser.value = response.user;
         await _storageService.saveUser(response.user);
         _needProfile.value = response.needProfile;
 
-        // 6. Connect to events socket
         await _socketService.connectEvents();
-        print('✅ Events socket connected');
 
-        // 7. Navigate based on needProfile
         if (response.needProfile) {
           Get.offAllNamed(AppRoutes.onboard);
         } else {
@@ -102,25 +88,14 @@ class AuthController extends GetxController {
         }
       } else if (result.error != null) {
         _errorMessage.value = result.error!.message;
-        Get.snackbar(
-          'Login Failed',
-          result.error!.message,
-          snackPosition: SnackPosition.BOTTOM,
-        );
       }
     } catch (e) {
       _errorMessage.value = 'Google login error: $e';
-      Get.snackbar(
-        'Error',
-        _errorMessage.value,
-        snackPosition: SnackPosition.BOTTOM,
-      );
     } finally {
       _isLoading.value = false;
     }
   }
 
-  // Get current user from backend
   Future<void> getMe() async {
     try {
       _isLoading.value = true;
@@ -132,16 +107,13 @@ class AuthController extends GetxController {
         success: (user) {
           _currentUser.value = user;
           _storageService.saveUser(user);
-          print('✅ User loaded: ${user.name}');
         },
         error: (error) {
           _errorMessage.value = error.message;
-          print('❌ Get me error: ${error.message}');
         },
       );
     } catch (e) {
       _errorMessage.value = 'Get me error: $e';
-      print('❌ Exception: $e');
     } finally {
       _isLoading.value = false;
     }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 
 class TestMap extends StatefulWidget {
   const TestMap({super.key});
@@ -56,23 +58,53 @@ class _TestMapState extends State<TestMap> {
         value: SystemUiOverlayStyle.light.copyWith(
           statusBarColor: Colors.transparent,
         ),
-        child: InteractiveViewer(
-          transformationController: _controller,
-          constrained: false,
-          minScale: 1.0,
-          maxScale: 3.0,
-          panEnabled: true,
-          scaleEnabled: false,
-          boundaryMargin: EdgeInsets.zero,
-          child: SizedBox(
-            width: finalWidth,
-            height: finalHeight,
-            child: Image.asset(
-              'assets/images/background.jpg',
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              transformationController: _controller,
+              constrained: false,
+              minScale: 1.0,
+              maxScale: 3.0,
+              panEnabled: true,
+              scaleEnabled: false,
+              boundaryMargin: EdgeInsets.zero,
+              child: SizedBox(
+                width: finalWidth,
+                height: finalHeight,
+                child: Image.asset(
+                  'assets/images/background.jpg',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                ),
+              ),
             ),
-          ),
+            // Nút Profile overlay ở tầng cao nhất
+            SafeArea(
+              child: Positioned(
+                top: 8,
+                right: 8,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => Get.toNamed(AppRoutes.profile),
+                    borderRadius: BorderRadius.circular(24),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.account_circle,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -20,15 +20,12 @@ class OnboardScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
-                
+
                 // Header Section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      '😊',
-                      style: TextStyle(fontSize: 40),
-                    ),
+                    Text('😊', style: TextStyle(fontSize: 40)),
                     const SizedBox(width: 12),
                     Text(
                       'Hãy bắt đầu nào!',
@@ -43,10 +40,7 @@ class OnboardScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Vui lòng điền các thông tin sau.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 40),
 
@@ -59,10 +53,7 @@ class OnboardScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Color(0xFFFFE082), // Vàng pastel
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Color(0xFFFFD54F),
-                          width: 3,
-                        ),
+                        border: Border.all(color: Color(0xFFFFD54F), width: 3),
                       ),
                       child: Icon(
                         Icons.person,
@@ -105,28 +96,30 @@ class OnboardScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Obx(() => Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Nam button
-                    _GenderBubble(
-                      label: 'Nam',
-                      emoji: '👨',
-                      isSelected: controller.selectedGender == 'male',
-                      color: Color(0xFF64B5F6), // Xanh
-                      onTap: () => controller.setGender('male'),
-                    ),
-                    const SizedBox(width: 16),
-                    // Nữ button
-                    _GenderBubble(
-                      label: 'Nữ',
-                      emoji: '👩',
-                      isSelected: controller.selectedGender == 'female',
-                      color: Color(0xFFF48FB1), // Hồng
-                      onTap: () => controller.setGender('female'),
-                    ),
-                  ],
-                )),
+                Obx(
+                  () => Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Nam button
+                      _GenderBubble(
+                        label: 'Nam',
+                        emoji: '👨',
+                        isSelected: controller.selectedGender == 'male',
+                        color: Color(0xFF64B5F6), // Xanh
+                        onTap: () => controller.setGender('male'),
+                      ),
+                      const SizedBox(width: 16),
+                      // Nữ button
+                      _GenderBubble(
+                        label: 'Nữ',
+                        emoji: '👩',
+                        isSelected: controller.selectedGender == 'female',
+                        color: Color(0xFFF48FB1), // Hồng
+                        onTap: () => controller.setGender('female'),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 40),
 
                 // Form Section
@@ -177,18 +170,21 @@ class OnboardScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Obx(() => Text(
-                            controller.selectedBirthDate == null
-                                ? 'Please select your birthday.'
-                                : DateFormat('dd/MM/yyyy')
-                                    .format(controller.selectedBirthDate!),
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: controller.selectedBirthDate == null
-                                  ? Colors.grey.shade600
-                                  : Colors.black87,
+                          child: Obx(
+                            () => Text(
+                              controller.selectedBirthDate == null
+                                  ? 'Please select your birthday.'
+                                  : DateFormat(
+                                      'dd/MM/yyyy',
+                                    ).format(controller.selectedBirthDate!),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: controller.selectedBirthDate == null
+                                    ? Colors.grey.shade600
+                                    : Colors.black87,
+                              ),
                             ),
-                          )),
+                          ),
                         ),
                       ],
                     ),
@@ -202,10 +198,7 @@ class OnboardScreen extends StatelessWidget {
                   decoration: InputDecoration(
                     hintText: 'Nhập biệt danh của bạn',
                     hintStyle: TextStyle(color: Colors.grey.shade600),
-                    prefixIcon: Icon(
-                      Icons.edit,
-                      color: Color(0xFF8B6F47),
-                    ),
+                    prefixIcon: Icon(Icons.edit, color: Color(0xFF8B6F47)),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -228,45 +221,47 @@ class OnboardScreen extends StatelessWidget {
                 const SizedBox(height: 40),
 
                 // Submit Button
-                Obx(() => SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: controller.canSubmit && !controller.isLoading
-                        ? () => controller.submit()
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: controller.canSubmit
-                          ? Color(0xFFFFD54F)
-                          : Colors.grey.shade300,
-                      foregroundColor: controller.canSubmit
-                          ? Color(0xFF8B6F47)
-                          : Colors.grey.shade600,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                Obx(
+                  () => SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: controller.canSubmit && !controller.isLoading
+                          ? () => controller.submit()
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: controller.canSubmit
+                            ? Color(0xFFFFD54F)
+                            : Colors.grey.shade300,
+                        foregroundColor: controller.canSubmit
+                            ? Color(0xFF8B6F47)
+                            : Colors.grey.shade600,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: controller.canSubmit ? 2 : 0,
                       ),
-                      elevation: controller.canSubmit ? 2 : 0,
-                    ),
-                    child: controller.isLoading
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Color(0xFF8B6F47),
+                      child: controller.isLoading
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF8B6F47),
+                                ),
+                              ),
+                            )
+                          : Text(
+                              'Bước sau',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          )
-                        : Text(
-                            'Bước sau',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                    ),
                   ),
-                )),
+                ),
                 const SizedBox(height: 40),
               ],
             ),
@@ -319,10 +314,7 @@ class _GenderBubble extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              emoji,
-              style: TextStyle(fontSize: 24),
-            ),
+            Text(emoji, style: TextStyle(fontSize: 24)),
             const SizedBox(width: 8),
             Text(
               label,
@@ -338,4 +330,3 @@ class _GenderBubble extends StatelessWidget {
     );
   }
 }
-
