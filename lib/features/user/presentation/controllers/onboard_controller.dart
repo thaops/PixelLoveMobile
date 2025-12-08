@@ -13,6 +13,13 @@ class OnboardController extends GetxController {
   final _selectedBirthDate = Rxn<DateTime>();
   final _nickname = ''.obs;
 
+  @override
+  void onInit() {
+    super.onInit();
+    // Mặc định chọn Nữ khi vào màn hình
+    _selectedGender.value = 'female';
+  }
+
   bool get isLoading => _isLoading.value;
   String get errorMessage => _errorMessage.value;
   String? get selectedGender => _selectedGender.value;
@@ -60,6 +67,8 @@ class OnboardController extends GetxController {
           Get.offAllNamed(AppRoutes.coupleConnection);
         },
         error: (error) {
+          Get.offAllNamed(AppRoutes.coupleConnection);
+
           _errorMessage.value = error.message;
         },
       );

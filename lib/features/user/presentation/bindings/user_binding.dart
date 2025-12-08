@@ -4,11 +4,14 @@ import 'package:pixel_love/core/services/storage_service.dart';
 import 'package:pixel_love/features/user/data/datasources/user_remote_datasource.dart';
 import 'package:pixel_love/features/user/data/repositories/user_repository_impl.dart';
 import 'package:pixel_love/features/user/domain/repositories/user_repository.dart';
+import 'package:pixel_love/core/services/socket_service.dart';
 import 'package:pixel_love/features/user/domain/usecases/complete_profile_usecase.dart';
+import 'package:pixel_love/features/user/domain/usecases/delete_account_usecase.dart';
 import 'package:pixel_love/features/user/domain/usecases/onboard_usecase.dart';
 import 'package:pixel_love/features/user/domain/usecases/update_profile_usecase.dart';
-import 'package:pixel_love/features/user/presentation/controllers/user_controller.dart';
 import 'package:pixel_love/features/user/presentation/controllers/onboard_controller.dart';
+import 'package:pixel_love/features/user/presentation/controllers/settings_controller.dart';
+import 'package:pixel_love/features/user/presentation/controllers/user_controller.dart';
 
 class UserBinding extends Bindings {
   @override
@@ -26,6 +29,7 @@ class UserBinding extends Bindings {
     Get.lazyPut(() => CompleteProfileUseCase(Get.find<UserRepository>()));
     Get.lazyPut(() => OnboardUseCase(Get.find<UserRepository>()));
     Get.lazyPut(() => UpdateProfileUseCase(Get.find<UserRepository>()));
+    Get.lazyPut(() => DeleteAccountUseCase(Get.find<UserRepository>()));
 
     Get.lazyPut(
       () => UserController(
@@ -38,6 +42,14 @@ class UserBinding extends Bindings {
     Get.lazyPut(
       () => OnboardController(
         Get.find<OnboardUseCase>(),
+      ),
+    );
+
+    Get.lazyPut(
+      () => SettingsController(
+        Get.find<DeleteAccountUseCase>(),
+        storageService,
+        Get.find<SocketService>(),
       ),
     );
   }

@@ -11,6 +11,7 @@ import 'package:pixel_love/features/startup/startup_binding.dart';
 import 'package:pixel_love/features/test_map/test_map.dart';
 import 'package:pixel_love/features/user/presentation/bindings/user_binding.dart';
 import 'package:pixel_love/features/user/presentation/pages/onboard_screen.dart';
+import 'package:pixel_love/features/user/presentation/pages/settings_screen.dart';
 import 'package:pixel_love/features/user/presentation/pages/user_profile_screen.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/views/home_screen.dart';
@@ -57,6 +58,11 @@ class AppPages {
       name: AppRoutes.pet,
       page: () => const PetScreen(),
       binding: PetBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.settings,
+      page: () => const SettingsScreen(),
+      bindings: [UserBinding()],
     ),
   ];
 }

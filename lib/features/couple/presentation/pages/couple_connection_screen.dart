@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pixel_love/core/theme/app_colors.dart';
+import 'package:pixel_love/core/widgets/love_background.dart';
 import 'package:pixel_love/features/couple/presentation/controllers/couple_connection_controller.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 
 class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
   const CoupleConnectionScreen({super.key});
@@ -8,29 +11,66 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E1), // Pastel yellow background
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                // Header
-                _buildHeader(),
-                const SizedBox(height: 32),
-                // Share Code Section
-                _buildShareCodeSection(),
-                const SizedBox(height: 24),
-                // Input Code Section
-                _buildInputCodeSection(),
-                const SizedBox(height: 24),
-                // Footer link
-                _buildFooterLink(),
-                const SizedBox(height: 40),
-              ],
-            ),
+      body: LoveBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 8.0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryPinkLight,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.settings,
+                          color: AppColors.primaryPink,
+                          size: 24,
+                        ),
+                      ),
+                      onPressed: () {
+                        Get.toNamed(AppRoutes.settings);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
+                        // Header
+                        _buildHeader(),
+                        const SizedBox(height: 24),
+                        // Share Code Section
+                        _buildShareCodeSection(),
+                        const SizedBox(height: 16),
+                        // Input Code Section
+                        _buildInputCodeSection(),
+                        const SizedBox(height: 16),
+                        // Footer link
+                        _buildFooterLink(),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -38,47 +78,33 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text(
-                    '💕',
-                    style: TextStyle(fontSize: 32),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Kết nối với bạn đời!',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF8B6F47),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Bạn sẽ trang trí không gian Couple2, nuôi thú cưng và ghi lại chuyện tình của mình.',
+        Row(
+          children: [
+            const Text('💕', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Kết nối với bạn đời!',
                 style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                  height: 1.4,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryPink,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        IconButton(
-          icon: const Icon(Icons.settings, color: Color(0xFF8B6F47)),
-          onPressed: () {
-            // TODO: Navigate to settings
-          },
+        const SizedBox(height: 6),
+        Text(
+          'Bạn sẽ trang trí không gian Couple2, nuôi thú cưng và ghi lại chuyện tình của mình.',
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
         ),
       ],
     );
@@ -92,107 +118,82 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
       }
 
       return Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          color: AppColors.backgroundWhite,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: AppColors.primaryPink.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Gửi mã ghép',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF4A4A4A),
+                color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 16),
-            // Code display
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFE5B4),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                code.code,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFFF6B35),
-                  letterSpacing: 2,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Copy button
+            const SizedBox(height: 12),
+            // Code display with copy button
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                SizedBox(width: 18),
+                Text(
+                  code.code,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryPink,
+                    letterSpacing: 2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(width: 8),
                 InkWell(
                   onTap: controller.copyCode,
                   child: Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFD700),
-                      shape: BoxShape.circle,
+                      color: AppColors.primaryPink.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.primaryPink),
                     ),
                     child: const Icon(
                       Icons.copy,
-                      color: Colors.white,
-                      size: 20,
+                      color: AppColors.primaryPink,
+                      size: 14,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            // QR Code placeholder
+            const SizedBox(height: 16),
+
+            // QR Code and Share button in row
             Container(
-              width: 150,
-              height: 150,
+              width: 100,
+              height: 100,
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: AppColors.backgroundLight,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: AppColors.borderLight),
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   Icons.qr_code,
-                  size: 80,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Share button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: controller.shareCode,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFE5B4),
-                  foregroundColor: const Color(0xFF8B6F47),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Gửi mã',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  size: 60,
+                  color: AppColors.textLight,
                 ),
               ),
             ),
@@ -204,13 +205,13 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
 
   Widget _buildInputCodeSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.backgroundWhite,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.primaryPink.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -219,15 +220,15 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Nhập mã ghép nối của đối tác bạn',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF4A4A4A),
+              color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           // Input field with scan button
           Row(
             children: [
@@ -236,12 +237,19 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
                   onChanged: controller.setInputCode,
                   decoration: InputDecoration(
                     hintText: 'Nhập mã ghép nối',
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    hintStyle: TextStyle(color: AppColors.textLight),
                     filled: true,
-                    fillColor: Colors.grey.shade50,
+                    fillColor: AppColors.backgroundLight,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: AppColors.primaryPink,
+                        width: 2,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -260,38 +268,43 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFE5B4),
+                    color: AppColors.primaryPinkLight,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.qr_code_scanner,
-                    color: Color(0xFF8B6F47),
+                    color: AppColors.primaryPink,
                     size: 24,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           // Partner preview
           Obx(() {
             final preview = controller.partnerPreview;
             if (preview?.partner != null) {
               return Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
+                  color: AppColors.gradientGreen,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 24,
+                      radius: 20,
+                      backgroundColor: AppColors.primaryPinkLight,
                       backgroundImage: preview!.partner!.avatar != null
                           ? NetworkImage(preview.partner!.avatar!)
                           : null,
                       child: preview.partner!.avatar == null
-                          ? const Icon(Icons.person)
+                          ? Icon(
+                              Icons.person,
+                              color: AppColors.primaryPink,
+                              size: 20,
+                            )
                           : null,
                     ),
                     const SizedBox(width: 12),
@@ -301,17 +314,18 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
                         children: [
                           Text(
                             preview.partner!.name ?? 'Người dùng',
-                            style: const TextStyle(
-                              fontSize: 16,
+                            style: TextStyle(
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           if (preview.partner!.email != null)
                             Text(
                               preview.partner!.email!,
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                         ],
@@ -323,29 +337,30 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
             }
             return const SizedBox.shrink();
           }),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           // Connect button
           Obx(() {
             final isLoading = controller.isLoading;
-            final canConnect = controller.canConnect &&
+            final canConnect =
+                controller.canConnect &&
                 controller.partnerPreview?.canPair == true;
 
             return SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: canConnect && !isLoading
-                    ? controller.connect
-                    : null,
+                onPressed: canConnect && !isLoading ? controller.connect : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: canConnect
-                      ? const Color(0xFFFF6B9D)
-                      : Colors.grey.shade300,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                      ? AppColors.primaryPink
+                      : AppColors.buttonDisabled,
+                  foregroundColor: canConnect
+                      ? AppColors.backgroundWhite
+                      : AppColors.buttonDisabledText,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: 0,
+                  elevation: canConnect ? 2 : 0,
                 ),
                 child: isLoading
                     ? const SizedBox(
@@ -353,7 +368,9 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Text(
@@ -377,11 +394,11 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
         onPressed: () {
           // TODO: Navigate to other flow
         },
-        child: const Text(
+        child: Text(
           'Chưa có bạn đời?',
           style: TextStyle(
             fontSize: 14,
-            color: Color(0xFFFF6B9D),
+            color: AppColors.primaryPink,
             decoration: TextDecoration.underline,
           ),
         ),
@@ -389,4 +406,3 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
     );
   }
 }
-

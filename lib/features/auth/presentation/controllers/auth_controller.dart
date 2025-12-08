@@ -84,7 +84,7 @@ class AuthController extends GetxController {
         if (response.needProfile) {
           Get.offAllNamed(AppRoutes.onboard);
         } else {
-          Get.offAllNamed(AppRoutes.onboard);
+          Get.offAllNamed(AppRoutes.home);
         }
       } else if (result.error != null) {
         _errorMessage.value = result.error!.message;

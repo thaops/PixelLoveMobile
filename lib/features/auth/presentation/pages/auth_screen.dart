@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pixel_love/core/theme/app_colors.dart';
+import 'package:pixel_love/core/widgets/love_background.dart';
 import 'package:pixel_love/features/auth/presentation/controllers/auth_controller.dart';
 
 class AuthScreen extends GetView<AuthController> {
@@ -9,78 +11,8 @@ class AuthScreen extends GetView<AuthController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFFE5F1), // Pastel pink
-                  const Color(0xFFFFF4E6), // Cream yellow
-                  const Color(0xFFE8F5E9), // Pastel green
-                ],
-              ),
-            ),
-          ),
-          // Decorative icons in background
-          Positioned(
-            top: 80,
-            right: 40,
-            child: Icon(
-              Icons.favorite,
-              size: 60,
-              color: Colors.pink.shade200.withOpacity(0.3),
-            ),
-          ),
-          Positioned(
-            top: 150,
-            left: 30,
-            child: Icon(
-              Icons.favorite_border,
-              size: 45,
-              color: Colors.purple.shade200.withOpacity(0.25),
-            ),
-          ),
-          Positioned(
-            top: 250,
-            right: 80,
-            child: Icon(
-              Icons.favorite,
-              size: 35,
-              color: Colors.red.shade200.withOpacity(0.2),
-            ),
-          ),
-          Positioned(
-            bottom: 200,
-            left: 50,
-            child: Icon(
-              Icons.favorite_border,
-              size: 50,
-              color: Colors.pink.shade200.withOpacity(0.25),
-            ),
-          ),
-          Positioned(
-            bottom: 350,
-            right: 20,
-            child: Icon(
-              Icons.favorite,
-              size: 40,
-              color: Colors.purple.shade200.withOpacity(0.2),
-            ),
-          ),
-          Positioned(
-            top: 100,
-            left: 80,
-            child: Icon(
-              Icons.favorite_border,
-              size: 30,
-              color: Colors.red.shade200.withOpacity(0.2),
-            ),
-          ),
-          SafeArea(child: _AuthScreenContent(controller: controller)),
-        ],
+      body: LoveBackground(
+        child: SafeArea(child: _AuthScreenContent(controller: controller)),
       ),
     );
   }
@@ -260,7 +192,7 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
         style: TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.w700,
-          color: const Color(0xFF4A4A4A),
+          color: AppColors.textPrimary,
           letterSpacing: -0.5,
           height: 1.2,
         ),
@@ -285,7 +217,7 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w400,
-            color: const Color(0xFF7A7A7A),
+            color: AppColors.textSecondary,
             height: 1.4,
           ),
           textAlign: TextAlign.left,
@@ -328,7 +260,7 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
                     onPressed: widget.controller.loginWithGoogle,
                     imagePath: 'assets/images/img-google.png',
                     label: 'Đăng nhập với Google',
-                    backgroundColor: const Color(0xFFFF6B9D),
+                    backgroundColor: AppColors.primaryPink,
                     textColor: Colors.white,
                   ),
                   // _buildPrimaryButton(
@@ -351,15 +283,15 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
                   ),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFEBEE),
+                    color: AppColors.errorBackground,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red.shade200, width: 1),
+                    border: Border.all(color: AppColors.iconRed, width: 1),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.error_outline,
-                        color: Colors.red.shade400,
+                        color: AppColors.errorIcon,
                         size: 20,
                       ),
                       const SizedBox(width: 12),
@@ -367,7 +299,7 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
                         child: Text(
                           widget.controller.errorMessage,
                           style: TextStyle(
-                            color: Colors.red.shade700,
+                            color: AppColors.errorText,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -398,8 +330,8 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
           height: 8,
           decoration: BoxDecoration(
             color: index == _currentPage
-                ? const Color(0xFFFF6B9D)
-                : const Color(0xFFE0E0E0),
+                ? AppColors.primaryPink
+                : AppColors.borderLight,
             borderRadius: BorderRadius.circular(4),
           ),
         );
@@ -435,7 +367,7 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
                 Text(
                   label,
                   style: TextStyle(
-                    color: const Color(0xFF4A4A4A),
+                    color: AppColors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
                     letterSpacing: 0.3,
@@ -444,45 +376,6 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
                 const SizedBox(width: 12),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSecondaryButton({
-    required VoidCallback onPressed,
-    required IconData icon,
-    required String label,
-  }) {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: const Color(0xFF7A7A7A), size: 24),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Color(0xFF4A4A4A),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
           ),
         ),
       ),
@@ -505,7 +398,7 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
             TextSpan(
               text: 'Điều khoản sử dụng',
               style: TextStyle(
-                color: const Color(0xFFFF6B9D),
+                color: AppColors.primaryPink,
                 fontWeight: FontWeight.w600,
                 decoration: TextDecoration.underline,
               ),
@@ -514,7 +407,7 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
             TextSpan(
               text: 'Chính sách bảo mật',
               style: TextStyle(
-                color: const Color(0xFFFF6B9D),
+                color: AppColors.primaryPink,
                 fontWeight: FontWeight.w600,
                 decoration: TextDecoration.underline,
               ),

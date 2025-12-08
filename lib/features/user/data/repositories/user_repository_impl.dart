@@ -110,4 +110,17 @@ class UserRepositoryImpl implements UserRepository {
       error: (error) => ApiResult.error(error),
     );
   }
+
+  @override
+  Future<ApiResult<void>> deleteAccount(String userId) async {
+    final result = await _remoteDataSource.deleteAccount(userId);
+    return result.when(
+      success: (_) {
+        // Clear all storage data after successful deletion
+        _storageService.clearAll();
+        return ApiResult.success(null);
+      },
+      error: (error) => ApiResult.error(error),
+    );
+  }
 }

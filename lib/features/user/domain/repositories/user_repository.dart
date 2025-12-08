@@ -12,4 +12,5 @@ abstract class UserRepository {
     required String gender,
     required String birthDate,
   });
+  Future<ApiResult<void>> deleteAccount(String userId);
 }

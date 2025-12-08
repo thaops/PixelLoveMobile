@@ -13,6 +13,7 @@ abstract class UserRemoteDataSource {
     required String gender,
     required String birthDate,
   });
+  Future<ApiResult<void>> deleteAccount(String userId);
 }
 
 class UserRemoteDataSourceImpl implements UserRemoteDataSource {
@@ -57,6 +58,14 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
         final userData = json['user'] ?? json;
         return UserDto.fromJson(userData);
       },
+    );
+  }
+
+  @override
+  Future<ApiResult<void>> deleteAccount(String userId) async {
+    return await _dioApi.delete(
+      '/users/$userId',
+      fromJson: (json) => null,
     );
   }
 }
