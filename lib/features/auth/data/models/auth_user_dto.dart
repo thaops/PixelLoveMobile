@@ -10,6 +10,8 @@ class AuthUserDto {
   final String mode;
   final String? coupleCode;
   final String? coupleRoomId;
+  final String? partnerId;
+  final bool isOnboarded;
   final int coins;
   final String accessToken;
 
@@ -23,21 +25,48 @@ class AuthUserDto {
     required this.mode,
     this.coupleCode,
     this.coupleRoomId,
+    this.partnerId,
+    this.isOnboarded = false,
     required this.coins,
     required this.accessToken,
   });
 
   factory AuthUserDto.fromJson(Map<String, dynamic> json) {
+    // Parse partnerId từ nhiều nguồn có thể
+    String? partnerId;
+
+    // Nguồn 1: partnerId ở root (backend đã làm sẵn)
+    if (json['partnerId'] != null) {
+      partnerId = json['partnerId'] as String;
+    }
+    // Nguồn 2: Parse từ couple.partners[] (nếu backend chưa có partnerId)
+    else if (json['couple'] != null && json['couple'] is Map) {
+      final couple = json['couple'] as Map<String, dynamic>;
+      final partners = couple['partners'] as List?;
+      if (partners != null && partners.isNotEmpty) {
+        // Lấy partner khác (không phải chính mình)
+        final currentUserId = json['id'] ?? json['_id'] ?? '';
+        for (var partner in partners) {
+          if (partner is Map && partner['id'] != currentUserId) {
+            partnerId = partner['id'] as String?;
+            break;
+          }
+        }
+      }
+    }
+
     return AuthUserDto(
       id: json['id'] ?? json['_id'] ?? '',
-      name: json['name'],
+      name: json['displayName'] ?? json['name'] ?? json['nickname'],
       email: json['email'],
-      avatar: json['avatar'],
-      dob: json['dob'],
+      avatar: json['avatarUrl'] ?? json['avatar'],
+      dob: json['birthDate'] ?? json['dob'],
       zodiac: json['zodiac'],
       mode: json['mode'] ?? 'solo',
       coupleCode: json['coupleCode'],
       coupleRoomId: json['coupleRoomId'],
+      partnerId: partnerId,
+      isOnboarded: json['isOnboarded'] ?? false,
       coins: json['coins'] ?? 0,
       accessToken: json['token'] ?? json['access_token'] ?? '',
     );
@@ -54,6 +83,8 @@ class AuthUserDto {
       'mode': mode,
       'coupleCode': coupleCode,
       'coupleRoomId': coupleRoomId,
+      'partnerId': partnerId,
+      'isOnboarded': isOnboarded,
       'coins': coins,
       'accessToken': accessToken,
     };
@@ -70,6 +101,8 @@ class AuthUserDto {
       mode: mode,
       coupleCode: coupleCode,
       coupleRoomId: coupleRoomId,
+      partnerId: partnerId,
+      isOnboarded: isOnboarded,
       coins: coins,
       accessToken: accessToken,
     );

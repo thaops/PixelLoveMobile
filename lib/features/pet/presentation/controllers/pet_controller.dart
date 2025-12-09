@@ -6,8 +6,13 @@ import 'package:pixel_love/features/pet/domain/usecases/get_pet_status_usecase.d
 class PetController extends GetxController {
   final GetPetStatusUseCase _getPetStatusUseCase;
   final FeedPetUseCase _feedPetUseCase;
+  final bool _autoFetch;
 
-  PetController(this._getPetStatusUseCase, this._feedPetUseCase);
+  PetController(
+    this._getPetStatusUseCase,
+    this._feedPetUseCase, {
+    bool autoFetch = true,
+  }) : _autoFetch = autoFetch;
 
   final _isLoading = false.obs;
   final _errorMessage = ''.obs;
@@ -30,7 +35,11 @@ class PetController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchPetStatus();
+    // Chỉ auto-fetch nếu được set flag autoFetch = true
+    // Khi vào home, HomeController sẽ gọi fetchPetStatus() sau khi home data load xong
+    if (_autoFetch) {
+      fetchPetStatus();
+    }
     // Note: Socket updates will trigger UI refresh via PetScreen pull-to-refresh
     // or manual refresh when user views the screen
   }

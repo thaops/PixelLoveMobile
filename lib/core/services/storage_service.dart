@@ -51,5 +51,43 @@ class StorageService {
     final token = getToken();
     return token != null && token.isNotEmpty;
   }
+
+  // Home data cache
+  Future<void> saveHomeData(Map<String, dynamic> homeData) async {
+    await _storage.write('home_data', jsonEncode(homeData));
+    await _storage.write('home_data_timestamp', DateTime.now().toIso8601String());
+  }
+
+  Map<String, dynamic>? getHomeData() {
+    final homeJson = _storage.read<String>('home_data');
+    if (homeJson == null || homeJson.isEmpty) return null;
+    
+    try {
+      return jsonDecode(homeJson) as Map<String, dynamic>;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  DateTime? getHomeDataTimestamp() {
+    final timestamp = _storage.read<String>('home_data_timestamp');
+    if (timestamp == null) return null;
+    try {
+      return DateTime.parse(timestamp);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  bool isHomeDataExpired({Duration expireAfter = const Duration(days: 1)}) {
+    final timestamp = getHomeDataTimestamp();
+    if (timestamp == null) return true;
+    return DateTime.now().difference(timestamp) > expireAfter;
+  }
+
+  Future<void> clearHomeData() async {
+    await _storage.remove('home_data');
+    await _storage.remove('home_data_timestamp');
+  }
 }
 

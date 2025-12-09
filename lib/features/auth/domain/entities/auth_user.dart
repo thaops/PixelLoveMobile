@@ -10,6 +10,8 @@ class AuthUser extends Equatable {
   final String mode;
   final String? coupleCode;
   final String? coupleRoomId;
+  final String? partnerId;
+  final bool isOnboarded;
   final int coins;
   final String accessToken;
 
@@ -23,6 +25,8 @@ class AuthUser extends Equatable {
     required this.mode,
     this.coupleCode,
     this.coupleRoomId,
+    this.partnerId,
+    this.isOnboarded = false,
     required this.coins,
     required this.accessToken,
   });
@@ -36,6 +40,8 @@ class AuthUser extends Equatable {
     String? mode,
     String? coupleCode,
     String? coupleRoomId,
+    String? partnerId,
+    bool? isOnboarded,
     int? coins,
   }) {
     return AuthUser(
@@ -48,6 +54,8 @@ class AuthUser extends Equatable {
       mode: mode ?? this.mode,
       coupleCode: coupleCode ?? this.coupleCode,
       coupleRoomId: coupleRoomId ?? this.coupleRoomId,
+      partnerId: partnerId ?? this.partnerId,
+      isOnboarded: isOnboarded ?? this.isOnboarded,
       coins: coins ?? this.coins,
       accessToken: accessToken,
     );
@@ -64,6 +72,8 @@ class AuthUser extends Equatable {
       'mode': mode,
       'coupleCode': coupleCode,
       'coupleRoomId': coupleRoomId,
+      'partnerId': partnerId,
+      'isOnboarded': isOnboarded,
       'coins': coins,
       'accessToken': accessToken,
     };
@@ -80,6 +90,8 @@ class AuthUser extends Equatable {
       mode: json['mode'] ?? 'solo',
       coupleCode: json['coupleCode'],
       coupleRoomId: json['coupleRoomId'],
+      partnerId: json['partnerId'],
+      isOnboarded: json['isOnboarded'] ?? false,
       coins: json['coins'] ?? 0,
       accessToken: json['accessToken'] ?? '',
     );
@@ -96,6 +108,8 @@ class AuthUser extends Equatable {
         mode,
         coupleCode,
         coupleRoomId,
+        partnerId,
+        isOnboarded,
         coins,
         accessToken,
       ];

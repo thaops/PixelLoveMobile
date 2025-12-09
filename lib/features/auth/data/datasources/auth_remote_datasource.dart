@@ -25,7 +25,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<ApiResult<AuthUserDto>> getMe() async {
     return await _dioApi.get(
-      '/auth/me',
+      '/users/me',
       fromJson: (json) {
         final userData = json['user'] ?? json;
         return AuthUserDto.fromJson(userData);

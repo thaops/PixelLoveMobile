@@ -81,10 +81,22 @@ class AuthController extends GetxController {
 
         await _socketService.connectEvents();
 
-        if (response.needProfile) {
+        final user = response.user;
+
+        if (!user.isOnboarded) {
           Get.offAllNamed(AppRoutes.onboard);
+        } else if (user.mode == 'solo') {
+          Get.offAllNamed(AppRoutes.coupleConnection);
+        } else if (user.mode == 'couple') {
+          final hasPartner =
+              user.partnerId != null && user.partnerId!.isNotEmpty;
+          if (!hasPartner) {
+            Get.offAllNamed(AppRoutes.coupleConnection);
+          } else {
+            Get.offAllNamed(AppRoutes.home);
+          }
         } else {
-          Get.offAllNamed(AppRoutes.home);
+          Get.offAllNamed(AppRoutes.coupleConnection);
         }
       } else if (result.error != null) {
         _errorMessage.value = result.error!.message;

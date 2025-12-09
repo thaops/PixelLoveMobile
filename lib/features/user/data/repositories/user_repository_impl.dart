@@ -32,6 +32,7 @@ class UserRepositoryImpl implements UserRepository {
         final existingAuthUser = _storageService.getUser();
 
         // Create/Update AuthUser with new user data
+        // Preserve partnerId and isOnboarded from existing user if available
         final authUser = AuthUser(
           id: user.id,
           name: user.name,
@@ -42,6 +43,8 @@ class UserRepositoryImpl implements UserRepository {
           mode: user.mode,
           coupleCode: user.coupleCode,
           coupleRoomId: user.coupleRoomId,
+          partnerId: existingAuthUser?.partnerId,
+          isOnboarded: existingAuthUser?.isOnboarded ?? false,
           coins: user.coins,
           accessToken: existingAuthUser?.accessToken ?? token,
         );
@@ -88,6 +91,7 @@ class UserRepositoryImpl implements UserRepository {
         final existingAuthUser = _storageService.getUser();
 
         // Create/Update AuthUser with new user data
+        // Preserve partnerId and isOnboarded from existing user if available
         final authUser = AuthUser(
           id: user.id,
           name: user.name,
@@ -98,6 +102,8 @@ class UserRepositoryImpl implements UserRepository {
           mode: user.mode,
           coupleCode: user.coupleCode,
           coupleRoomId: user.coupleRoomId,
+          partnerId: existingAuthUser?.partnerId,
+          isOnboarded: existingAuthUser?.isOnboarded ?? false,
           coins: user.coins,
           accessToken: existingAuthUser?.accessToken ?? token,
         );
