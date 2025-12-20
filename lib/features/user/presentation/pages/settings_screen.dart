@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
 import 'package:pixel_love/features/user/presentation/notifiers/settings_notifier.dart';
 import 'package:pixel_love/features/user/providers/user_providers.dart';
@@ -19,11 +20,26 @@ class SettingsScreen extends ConsumerWidget {
           !next.isLoading &&
           next.errorMessage == null) {
         // Account deleted successfully - navigate to login
-        context.go('/login');
+        context.go(AppRoutes.login);
       }
     });
-    return Scaffold(
-      body: LoveBackground(
+    
+    final canPop = context.canPop();
+    
+    return PopScope(
+      canPop: canPop,
+      onPopInvoked: (didPop) {
+        if (!didPop && !canPop) {
+          // If cannot pop, navigate to home instead of exiting app
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              context.go(AppRoutes.home);
+            }
+          });
+        }
+      },
+      child: Scaffold(
+        body: LoveBackground(
         child: SafeArea(
           child: Column(
             children: [
@@ -40,7 +56,13 @@ class SettingsScreen extends ConsumerWidget {
                         Icons.arrow_back,
                         color: AppColors.primaryPink,
                       ),
-                      onPressed: () => context.pop(),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go(AppRoutes.home);
+                        }
+                      },
                     ),
                     Text(
                       'Cài đặt',
@@ -195,6 +217,7 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

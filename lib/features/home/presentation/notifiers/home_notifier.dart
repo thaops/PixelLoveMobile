@@ -37,11 +37,14 @@ class HomeState {
 class HomeNotifier extends Notifier<HomeState> {
   @override
   HomeState build() {
-    // Load from cache immediately on init
-    _loadFromCache();
-    
-    // Start silent update from API
-    _silentUpdateFromAPI();
+    // Load from cache and update from API after build completes
+    // Use Future.microtask to avoid reading state before initialization
+    Future.microtask(() {
+      // Load cache first (synchronous)
+      _loadFromCache();
+      // Then update from API (asynchronous)
+      _silentUpdateFromAPI();
+    });
     
     return const HomeState();
   }

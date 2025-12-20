@@ -56,8 +56,11 @@ class PetAlbumNotifier extends Notifier<PetAlbumState> {
     // Setup socket listener
     _listenSocketEvents();
     
-    // Load initial images
-    loadImages();
+    // Load initial images after build completes
+    // Use Future.microtask to avoid reading state before initialization
+    Future.microtask(() {
+      loadImages();
+    });
     
     return const PetAlbumState();
   }

@@ -14,11 +14,7 @@ class StartupState {
   final String? errorMessage;
   final AuthUser? user;
 
-  const StartupState({
-    this.isLoading = true,
-    this.errorMessage,
-    this.user,
-  });
+  const StartupState({this.isLoading = true, this.errorMessage, this.user});
 
   StartupState copyWith({
     bool? isLoading,
@@ -39,10 +35,10 @@ class StartupNotifier extends AsyncNotifier<StartupState> {
   Future<StartupState> build() async {
     // Initial state
     state = const AsyncValue.data(StartupState(isLoading: true));
-    
+
     // Start initialization
     await _initializeApp();
-    
+
     // Return final state
     return state.value ?? const StartupState(isLoading: false);
   }
@@ -52,24 +48,44 @@ class StartupNotifier extends AsyncNotifier<StartupState> {
       await Future.delayed(const Duration(seconds: 1)); // Splash delay
 
       final storageService = ref.read(storageServiceProvider);
-      
+
       // Step 1: Check if user has token
       final token = storageService.getToken();
 
+      // Debug: Log token status
+      print('🔍 [Startup] Checking token...');
+      print('   - Token is null: ${token == null}');
+      print('   - Token is empty: ${token?.isEmpty ?? true}');
+      if (token != null && token.isNotEmpty) {
+        print('   - Token length: ${token.length}');
+        print(
+          '   - Token preview: ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
+        );
+      }
+
       if (token == null || token.isEmpty) {
-        print('❌ No token found, navigate to login');
+        print(
+          '❌ [Startup] No token found, clearing all data and navigate to login',
+        );
+        print(
+          '   - Reason: ${token == null ? "Token is null" : "Token is empty"}',
+        );
+
+        // Clear all data to ensure clean state
+        await storageService.clearAll();
+
         state = AsyncValue.data(
           const StartupState(isLoading: false, errorMessage: null),
         );
         return;
       }
 
-      print('✅ Token found, checking user status...');
+      print('✅ [Startup] Token found, checking user status...');
 
       // 🚀 PARALLEL: API call + Preload assets
       final dioApi = ref.read(dioApiProvider);
       final getMeUseCase = ref.read(getMeUseCaseProvider);
-      
+
       // Start both tasks simultaneously
       final results = await Future.wait([
         // Task 1: Get user info
@@ -82,14 +98,14 @@ class StartupNotifier extends AsyncNotifier<StartupState> {
 
       userResult.when(
         success: (user) {
-          print('✅ User loaded: name=${user.name}, mode=${user.mode}, isOnboarded=${user.isOnboarded}');
+          print(
+            '✅ User loaded: name=${user.name}, mode=${user.mode}, isOnboarded=${user.isOnboarded}',
+          );
 
           // Save user to storage
           storageService.saveUser(user);
 
-          state = AsyncValue.data(
-            StartupState(isLoading: false, user: user),
-          );
+          state = AsyncValue.data(StartupState(isLoading: false, user: user));
         },
         error: (error) {
           print('❌ Get me error: ${error.message}');
@@ -101,20 +117,14 @@ class StartupNotifier extends AsyncNotifier<StartupState> {
           }
 
           state = AsyncValue.data(
-            StartupState(
-              isLoading: false,
-              errorMessage: error.message,
-            ),
+            StartupState(isLoading: false, errorMessage: error.message),
           );
         },
       );
     } catch (e) {
       print('❌ Startup error: $e');
       state = AsyncValue.data(
-        StartupState(
-          isLoading: false,
-          errorMessage: 'Unexpected error: $e',
-        ),
+        StartupState(isLoading: false, errorMessage: 'Unexpected error: $e'),
       );
     }
   }
@@ -134,22 +144,22 @@ class StartupNotifier extends AsyncNotifier<StartupState> {
         success: (homeDto) {
           // Save to cache
           storageService.saveHomeData(homeDto.toJson());
-          
+
           // Collect all image URLs
           final imageUrls = <String>[];
-          
+
           // Background image
           if (homeDto.background.imageUrl.isNotEmpty) {
             imageUrls.add(homeDto.background.imageUrl);
           }
-          
+
           // Object images
           for (final obj in homeDto.objects) {
             if (obj.imageUrl.isNotEmpty) {
               imageUrls.add(obj.imageUrl);
             }
           }
-          
+
           // Preload all images in parallel (non-blocking)
           if (imageUrls.isNotEmpty) {
             ImagePreloadService.preloadImages(imageUrls);
@@ -167,4 +177,3 @@ class StartupNotifier extends AsyncNotifier<StartupState> {
     }
   }
 }
-

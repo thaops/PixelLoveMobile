@@ -48,8 +48,11 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
     // Setup socket listeners
     _setupSocketListeners();
     
-    // Check and initialize
-    _checkAndInitialize();
+    // Check and initialize after build completes
+    // Use Future.microtask to avoid reading state before initialization
+    Future.microtask(() {
+      _checkAndInitialize();
+    });
     
     return const CoupleConnectionState();
   }

@@ -58,7 +58,13 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
     cameraState.when(
       onPhotoMode: (photoState) {
         _photoState = photoState;
-        state = state.copyWith(flashMode: photoState.sensorConfig.flashMode);
+        final newFlashMode = photoState.sensorConfig.flashMode;
+        // Only update if flashMode changed and delay to avoid modifying during build
+        if (state.flashMode != newFlashMode) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            state = state.copyWith(flashMode: newFlashMode);
+          });
+        }
       },
     );
   }
@@ -128,6 +134,14 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
     );
   }
 
+  void setPreviewFile(File file) {
+    state = state.copyWith(
+      previewFile: file,
+      capturedAt: DateTime.now(),
+      isPreviewMode: true,
+    );
+  }
+
   Future<void> send() async {
     if (state.previewFile == null) return;
     if (state.isSending) return;
@@ -137,7 +151,9 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
       final cloudinaryService = ref.read(cloudinaryUploadServiceProvider);
       final sendImageUseCase = ref.read(sendImageToPetUseCaseProvider);
 
-      final uploadResult = await cloudinaryService.uploadImage(state.previewFile!);
+      final uploadResult = await cloudinaryService.uploadImage(
+        state.previewFile!,
+      );
 
       await uploadResult.when(
         success: (url) async {
@@ -150,8 +166,10 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
 
           apiResult.when(
             success: (_) {
+              // Reset preview and stop loading
               resetPreview();
-              // Success message sẽ được handle ở UI layer
+              state = state.copyWith(isSending: false);
+              // Success message và navigation sẽ được handle ở UI layer
             },
             error: (failure) {
               // Error message sẽ được handle ở UI layer
@@ -185,4 +203,3 @@ final petCaptureNotifierDisposerProvider = Provider<void>((ref) {
     notifier.captionController.dispose();
   });
 });
-

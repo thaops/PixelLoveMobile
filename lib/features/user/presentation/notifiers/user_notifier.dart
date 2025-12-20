@@ -32,7 +32,11 @@ class UserState {
 class UserNotifier extends Notifier<UserState> {
   @override
   UserState build() {
-    _loadUserFromStorage();
+    // Load user from storage after build completes
+    // Use Future.microtask to avoid reading state before initialization
+    Future.microtask(() {
+      _loadUserFromStorage();
+    });
     return const UserState();
   }
 

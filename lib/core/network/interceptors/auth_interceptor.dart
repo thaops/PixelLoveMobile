@@ -20,6 +20,8 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 401) {
+      print('🚨 [AuthInterceptor] 401 Unauthorized - removing token');
+      print('   - Request URL: ${err.requestOptions.uri}');
       _storageService.removeToken();
     }
     super.onError(err, handler);

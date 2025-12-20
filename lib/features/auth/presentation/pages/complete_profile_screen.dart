@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/features/user/presentation/notifiers/user_notifier.dart';
 import 'package:pixel_love/features/user/providers/user_providers.dart';
 
@@ -77,7 +78,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
     ref.listen<UserState>(userNotifierProvider, (previous, next) {
       if (previous?.isLoading == true && !next.isLoading && next.errorMessage == null) {
         // Success - navigate to home
-        context.go('/home');
+        context.go(AppRoutes.home);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Profile completed! Welcome ${next.currentUser?.name ?? ''}'),

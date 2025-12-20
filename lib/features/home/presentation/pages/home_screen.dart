@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/features/home/domain/entities/home.dart';
 import 'package:pixel_love/features/home/providers/home_providers.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
@@ -111,71 +112,71 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         return Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => context.go('/profile'),
+                            onTap: () => context.go(AppRoutes.profile),
                             borderRadius: BorderRadius.circular(24),
                             child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.3),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 2,
                                 ),
-                              ],
-                            ),
-                            child: ClipOval(
-                              child: avatarUrl != null && avatarUrl.isNotEmpty
-                                  ? Image.network(
-                                      avatarUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                            return Container(
-                                              color: Colors.grey.shade300,
-                                              child: const Icon(
-                                                Icons.account_circle,
-                                                color: Colors.grey,
-                                                size: 28,
-                                              ),
-                                            );
-                                          },
-                                      loadingBuilder:
-                                          (context, child, loadingProgress) {
-                                            if (loadingProgress == null)
-                                              return child;
-                                            return Container(
-                                              color: Colors.grey.shade300,
-                                              child: const Center(
-                                                child: SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: Colors.white,
-                                                      ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: ClipOval(
+                                child: avatarUrl != null && avatarUrl.isNotEmpty
+                                    ? Image.network(
+                                        avatarUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return Container(
+                                                color: Colors.grey.shade300,
+                                                child: const Icon(
+                                                  Icons.account_circle,
+                                                  color: Colors.grey,
+                                                  size: 28,
                                                 ),
-                                              ),
-                                            );
-                                          },
-                                    )
-                                  : Container(
-                                      color: Colors.grey.shade300,
-                                      child: const Icon(
-                                        Icons.account_circle,
-                                        color: Colors.grey,
-                                        size: 28,
+                                              );
+                                            },
+                                        loadingBuilder:
+                                            (context, child, loadingProgress) {
+                                              if (loadingProgress == null)
+                                                return child;
+                                              return Container(
+                                                color: Colors.grey.shade300,
+                                                child: const Center(
+                                                  child: SizedBox(
+                                                    width: 20,
+                                                    height: 20,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color: Colors.white,
+                                                        ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                      )
+                                    : Container(
+                                        color: Colors.grey.shade300,
+                                        child: const Icon(
+                                          Icons.account_circle,
+                                          color: Colors.grey,
+                                          size: 28,
+                                        ),
                                       ),
-                                    ),
+                              ),
                             ),
-                          ),
                           ),
                         );
                       },
@@ -269,11 +270,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     top: obj.y * scaleY,
                     width: obj.width * scaleX,
                     height: obj.height * scaleY,
-                      child: GestureDetector(
+                    child: GestureDetector(
                       onTap: () {
                         // Nếu object là pet, navigate đến pet scene
                         if (obj.type == 'pet') {
-                          context.go('/pet-scene');
+                          context.go(AppRoutes.petScene);
                         }
                       },
                       child: ClipRect(
@@ -322,7 +323,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             color: AppColors.primaryPink,
             shadowColor: Colors.black54,
             child: InkWell(
-              onTap: () => context.go('/pet-capture'),
+              onTap: () => context.go(AppRoutes.petCapture),
               customBorder: const CircleBorder(),
               child: Container(
                 width: 72,

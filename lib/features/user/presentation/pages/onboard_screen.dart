@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
 import 'package:pixel_love/features/user/presentation/notifiers/onboard_notifier.dart';
@@ -19,10 +20,10 @@ class OnboardScreen extends ConsumerWidget {
       if (previous?.isLoading == true && !next.isLoading) {
         if (next.errorMessage == null) {
           // Success - navigate to couple connection
-          context.go('/couple-connection');
+          context.go(AppRoutes.coupleConnection);
         } else {
           // Error - still navigate but show error
-          context.go('/couple-connection');
+          context.go(AppRoutes.coupleConnection);
         }
       }
     });

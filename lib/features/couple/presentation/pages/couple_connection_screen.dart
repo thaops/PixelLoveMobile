@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
 import 'package:pixel_love/features/couple/presentation/notifiers/couple_connection_notifier.dart';
@@ -25,7 +26,7 @@ class CoupleConnectionScreen extends ConsumerWidget {
           authUser?.partnerId != null && authUser!.partnerId!.isNotEmpty;
 
       if (hasCoupleRoom || hasPartner) {
-        context.go('/home');
+        context.go(AppRoutes.home);
       }
 
       // Handle couple paired event
@@ -38,7 +39,7 @@ class CoupleConnectionScreen extends ConsumerWidget {
             newUser!.coupleRoomId!.isNotEmpty) {
           Future.delayed(const Duration(seconds: 2), () {
             if (context.mounted) {
-              context.go('/home');
+              context.go(AppRoutes.home);
             }
           });
         }
@@ -73,7 +74,7 @@ class CoupleConnectionScreen extends ConsumerWidget {
                         ),
                       ),
                       onPressed: () {
-                        context.go('/settings');
+                        context.go(AppRoutes.settings);
                       },
                     ),
                   ],

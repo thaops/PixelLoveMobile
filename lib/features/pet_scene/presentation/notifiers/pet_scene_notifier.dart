@@ -31,8 +31,11 @@ class PetSceneState {
 class PetSceneNotifier extends Notifier<PetSceneState> {
   @override
   PetSceneState build() {
-    // Load pet scene on init
-    fetchPetScene();
+    // Load pet scene after build completes
+    // Use Future.microtask to avoid reading state before initialization
+    Future.microtask(() {
+      fetchPetScene();
+    });
     return const PetSceneState();
   }
 
@@ -45,17 +48,11 @@ class PetSceneNotifier extends Notifier<PetSceneState> {
 
       result.when(
         success: (petScene) {
-          state = state.copyWith(
-            petSceneData: petScene,
-            isLoading: false,
-          );
+          state = state.copyWith(petSceneData: petScene, isLoading: false);
           print('✅ Pet scene loaded: ${petScene.objects.length} objects');
         },
         error: (error) {
-          state = state.copyWith(
-            errorMessage: error.message,
-            isLoading: false,
-          );
+          state = state.copyWith(errorMessage: error.message, isLoading: false);
           print('❌ Pet scene error: ${error.message}');
         },
       );
@@ -68,4 +65,3 @@ class PetSceneNotifier extends Notifier<PetSceneState> {
     }
   }
 }
-

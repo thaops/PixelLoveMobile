@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
 import 'package:pixel_love/features/auth/notifiers/auth_notifier.dart';
 import 'package:pixel_love/features/auth/providers/auth_providers.dart';
@@ -237,20 +238,20 @@ class _AuthScreenContentState extends ConsumerState<_AuthScreenContent> {
           
           // Navigate based on user state
           if (!user.isOnboarded) {
-            context.go('/onboard');
+            context.go(AppRoutes.onboard);
           } else if (user.mode == 'solo') {
-            context.go('/couple-connection');
+            context.go(AppRoutes.coupleConnection);
           } else if (user.mode == 'couple') {
             final hasPartner = user.partnerId != null && user.partnerId!.isNotEmpty;
             final hasCoupleRoom = user.coupleRoomId != null && user.coupleRoomId!.isNotEmpty;
             
             if (hasCoupleRoom || hasPartner) {
-              context.go('/home');
+              context.go(AppRoutes.home);
             } else {
-              context.go('/couple-connection');
+              context.go(AppRoutes.coupleConnection);
             }
           } else {
-            context.go('/couple-connection');
+            context.go(AppRoutes.coupleConnection);
           }
         }
       }

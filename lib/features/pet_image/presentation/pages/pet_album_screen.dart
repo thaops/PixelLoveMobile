@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
 import 'package:pixel_love/features/pet_image/domain/entities/pet_image.dart';
 import 'package:pixel_love/features/pet_image/presentation/models/timeline_item.dart';
@@ -20,121 +21,145 @@ class PetAlbumScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final albumState = ref.watch(petAlbumNotifierProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: LoveBackground(
-        child: AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle.light.copyWith(
-            statusBarColor: Colors.transparent,
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 16, 12),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        padding: const EdgeInsets.all(8),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.08),
+    final canPop = context.canPop();
+
+    return PopScope(
+      canPop: canPop,
+      onPopInvoked: (didPop) {
+        if (!didPop && !canPop) {
+          // If cannot pop, navigate to home instead of exiting app
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              context.go(AppRoutes.home);
+            }
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: LoveBackground(
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 16, 12),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          padding: const EdgeInsets.all(8),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.08),
+                          ),
+                          onPressed: () {
+                            // Check if can pop, otherwise navigate to home
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.go(AppRoutes.home);
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: AppColors.primaryPinkDark,
+                          ),
                         ),
-                        onPressed: () => context.pop(),
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: AppColors.primaryPinkDark,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(child: PetMiniStatusBar()),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(child: PetMiniStatusBar()),
+                      ],
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      if (albumState.isLoading && albumState.images.isEmpty) {
-                        return const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        );
-                      }
+                  Expanded(
+                    child: Builder(
+                      builder: (context) {
+                        if (albumState.isLoading && albumState.images.isEmpty) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          );
+                        }
 
-                      if (albumState.isEmpty) {
-                        return _buildEmptyState();
-                      }
+                        if (albumState.isEmpty) {
+                          return _buildEmptyState();
+                        }
 
-                      final timelineItems = ref
-                          .read(petAlbumNotifierProvider.notifier)
-                          .buildTimelineItems();
+                        final timelineItems = ref
+                            .read(petAlbumNotifierProvider.notifier)
+                            .buildTimelineItems();
 
-                      return Container(
-                        color: Colors.white.withOpacity(0.08),
-                        child: RefreshIndicator(
-                          onRefresh: () => ref
-                              .read(petAlbumNotifierProvider.notifier)
-                              .refresh(),
-                          color: AppColors.primaryPink,
-                          child: CustomScrollView(
-                            slivers: [
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 4,
-                                ),
-                                sliver: SliverList(
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
-                                      if (index < timelineItems.length) {
-                                        final item = timelineItems[index];
-                                        final nextItem =
-                                            index < timelineItems.length - 1
-                                            ? timelineItems[index + 1]
-                                            : null;
-                                        return _buildTimelineItem(
-                                          context,
-                                          item,
-                                          nextItem: nextItem,
-                                        );
-                                      } else if (albumState.hasMore) {
-                                        WidgetsBinding.instance
-                                            .addPostFrameCallback((_) {
-                                              ref
-                                                  .read(
-                                                    petAlbumNotifierProvider
-                                                        .notifier,
-                                                  )
-                                                  .loadMore();
-                                            });
-                                        return _buildLoadingMoreIndicator();
-                                      } else {
-                                        return const SizedBox.shrink();
-                                      }
-                                    },
-                                    childCount:
-                                        timelineItems.length +
-                                        (albumState.hasMore ? 1 : 0),
+                        return Container(
+                          color: Colors.white.withOpacity(0.08),
+                          child: RefreshIndicator(
+                            onRefresh: () => ref
+                                .read(petAlbumNotifierProvider.notifier)
+                                .refresh(),
+                            color: AppColors.primaryPink,
+                            child: CustomScrollView(
+                              slivers: [
+                                SliverPadding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 4,
                                   ),
-                                ),
-                              ),
-                              if (albumState.isLoadingMore)
-                                const SliverToBoxAdapter(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16),
-                                    child: Center(
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                      ),
+                                  sliver: SliverList(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) {
+                                        if (index < timelineItems.length) {
+                                          final item = timelineItems[index];
+                                          final nextItem =
+                                              index < timelineItems.length - 1
+                                              ? timelineItems[index + 1]
+                                              : null;
+                                          return _buildTimelineItem(
+                                            context,
+                                            item,
+                                            nextItem: nextItem,
+                                          );
+                                        } else if (albumState.hasMore) {
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                                ref
+                                                    .read(
+                                                      petAlbumNotifierProvider
+                                                          .notifier,
+                                                    )
+                                                    .loadMore();
+                                              });
+                                          return _buildLoadingMoreIndicator();
+                                        } else {
+                                          return const SizedBox.shrink();
+                                        }
+                                      },
+                                      childCount:
+                                          timelineItems.length +
+                                          (albumState.hasMore ? 1 : 0),
                                     ),
                                   ),
                                 ),
-                            ],
+                                if (albumState.isLoadingMore)
+                                  const SliverToBoxAdapter(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

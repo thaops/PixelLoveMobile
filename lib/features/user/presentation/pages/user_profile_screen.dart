@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixel_love/features/auth/providers/auth_providers.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/features/user/providers/user_providers.dart';
 
 class UserProfileScreen extends ConsumerWidget {
@@ -149,7 +150,7 @@ class UserProfileScreen extends ConsumerWidget {
             onPressed: () {
               Navigator.of(context).pop();
               ref.read(authNotifierProvider.notifier).logout();
-              context.go('/login');
+              context.go(AppRoutes.login);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

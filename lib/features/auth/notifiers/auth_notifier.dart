@@ -36,8 +36,11 @@ class AuthState {
 class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
-    // Load user from storage on init
-    _loadUserFromStorage();
+    // Load user from storage after build completes
+    // Use Future.microtask to avoid reading state before initialization
+    Future.microtask(() {
+      _loadUserFromStorage();
+    });
     return const AuthState();
   }
 

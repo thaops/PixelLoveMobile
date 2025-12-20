@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixel_love/features/pet_scene/domain/entities/pet_scene.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/features/pet_scene/providers/pet_scene_providers.dart';
 
 class PetSceneScreen extends ConsumerStatefulWidget {
@@ -26,78 +27,100 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
+    final canPop = context.canPop();
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      extendBodyBehindAppBar: true,
-      extendBody: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () => context.go('/pet-album'),
-            icon: const Icon(Icons.photo_library, color: Colors.white),
-            tooltip: 'Xem Album Kỷ Niệm',
+    return PopScope(
+      canPop: canPop,
+      onPopInvoked: (didPop) {
+        if (!didPop && !canPop) {
+          // If cannot pop, navigate to home instead of exiting app
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && context.mounted) {
+              context.go(AppRoutes.home);
+            }
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        extendBodyBehindAppBar: true,
+        extendBody: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.home);
+              }
+            },
           ),
-        ],
-      ),
-      body: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light.copyWith(
-          statusBarColor: Colors.transparent,
+          actions: [
+            IconButton(
+              onPressed: () => context.go(AppRoutes.petAlbum),
+              icon: const Icon(Icons.photo_library, color: Colors.white),
+              tooltip: 'Xem Album Kỷ Niệm',
+            ),
+          ],
         ),
-        child: Builder(
-          builder: (context) {
-            final sceneState = ref.watch(petSceneNotifierProvider);
-            
-            if (sceneState.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              );
-            }
+        body: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle.light.copyWith(
+            statusBarColor: Colors.transparent,
+          ),
+          child: Builder(
+            builder: (context) {
+              final sceneState = ref.watch(petSceneNotifierProvider);
 
-            final petSceneData = sceneState.petSceneData;
-            if (petSceneData == null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      sceneState.errorMessage ?? 'Failed to load pet scene',
-                      style: const TextStyle(color: Colors.white),
+              if (sceneState.isLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                );
+              }
+
+              final petSceneData = sceneState.petSceneData;
+              if (petSceneData == null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        sceneState.errorMessage ?? 'Failed to load pet scene',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref
+                              .read(petSceneNotifierProvider.notifier)
+                              .fetchPetScene();
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return Stack(
+                children: [
+                  _buildInteractiveViewer(screenSize, petSceneData),
+
+                  // Pet status info overlay (bottom)
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: SafeArea(
+                      child: _buildPetStatusCard(petSceneData.petStatus),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        ref.read(petSceneNotifierProvider.notifier).fetchPetScene();
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               );
-            }
-
-          return Stack(
-            children: [
-              _buildInteractiveViewer(screenSize, petSceneData),
-
-              // Pet status info overlay (bottom)
-              Positioned(
-                bottom: 16,
-                left: 16,
-                right: 16,
-                child: SafeArea(
-                  child: _buildPetStatusCard(petSceneData.petStatus),
-                ),
-              ),
-            ],
-          );
-          },
+            },
+          ),
         ),
       ),
     );
