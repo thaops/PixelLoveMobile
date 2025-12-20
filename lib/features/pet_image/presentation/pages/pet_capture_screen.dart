@@ -89,28 +89,53 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
         backgroundColor: Colors.black,
         body: SafeArea(
           child: CameraAwesomeBuilder.custom(
-            saveConfig: SaveConfig.photo(),
+            saveConfig: SaveConfig.photo(
+              // Giảm độ phân giải capture để tránh crash
+              // Resolution sẽ được tự động scale xuống mức hợp lý
+            ),
             previewFit: CameraPreviewFit.cover,
+            // Cấu hình sensor để giảm độ phân giải preview, tránh crash camera
+            sensorConfig: SensorConfig.single(
+              sensor: Sensor.position(SensorPosition.back),
+              aspectRatio: CameraAspectRatios.ratio_4_3,
+              flashMode: FlashMode.auto,
+            ),
             builder: (cameraState, preview) {
               final captureNotifier = ref.read(
                 petCaptureNotifierProvider.notifier,
               );
               captureNotifier.attachState(cameraState);
 
+              // Debug: Kiểm tra preview type
+              debugPrint('🔍 Preview type: ${preview.runtimeType}');
+              debugPrint('🔍 Preview is Widget: ${preview is Widget}');
+              if (preview is! Widget) {
+                debugPrint('🔍 Preview toString: ${preview.toString()}');
+              }
+
               return Stack(
                 children: [
+                  // Mask để che phần preview ngoài container
+                  // Tạo hiệu ứng "cửa sổ" để chỉ hiển thị preview trong container
+                  _buildPreviewMask(),
+
                   Column(
                     children: [
-                      // Header với Avatar, Audience, Menu
-                      if (!captureState.isPreviewMode) _buildHeader(),
+                      // Header mới với Flash và Zoom
+                      if (!captureState.isPreviewMode)
+                        _buildNewHeader(captureState, captureNotifier),
 
                       // Camera preview container
                       Expanded(
-                        child: Center(
-                          child: _buildCameraContainer(
-                            preview,
-                            captureState,
-                            captureNotifier,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: Center(
+                            child: _buildCameraContainer(
+                              cameraState,
+                              preview,
+                              captureState,
+                              captureNotifier,
+                            ),
                           ),
                         ),
                       ),
@@ -135,6 +160,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
   }
 
   Widget _buildCameraContainer(
+    CameraState cameraState,
     Object preview,
     PetCaptureState captureState,
     PetCaptureNotifier captureNotifier,
@@ -144,11 +170,20 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
     final containerWidth = screenWidth * 0.9; // 90% chiều rộng màn hình
     final containerHeight = containerWidth * 4 / 3; // Aspect ratio 4:3
 
-    // Preview trả về từ CameraAwesome có thể là AnalysisPreview, không phải Widget.
-    // Cố gắng lấy widget bên trong, fallback SizedBox nếu không có.
-    final previewWidget = preview is Widget
-        ? preview
-        : (preview as dynamic).widget as Widget? ?? const SizedBox.shrink();
+    // Xử lý preview
+    Widget previewWidget;
+    if (captureState.isPreviewMode && captureState.previewFile != null) {
+      previewWidget = _buildPreview(captureState.previewFile!);
+    } else {
+      // Preview là AnalysisPreview, không phải Widget
+      // CameraAwesome đã render preview ở background layer
+      // Chúng ta chỉ cần một container trong suốt để giữ layout
+      // Preview sẽ hiển thị từ background
+      previewWidget = Container(
+        color: Colors.transparent,
+        // Preview được render bởi CameraAwesomeBuilder ở background layer
+      );
+    }
 
     return Container(
       width: containerWidth,
@@ -156,45 +191,77 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        color: Colors.black,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 20,
-            spreadRadius: 2,
-          ),
+        color: Colors
+            .transparent, // Trong suốt để preview hiển thị qua từ background
+      ),
+      // Không dùng ClipRRect để tránh lỗi Texture bị đen
+      child: Stack(
+        children: [
+          // Preview image nếu ở preview mode
+          if (captureState.isPreviewMode && captureState.previewFile != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: previewWidget,
+            ),
+
+          // Flash overlay
+          if (_flashOverlay)
+            Positioned.fill(
+              child: Container(color: Colors.white.withOpacity(0.35)),
+            ),
+
+          // Text input xuất hiện sau khi chụp
+          _buildCaptionFieldOnPreview(captureState, captureNotifier),
+
+          // Nút gửi (chỉ hiển thị khi đã chụp)
+          _buildSendButtonOnPreview(captureState, captureNotifier),
+
+          // Nút đóng preview
+          _buildClosePreviewButtonOnPreview(captureState, captureNotifier),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Stack(
-          children: [
-            // Camera preview hoặc preview image
-            if (captureState.isPreviewMode && captureState.previewFile != null)
-              _buildPreview(captureState.previewFile!)
-            else
-              // Camera preview từ CameraAwesome (builder cung cấp)
-              SizedBox.expand(child: previewWidget),
+    );
+  }
 
-            // Flash overlay
-            if (_flashOverlay)
-              Positioned.fill(
-                child: Container(color: Colors.white.withOpacity(0.35)),
-              ),
+  Widget _buildPreviewMask() {
+    // Tính toán vị trí và kích thước container
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final containerWidth = screenWidth * 0.9;
+    final containerHeight = containerWidth * 4 / 3;
+    final containerLeft = (screenWidth - containerWidth) / 2;
 
-            // Controls trên camera: Flash (trái), Zoom (phải)
-            if (!captureState.isPreviewMode)
-              _buildCameraControlsOnPreview(captureState, captureNotifier),
+    // Tính toán vị trí container dựa trên layout Column
+    final captureState = ref.watch(petCaptureNotifierProvider);
+    final headerHeight = captureState.isPreviewMode
+        ? 0.0
+        : 50.0; // Header mới nhỏ hơn
+    final footerHeight = captureState.isPreviewMode ? 0.0 : 60.0;
+    final actionBarHeight = 120.0;
+    final cameraPaddingBottom = 24.0; // Padding bottom của camera container
 
-            // Text input xuất hiện sau khi chụp
-            _buildCaptionFieldOnPreview(captureState, captureNotifier),
+    // Tính toán vị trí container trong Column layout
+    final availableHeight =
+        screenHeight - headerHeight - actionBarHeight - footerHeight;
+    // Trừ padding bottom khi tính toán vị trí center
+    final containerTop =
+        headerHeight +
+        (availableHeight - containerHeight - cameraPaddingBottom) / 2;
 
-            // Nút gửi (chỉ hiển thị khi đã chụp)
-            _buildSendButtonOnPreview(captureState, captureNotifier),
-
-            // Nút đóng preview
-            _buildClosePreviewButtonOnPreview(captureState, captureNotifier),
-          ],
+    // Sử dụng CustomPaint để tạo mask che phần preview ngoài container
+    // với bo góc tròn chính xác
+    return Positioned.fill(
+      child: CustomPaint(
+        painter: _PreviewMaskPainter(
+          containerRect: RRect.fromRectAndRadius(
+            Rect.fromLTWH(
+              containerLeft,
+              containerTop,
+              containerWidth,
+              containerHeight,
+            ),
+            const Radius.circular(24),
+          ),
         ),
       ),
     );
@@ -209,100 +276,9 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildNewHeader(PetCaptureState state, PetCaptureNotifier notifier) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Avatar
-          GestureDetector(
-            onTap: () {
-              // Navigate to profile or settings
-            },
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primaryPink, width: 2),
-                color: Colors.white.withOpacity(0.2),
-              ),
-              child: ClipOval(
-                child: Container(
-                  color: AppColors.primaryPink.withOpacity(0.3),
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Audience label
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.primaryPink.withOpacity(0.5),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.people_outline,
-                  color: AppColors.primaryPink,
-                  size: 14,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '4 người bạn',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Menu icon
-          GestureDetector(
-            onTap: () {
-              // Show audience selection or settings
-            },
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black.withOpacity(0.4),
-              ),
-              child: Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white,
-                size: 16,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCameraControlsOnPreview(
-    PetCaptureState state,
-    PetCaptureNotifier notifier,
-  ) {
-    return Positioned(
-      top: 12,
-      left: 12,
-      right: 12,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -388,11 +364,11 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.amber.shade400, width: 5),
+                border: Border.all(color: AppColors.primaryPink, width: 5),
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.amber.withOpacity(0.4),
+                    color: AppColors.primaryPink.withOpacity(0.4),
                     blurRadius: 12,
                     spreadRadius: 2,
                   ),
@@ -592,5 +568,35 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
       default:
         return Icons.flash_auto_rounded;
     }
+  }
+}
+
+/// Custom Painter để tạo mask che phần preview ngoài container với bo góc tròn
+class _PreviewMaskPainter extends CustomPainter {
+  final RRect containerRect;
+
+  _PreviewMaskPainter({required this.containerRect});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Tạo path che toàn bộ màn hình trừ phần container
+    final maskPath = Path()
+      // Thêm hình chữ nhật che toàn bộ màn hình
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      // Trừ đi phần container (tạo lỗ để preview hiển thị qua)
+      ..addRRect(containerRect)
+      ..fillType = PathFillType.evenOdd;
+
+    // Vẽ mask màu đen
+    final paint = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(maskPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(_PreviewMaskPainter oldDelegate) {
+    return oldDelegate.containerRect != containerRect;
   }
 }
