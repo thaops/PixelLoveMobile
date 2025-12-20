@@ -1,16 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
-import 'package:pixel_love/features/user/presentation/controllers/onboard_controller.dart';
+import 'package:pixel_love/features/user/presentation/notifiers/onboard_notifier.dart';
+import 'package:pixel_love/features/user/providers/user_providers.dart';
 
-class OnboardScreen extends StatelessWidget {
+class OnboardScreen extends ConsumerWidget {
   const OnboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.find<OnboardController>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final onboardState = ref.watch(onboardNotifierProvider);
+
+    // Handle navigation after successful onboard
+    ref.listen<OnboardState>(onboardNotifierProvider, (previous, next) {
+      if (previous?.isLoading == true && !next.isLoading) {
+        if (next.errorMessage == null) {
+          // Success - navigate to couple connection
+          context.go('/couple-connection');
+        } else {
+          // Error - still navigate but show error
+          context.go('/couple-connection');
+        }
+      }
+    });
 
     return Scaffold(
       body: LoveBackground(
@@ -49,98 +64,102 @@ class OnboardScreen extends StatelessWidget {
 
                   // Avatar Section
                   Center(
-                    child: Obx(() {
-                      final gender = controller.selectedGender;
-                      final avatarPath = gender == 'male'
-                          ? 'assets/images/avata-male.png'
-                          : gender == 'female'
-                          ? 'assets/images/avata-female.png'
-                          : null;
+                    child: Builder(
+                      builder: (context) {
+                        final gender = onboardState.selectedGender;
+                        final avatarPath = gender == 'male'
+                            ? 'assets/images/avata-male.png'
+                            : gender == 'female'
+                            ? 'assets/images/avata-female.png'
+                            : null;
 
-                      return Stack(
-                        children: [
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryPinkLight,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.primaryPink,
-                                width: 3,
-                              ),
-                            ),
-                            child: avatarPath != null
-                                ? ClipOval(
-                                    child: Image.asset(
-                                      avatarPath,
-                                      width: 120,
-                                      height: 120,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                            return Icon(
-                                              Icons.person,
-                                              size: 60,
-                                              color: AppColors.primaryPink,
-                                            );
-                                          },
-                                    ),
-                                  )
-                                : Icon(
-                                    Icons.person,
-                                    size: 60,
-                                    color: AppColors.primaryPink,
-                                  ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 36,
-                              height: 36,
+                        return Stack(
+                          children: [
+                            Container(
+                              width: 120,
+                              height: 120,
                               decoration: BoxDecoration(
-                                color: AppColors.backgroundWhite,
+                                color: AppColors.primaryPinkLight,
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: AppColors.primaryPink,
-                                  width: 2,
+                                  width: 3,
                                 ),
                               ),
-                              child: Icon(
-                                Icons.refresh,
-                                size: 20,
-                                color: AppColors.primaryPink,
+                              child: avatarPath != null
+                                  ? ClipOval(
+                                      child: Image.asset(
+                                        avatarPath,
+                                        width: 120,
+                                        height: 120,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return Icon(
+                                                Icons.person,
+                                                size: 60,
+                                                color: AppColors.primaryPink,
+                                              );
+                                            },
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: AppColors.primaryPink,
+                                    ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: AppColors.backgroundWhite,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.primaryPink,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.refresh,
+                                  size: 20,
+                                  color: AppColors.primaryPink,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    }),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                   const SizedBox(height: 32),
 
-                  Obx(
-                    () => Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Nam button
-                        _GenderBubble(
-                          label: 'Nam',
-                          isSelected: controller.selectedGender == 'male',
-                          color: AppColors.genderMale,
-                          onTap: () => controller.setGender('male'),
-                        ),
-                        const SizedBox(width: 16),
-                        // Nữ button
-                        _GenderBubble(
-                          label: 'Nữ',
-                          isSelected: controller.selectedGender == 'female',
-                          color: AppColors.genderFemale,
-                          onTap: () => controller.setGender('female'),
-                        ),
-                      ],
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Nam button
+                      _GenderBubble(
+                        label: 'Nam',
+                        isSelected: onboardState.selectedGender == 'male',
+                        color: AppColors.genderMale,
+                        onTap: () => ref
+                            .read(onboardNotifierProvider.notifier)
+                            .setGender('male'),
+                      ),
+                      const SizedBox(width: 16),
+                      // Nữ button
+                      _GenderBubble(
+                        label: 'Nữ',
+                        isSelected: onboardState.selectedGender == 'female',
+                        color: AppColors.genderFemale,
+                        onTap: () => ref
+                            .read(onboardNotifierProvider.notifier)
+                            .setGender('female'),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 32),
 
@@ -172,7 +191,9 @@ class OnboardScreen extends StatelessWidget {
                         },
                       );
                       if (picked != null) {
-                        controller.setBirthDate(picked);
+                        ref
+                            .read(onboardNotifierProvider.notifier)
+                            .setBirthDate(picked);
                       }
                     },
                     child: Container(
@@ -184,28 +205,26 @@ class OnboardScreen extends StatelessWidget {
                         color: AppColors.backgroundWhite,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: controller.selectedBirthDate != null
+                          color: onboardState.selectedBirthDate != null
                               ? AppColors.primaryPink
                               : AppColors.borderLight,
-                          width: controller.selectedBirthDate != null ? 2 : 1,
+                          width: onboardState.selectedBirthDate != null ? 2 : 1,
                         ),
                       ),
                       child: Row(
                         children: [
                           Expanded(
-                            child: Obx(
-                              () => Text(
-                                controller.selectedBirthDate == null
-                                    ? 'Chọn ngày sinh'
-                                    : DateFormat(
-                                        'dd/MM/yyyy',
-                                      ).format(controller.selectedBirthDate!),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: controller.selectedBirthDate == null
-                                      ? AppColors.textSecondary
-                                      : AppColors.textPrimary,
-                                ),
+                            child: Text(
+                              onboardState.selectedBirthDate == null
+                                  ? 'Chọn ngày sinh'
+                                  : DateFormat(
+                                      'dd/MM/yyyy',
+                                    ).format(onboardState.selectedBirthDate!),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: onboardState.selectedBirthDate == null
+                                    ? AppColors.textSecondary
+                                    : AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -231,7 +250,9 @@ class OnboardScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   // Nickname Field
                   TextField(
-                    onChanged: (value) => controller.setNickname(value),
+                    onChanged: (value) => ref
+                        .read(onboardNotifierProvider.notifier)
+                        .setNickname(value),
                     decoration: InputDecoration(
                       hintText: 'Nhập biệt danh của bạn',
                       hintStyle: TextStyle(color: AppColors.textSecondary),
@@ -257,45 +278,46 @@ class OnboardScreen extends StatelessWidget {
                   const SizedBox(height: 40),
 
                   // Submit Button
-                  Obx(
-                    () => SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: controller.canSubmit && !controller.isLoading
-                            ? () => controller.submit()
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: controller.canSubmit
-                              ? AppColors.primaryPink
-                              : AppColors.buttonDisabled,
-                          foregroundColor: controller.canSubmit
-                              ? AppColors.backgroundWhite
-                              : AppColors.buttonDisabledText,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: controller.canSubmit ? 2 : 0,
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed:
+                          onboardState.canSubmit && !onboardState.isLoading
+                          ? () => ref
+                                .read(onboardNotifierProvider.notifier)
+                                .submit()
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: onboardState.canSubmit
+                            ? AppColors.primaryPink
+                            : AppColors.buttonDisabled,
+                        foregroundColor: onboardState.canSubmit
+                            ? AppColors.backgroundWhite
+                            : AppColors.buttonDisabledText,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: controller.isLoading
-                            ? SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.backgroundWhite,
-                                  ),
-                                ),
-                              )
-                            : Text(
-                                'Bước sau',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                        elevation: onboardState.canSubmit ? 2 : 0,
+                      ),
+                      child: onboardState.isLoading
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.backgroundWhite,
                                 ),
                               ),
-                      ),
+                            )
+                          : Text(
+                              'Bước sau',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 40),

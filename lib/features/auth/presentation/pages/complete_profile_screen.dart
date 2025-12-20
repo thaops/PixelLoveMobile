@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:pixel_love/features/user/presentation/controllers/user_controller.dart';
+import 'package:pixel_love/features/user/presentation/notifiers/user_notifier.dart';
+import 'package:pixel_love/features/user/providers/user_providers.dart';
 
-class CompleteProfileScreen extends StatefulWidget {
+class CompleteProfileScreen extends ConsumerStatefulWidget {
   const CompleteProfileScreen({super.key});
 
   @override
-  State<CompleteProfileScreen> createState() => _CompleteProfileScreenState();
+  ConsumerState<CompleteProfileScreen> createState() => _CompleteProfileScreenState();
 }
 
-class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
+class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   DateTime? _selectedDate;
@@ -49,19 +51,18 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   void _submit() {
     if (_formKey.currentState!.validate()) {
       if (_selectedDate == null) {
-        Get.snackbar(
-          'Required',
-          'Please select your date of birth',
-          snackPosition: SnackPosition.BOTTOM,
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select your date of birth'),
+          ),
         );
         return;
       }
 
-      final userController = Get.find<UserController>();
       final dobString = DateFormat('yyyy-MM-dd').format(_selectedDate!);
 
-      // Call completeProfile on UserController (POST /user/profile)
-      userController.completeProfile(
+      // Call completeProfile on UserNotifier
+      ref.read(userNotifierProvider.notifier).completeProfile(
         name: _nameController.text.trim(),
         dob: dobString,
       );
@@ -70,7 +71,27 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userController = Get.find<UserController>();
+    final userState = ref.watch(userNotifierProvider);
+    
+    // Handle navigation after successful profile completion
+    ref.listen<UserState>(userNotifierProvider, (previous, next) {
+      if (previous?.isLoading == true && !next.isLoading && next.errorMessage == null) {
+        // Success - navigate to home
+        context.go('/home');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Profile completed! Welcome ${next.currentUser?.name ?? ''}'),
+          ),
+        );
+      } else if (next.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -149,36 +170,34 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                Obx(() {
-                  return ElevatedButton(
-                    onPressed: userController.isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                ElevatedButton(
+                  onPressed: userState.isLoading ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: userController.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text(
-                            'Complete Profile',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  ),
+                  child: userState.isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
-                  );
-                }),
+                        )
+                      : const Text(
+                          'Complete Profile',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
               ],
             ),
           ),

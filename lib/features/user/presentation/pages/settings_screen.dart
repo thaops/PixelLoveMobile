@@ -1,14 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
-import 'package:pixel_love/features/user/presentation/controllers/settings_controller.dart';
+import 'package:pixel_love/features/user/presentation/notifiers/settings_notifier.dart';
+import 'package:pixel_love/features/user/providers/user_providers.dart';
 
-class SettingsScreen extends GetView<SettingsController> {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settingsState = ref.watch(settingsNotifierProvider);
+
+    // Handle navigation after account deletion
+    ref.listen<SettingsState>(settingsNotifierProvider, (previous, next) {
+      if (previous?.isLoading == true &&
+          !next.isLoading &&
+          next.errorMessage == null) {
+        // Account deleted successfully - navigate to login
+        context.go('/login');
+      }
+    });
     return Scaffold(
       body: LoveBackground(
         child: SafeArea(
@@ -16,7 +29,10 @@ class SettingsScreen extends GetView<SettingsController> {
             children: [
               // Custom AppBar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
                 child: Row(
                   children: [
                     IconButton(
@@ -24,7 +40,7 @@ class SettingsScreen extends GetView<SettingsController> {
                         Icons.arrow_back,
                         color: AppColors.primaryPink,
                       ),
-                      onPressed: () => Get.back(),
+                      onPressed: () => context.pop(),
                     ),
                     Text(
                       'Cài đặt',
@@ -91,59 +107,76 @@ class SettingsScreen extends GetView<SettingsController> {
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              Obx(() {
-                                if (controller.isLoading) {
+                              Builder(
+                                builder: (context) {
+                                  if (settingsState.isLoading) {
+                                    return SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        onPressed: null,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              AppColors.buttonDisabled,
+                                          foregroundColor:
+                                              AppColors.buttonDisabledText,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                        ),
+                                        child: const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+
                                   return SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
-                                      onPressed: null,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.buttonDisabled,
-                                        foregroundColor: AppColors.buttonDisabledText,
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
+                                      onPressed: () => _showDeleteConfirmDialog(
+                                        context,
+                                        ref,
                                       ),
-                                      child: const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.errorText,
+                                        foregroundColor:
+                                            AppColors.backgroundWhite,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        elevation: 0,
+                                      ),
+                                      child: const Text(
+                                        'Xóa tài khoản',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
                                   );
-                                }
-
-                                return SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: () => _showDeleteConfirmDialog(context),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.errorText,
-                                      foregroundColor: AppColors.backgroundWhite,
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      elevation: 0,
-                                    ),
-                                    child: const Text(
-                                      'Xóa tài khoản',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }),
-                              if (controller.errorMessage.isNotEmpty)
+                                },
+                              ),
+                              if (settingsState.errorMessage != null &&
+                                  settingsState.errorMessage!.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 12),
                                   child: Text(
-                                    controller.errorMessage,
+                                    settingsState.errorMessage!,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: AppColors.errorText,
@@ -166,12 +199,11 @@ class SettingsScreen extends GetView<SettingsController> {
     );
   }
 
-  void _showDeleteConfirmDialog(BuildContext context) {
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+  void _showDeleteConfirmDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Icon(
@@ -202,7 +234,7 @@ class SettingsScreen extends GetView<SettingsController> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'Hủy',
               style: TextStyle(
@@ -213,8 +245,8 @@ class SettingsScreen extends GetView<SettingsController> {
           ),
           ElevatedButton(
             onPressed: () {
-              Get.back();
-              controller.deleteAccount();
+              Navigator.of(context).pop();
+              ref.read(settingsNotifierProvider.notifier).deleteAccount();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.errorText,
@@ -225,9 +257,7 @@ class SettingsScreen extends GetView<SettingsController> {
             ),
             child: const Text(
               'Xóa',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -235,4 +265,3 @@ class SettingsScreen extends GetView<SettingsController> {
     );
   }
 }
-

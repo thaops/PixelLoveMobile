@@ -1,30 +1,32 @@
-import 'package:get/get.dart';
 import 'package:pixel_love/core/env/env.dart';
 import 'package:pixel_love/core/services/storage_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-class SocketService extends GetxService {
+class SocketService {
   IO.Socket? _socket;
   IO.Socket? _eventsSocket; // Socket cho events namespace
   final StorageService _storageService;
 
   SocketService(this._storageService);
 
-  final _isConnected = false.obs;
-  final _messages = <Map<String, dynamic>>[].obs;
-  final _petData = Rxn<Map<String, dynamic>>();
-  final _roomData = Rxn<Map<String, dynamic>>();
+  bool _isConnected = false;
+  final List<Map<String, dynamic>> _messages = [];
+  Map<String, dynamic>? _petData;
+  Map<String, dynamic>? _roomData;
 
-  bool get isConnected => _isConnected.value;
-  List<Map<String, dynamic>> get messages => _messages;
-  Map<String, dynamic>? get petData => _petData.value;
-  Map<String, dynamic>? get roomData => _roomData.value;
+  bool get isConnected => _isConnected;
+  List<Map<String, dynamic>> get messages => List.unmodifiable(_messages);
+  Map<String, dynamic>? get petData => _petData;
+  Map<String, dynamic>? get roomData => _roomData;
 
   // Callbacks cho couple events
   void Function(Map<String, dynamic>)? onCouplePaired;
   void Function(Map<String, dynamic>)? onCoupleRoomUpdated;
   void Function(Map<String, dynamic>)? onCoupleBrokenUp;
   void Function(Map<String, dynamic>)? onServerConnected;
+
+  // Callback cho pet image events (album realtime)
+  void Function(Map<String, dynamic>)? onPetImageConsumed;
 
   // Connect socket với namespace /events để listen couple events
   Future<void> connectEvents() async {
@@ -106,6 +108,12 @@ class SocketService extends GetxService {
       print('💔 Couple broken up: $data');
       onCoupleBrokenUp?.call(data as Map<String, dynamic>);
     });
+
+    // Pet image consumed event (EventsGateway)
+    _eventsSocket!.on('pet:image_consumed', (data) {
+      print('📸 [events] Pet image consumed: $data');
+      onPetImageConsumed?.call(data as Map<String, dynamic>);
+    });
   }
 
   // Connect socket với coupleRoomId (cho couple space)
@@ -140,38 +148,39 @@ class SocketService extends GetxService {
   void _setupSocketListeners() {
     _socket!.onConnect((_) {
       print('✅ Socket connected');
-      _isConnected.value = true;
+      _isConnected = true;
     });
 
     _socket!.onDisconnect((_) {
       print('❌ Socket disconnected');
-      _isConnected.value = false;
+      _isConnected = false;
     });
 
     _socket!.on('connect_error', (error) {
       print('❌ Socket connection error: $error');
-      _isConnected.value = false;
+      _isConnected = false;
     });
 
     _socket!.on('error', (error) {
       print('❌ Socket error: $error');
     });
 
-    // Backend events to listen
+    // Backend events to listen (couple space)
     _socket!.on('roomUpdated', (data) {
       print('🔄 Room updated: $data');
-      _roomData.value = data as Map<String, dynamic>?;
-      Get.snackbar(
-        'Room Updated',
-        'Love score or room data changed!',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
-      );
+      _roomData = data as Map<String, dynamic>?;
+      // Note: Snackbar sẽ được handle bởi UI layer thông qua state changes
     });
 
     _socket!.on('petUpdated', (data) {
       print('🐾 Pet updated: $data');
-      _petData.value = data as Map<String, dynamic>?;
+      _petData = data as Map<String, dynamic>?;
+    });
+
+    // Khi 1 ảnh mới được gửi cho pet (cả hai người trong couple đều nhận được)
+    _socket!.on('pet:image_consumed', (data) {
+      print('📸 Pet image consumed: $data');
+      onPetImageConsumed?.call(data as Map<String, dynamic>);
     });
 
     _socket!.on('messageReceived', (data) {
@@ -186,10 +195,10 @@ class SocketService extends GetxService {
       _socket!.disconnect();
       _socket!.dispose();
       _socket = null;
-      _isConnected.value = false;
+      _isConnected = false;
       _messages.clear();
-      _petData.value = null;
-      _roomData.value = null;
+      _petData = null;
+      _roomData = null;
     }
   }
 
@@ -204,6 +213,7 @@ class SocketService extends GetxService {
       onCoupleRoomUpdated = null;
       onCoupleBrokenUp = null;
       onServerConnected = null;
+      onPetImageConsumed = null;
     }
   }
 
@@ -213,18 +223,12 @@ class SocketService extends GetxService {
       print('💬 Message sent: $message');
     } else {
       print('❌ Socket not connected, cannot send message');
-      Get.snackbar(
-        'Connection Error',
-        'Not connected to couple space',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      // Note: Error handling sẽ được handle bởi UI layer
     }
   }
 
-  @override
-  void onClose() {
+  void dispose() {
     disconnect();
     disconnectEvents();
-    super.onClose();
   }
 }

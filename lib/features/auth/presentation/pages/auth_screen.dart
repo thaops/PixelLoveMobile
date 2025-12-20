@@ -1,33 +1,33 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
-import 'package:pixel_love/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:pixel_love/features/auth/notifiers/auth_notifier.dart';
+import 'package:pixel_love/features/auth/providers/auth_providers.dart';
 
-class AuthScreen extends GetView<AuthController> {
+class AuthScreen extends ConsumerWidget {
   const AuthScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: LoveBackground(
-        child: SafeArea(child: _AuthScreenContent(controller: controller)),
+        child: SafeArea(child: _AuthScreenContent()),
       ),
     );
   }
 }
 
-class _AuthScreenContent extends StatefulWidget {
-  final AuthController controller;
-
-  const _AuthScreenContent({required this.controller});
+class _AuthScreenContent extends ConsumerStatefulWidget {
+  const _AuthScreenContent();
 
   @override
-  State<_AuthScreenContent> createState() => _AuthScreenContentState();
+  ConsumerState<_AuthScreenContent> createState() => _AuthScreenContentState();
 }
 
-class _AuthScreenContentState extends State<_AuthScreenContent> {
+class _AuthScreenContentState extends ConsumerState<_AuthScreenContent> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _autoScrollTimer;
@@ -227,6 +227,35 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
   }
 
   Widget _buildLoginSection() {
+    final authState = ref.watch(authNotifierProvider);
+    
+    // Handle navigation after successful login
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      if (previous != null && previous.isLoading && !next.isLoading) {
+        if (next.currentUser != null && next.errorMessage == null) {
+          final user = next.currentUser!;
+          
+          // Navigate based on user state
+          if (!user.isOnboarded) {
+            context.go('/onboard');
+          } else if (user.mode == 'solo') {
+            context.go('/couple-connection');
+          } else if (user.mode == 'couple') {
+            final hasPartner = user.partnerId != null && user.partnerId!.isNotEmpty;
+            final hasCoupleRoom = user.coupleRoomId != null && user.coupleRoomId!.isNotEmpty;
+            
+            if (hasCoupleRoom || hasPartner) {
+              context.go('/home');
+            } else {
+              context.go('/couple-connection');
+            }
+          } else {
+            context.go('/couple-connection');
+          }
+        }
+      }
+    });
+    
     return Container(
       height: 400,
       width: double.infinity,
@@ -243,74 +272,71 @@ class _AuthScreenContentState extends State<_AuthScreenContent> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Obx(() {
-              if (widget.controller.isLoading) {
-                return const SizedBox(
-                  height: 56,
-                  child: Center(
-                    child: CircularProgressIndicator(strokeWidth: 3),
-                  ),
-                );
-              }
-
-              return Column(
+            if (authState.isLoading)
+              const SizedBox(
+                height: 56,
+                child: Center(
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+              )
+            else
+              Column(
                 spacing: 16,
                 children: [
                   _buildPrimaryButton(
-                    onPressed: widget.controller.loginWithGoogle,
+                    onPressed: () {
+                      ref.read(authNotifierProvider.notifier).loginWithGoogle();
+                    },
                     imagePath: 'assets/images/img-google.png',
                     label: 'Đăng nhập với Google',
                     backgroundColor: AppColors.primaryPink,
                     textColor: Colors.white,
                   ),
                   // _buildPrimaryButton(
-                  //   onPressed: widget.controller.loginWithGoogle,
+                  //   onPressed: () {
+                  //     ref.read(authNotifierProvider.notifier).loginWithGoogle();
+                  //   },
                   //   imagePath: 'assets/images/img-fb.png',
                   //   label: 'Đăng nhập với Facebook',
                   //   backgroundColor: const Color.fromARGB(255, 38, 139, 227),
                   //   textColor: Colors.white,
                   // ),
                 ],
-              );
-            }),
+              ),
             const SizedBox(height: 24),
-            Obx(() {
-              if (widget.controller.errorMessage.isNotEmpty) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.errorBackground,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.iconRed, width: 1),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: AppColors.errorIcon,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          widget.controller.errorMessage,
-                          style: TextStyle(
-                            color: AppColors.errorText,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+            if (authState.errorMessage != null && authState.errorMessage!.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.errorBackground,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.iconRed, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: AppColors.errorIcon,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        authState.errorMessage!,
+                        style: TextStyle(
+                          color: AppColors.errorText,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ],
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            }),
+                    ),
+                  ],
+                ),
+              ),
             _buildDisclaimer(),
           ],
         ),

@@ -1,29 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:pixel_love/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:pixel_love/features/user/presentation/controllers/user_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pixel_love/features/auth/providers/auth_providers.dart';
+import 'package:pixel_love/features/user/providers/user_providers.dart';
 
-class UserProfileScreen extends GetView<UserController> {
+class UserProfileScreen extends ConsumerWidget {
   const UserProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userState = ref.watch(userNotifierProvider);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
         actions: [
           IconButton(
-            onPressed: () => _showEditDialog(context),
+            onPressed: () => _showEditDialog(context, ref),
             icon: const Icon(Icons.edit),
           ),
         ],
       ),
-      body: Obx(() {
-        if (controller.isLoading && controller.currentUser == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
+      body: Builder(
+        builder: (context) {
+          if (userState.isLoading && userState.currentUser == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final user = controller.currentUser;
+          final user = userState.currentUser;
 
         if (user == null) {
           return Center(
@@ -33,7 +37,7 @@ class UserProfileScreen extends GetView<UserController> {
                 const Text('Failed to load profile'),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: controller.fetchProfile,
+                  onPressed: () => ref.read(userNotifierProvider.notifier).fetchProfile(),
                   child: const Text('Retry'),
                 ),
               ],
@@ -41,9 +45,9 @@ class UserProfileScreen extends GetView<UserController> {
           );
         }
 
-        return RefreshIndicator(
-          onRefresh: controller.fetchProfile,
-          child: SingleChildScrollView(
+          return RefreshIndicator(
+            onRefresh: () => ref.read(userNotifierProvider.notifier).fetchProfile(),
+            child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -111,7 +115,7 @@ class UserProfileScreen extends GetView<UserController> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () => _showLogoutDialog(context),
+                    onPressed: () => _showLogoutDialog(context, ref),
                     icon: const Icon(Icons.logout),
                     label: const Text('Đăng xuất'),
                     style: OutlinedButton.styleFrom(
@@ -125,28 +129,74 @@ class UserProfileScreen extends GetView<UserController> {
             ),
           ),
         );
-      }),
+        },
+      ),
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    Get.dialog(
-      AlertDialog(
+  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
         title: const Text('Đăng xuất'),
         content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Hủy'),
+          ),
           ElevatedButton(
             onPressed: () {
-              Get.back();
-              final authController = Get.find<AuthController>();
-              authController.logout();
+              Navigator.of(context).pop();
+              ref.read(authNotifierProvider.notifier).logout();
+              context.go('/login');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
             child: const Text('Đăng xuất'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditDialog(BuildContext context, WidgetRef ref) {
+    final userState = ref.read(userNotifierProvider);
+    final nameController = TextEditingController(
+      text: userState.currentUser?.name,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Profile'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(userNotifierProvider.notifier).updateProfile(
+                name: nameController.text,
+              );
+              Navigator.of(context).pop();
+            },
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -162,39 +212,6 @@ class UserProfileScreen extends GetView<UserController> {
       leading: Icon(icon, color: Colors.pink),
       title: Text(label),
       subtitle: Text(value),
-    );
-  }
-
-  void _showEditDialog(BuildContext context) {
-    final nameController = TextEditingController(
-      text: controller.currentUser?.name,
-    );
-
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Edit Profile'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              controller.updateProfile(name: nameController.text);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
     );
   }
 }

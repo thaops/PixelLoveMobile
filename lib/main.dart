@@ -1,31 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
-import 'package:pixel_love/bindings/initial_binding.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pixel_love/core/env/env.dart';
+import 'package:pixel_love/core/providers/core_providers.dart';
+import 'package:pixel_love/core/router/app_router.dart';
 import 'package:pixel_love/firebase_options.dart';
-import 'package:pixel_love/routes/app_pages.dart';
-import 'package:pixel_love/routes/app_routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await GetStorage.init();
-
   await Env.load();
 
-  runApp(const PixelLoveApp());
+  // Initialize SharedPreferences before ProviderScope
+  final sharedPreferences = await SharedPreferences.getInstance();
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+      ],
+      child: const PixelLoveApp(),
+    ),
+  );
 }
 
-class PixelLoveApp extends StatelessWidget {
+class PixelLoveApp extends ConsumerWidget {
   const PixelLoveApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return GetMaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
       title: 'Pixel Love',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -44,15 +53,7 @@ class PixelLoveApp extends StatelessWidget {
           ),
         ),
       ),
-      initialBinding: InitialBinding(),
-      initialRoute: _getInitialRoute(),
-      getPages: AppPages.routes,
+      routerConfig: router,
     );
-  }
-
-  String _getInitialRoute() {
-    // Always start with splash screen
-    // Startup logic will handle navigation based on auth state
-    return AppRoutes.splash;
   }
 }

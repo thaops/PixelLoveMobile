@@ -1,15 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
-import 'package:pixel_love/features/couple/presentation/controllers/couple_connection_controller.dart';
-import 'package:pixel_love/routes/app_routes.dart';
+import 'package:pixel_love/features/couple/presentation/notifiers/couple_connection_notifier.dart';
+import 'package:pixel_love/features/couple/providers/couple_providers.dart';
 
-class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
+class CoupleConnectionScreen extends ConsumerWidget {
   const CoupleConnectionScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Handle navigation when already connected
+    ref.listen<CoupleConnectionState>(coupleConnectionNotifierProvider, (
+      previous,
+      next,
+    ) {
+      final storageService = ref.read(storageServiceProvider);
+      final authUser = storageService.getUser();
+      final hasCoupleRoom =
+          authUser?.coupleRoomId != null && authUser!.coupleRoomId!.isNotEmpty;
+      final hasPartner =
+          authUser?.partnerId != null && authUser!.partnerId!.isNotEmpty;
+
+      if (hasCoupleRoom || hasPartner) {
+        context.go('/home');
+      }
+
+      // Handle couple paired event
+      if (previous?.isLoading == true &&
+          !next.isLoading &&
+          next.coupleCode != null) {
+        // Check if connection was successful
+        final newUser = storageService.getUser();
+        if (newUser?.coupleRoomId != null &&
+            newUser!.coupleRoomId!.isNotEmpty) {
+          Future.delayed(const Duration(seconds: 2), () {
+            if (context.mounted) {
+              context.go('/home');
+            }
+          });
+        }
+      }
+    });
+
     return Scaffold(
       body: LoveBackground(
         child: SafeArea(
@@ -38,7 +73,7 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
                         ),
                       ),
                       onPressed: () {
-                        Get.toNamed(AppRoutes.settings);
+                        context.go('/settings');
                       },
                     ),
                   ],
@@ -57,10 +92,10 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
                         _buildHeader(),
                         const SizedBox(height: 24),
                         // Share Code Section
-                        _buildShareCodeSection(),
+                        _buildShareCodeSection(ref),
                         const SizedBox(height: 16),
                         // Input Code Section
-                        _buildInputCodeSection(),
+                        _buildInputCodeSection(ref),
                         const SizedBox(height: 16),
                         // Footer link
                         _buildFooterLink(),
@@ -110,100 +145,100 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
     );
   }
 
-  Widget _buildShareCodeSection() {
-    return Obx(() {
-      final code = controller.coupleCode;
-      if (code == null) {
-        return const Center(child: CircularProgressIndicator());
-      }
+  Widget _buildShareCodeSection(WidgetRef ref) {
+    final coupleState = ref.watch(coupleConnectionNotifierProvider);
+    final code = coupleState.coupleCode;
 
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.backgroundWhite,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryPink.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+    if (code == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundWhite,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryPink.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Gửi mã ghép',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Gửi mã ghép',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+          ),
+          const SizedBox(height: 12),
+          // Code display with copy button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(width: 18),
+              Text(
+                code.code,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryPink,
+                  letterSpacing: 2,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 12),
-            // Code display with copy button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(width: 18),
-                Text(
-                  code.code,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () => ref
+                    .read(coupleConnectionNotifierProvider.notifier)
+                    .copyCode(),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryPink.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primaryPink),
+                  ),
+                  child: const Icon(
+                    Icons.copy,
                     color: AppColors.primaryPink,
-                    letterSpacing: 2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: controller.copyCode,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryPink.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.primaryPink),
-                    ),
-                    child: const Icon(
-                      Icons.copy,
-                      color: AppColors.primaryPink,
-                      size: 14,
-                    ),
+                    size: 14,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
 
-            // QR Code and Share button in row
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.backgroundLight,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.qr_code,
-                  size: 60,
-                  color: AppColors.textLight,
-                ),
-              ),
+          // QR Code and Share button in row
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: AppColors.backgroundLight,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderLight),
             ),
-          ],
-        ),
-      );
-    });
+            child: Center(
+              child: Icon(Icons.qr_code, size: 60, color: AppColors.textLight),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildInputCodeSection() {
+  Widget _buildInputCodeSection(WidgetRef ref) {
+    final coupleState = ref.watch(coupleConnectionNotifierProvider);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -234,7 +269,9 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
             children: [
               Expanded(
                 child: TextField(
-                  onChanged: controller.setInputCode,
+                  onChanged: (value) => ref
+                      .read(coupleConnectionNotifierProvider.notifier)
+                      .setInputCode(value),
                   decoration: InputDecoration(
                     hintText: 'Nhập mã ghép nối',
                     hintStyle: TextStyle(color: AppColors.textLight),
@@ -264,7 +301,9 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
               ),
               const SizedBox(width: 12),
               InkWell(
-                onTap: controller.scanQR,
+                onTap: () => ref
+                    .read(coupleConnectionNotifierProvider.notifier)
+                    .scanQR(),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -282,107 +321,115 @@ class CoupleConnectionScreen extends GetView<CoupleConnectionController> {
           ),
           const SizedBox(height: 12),
           // Partner preview
-          Obx(() {
-            final preview = controller.partnerPreview;
-            if (preview?.partner != null) {
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.gradientGreen,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: AppColors.primaryPinkLight,
-                      backgroundImage: preview!.partner!.avatar != null
-                          ? NetworkImage(preview.partner!.avatar!)
-                          : null,
-                      child: preview.partner!.avatar == null
-                          ? Icon(
-                              Icons.person,
-                              color: AppColors.primaryPink,
-                              size: 20,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            preview.partner!.name ?? 'Người dùng',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          if (preview.partner!.email != null)
-                            Text(
-                              preview.partner!.email!,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-          const SizedBox(height: 12),
-          // Connect button
-          Obx(() {
-            final isLoading = controller.isLoading;
-            final canConnect =
-                controller.canConnect &&
-                controller.partnerPreview?.canPair == true;
-
-            return SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: canConnect && !isLoading ? controller.connect : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: canConnect
-                      ? AppColors.primaryPink
-                      : AppColors.buttonDisabled,
-                  foregroundColor: canConnect
-                      ? AppColors.backgroundWhite
-                      : AppColors.buttonDisabledText,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
+          Builder(
+            builder: (context) {
+              final preview = coupleState.partnerPreview;
+              if (preview?.partner != null) {
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.gradientGreen,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: canConnect ? 2 : 0,
-                ),
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      )
-                    : const Text(
-                        'Kết nối',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.primaryPinkLight,
+                        backgroundImage: preview!.partner!.avatar != null
+                            ? NetworkImage(preview.partner!.avatar!)
+                            : null,
+                        child: preview.partner!.avatar == null
+                            ? Icon(
+                                Icons.person,
+                                color: AppColors.primaryPink,
+                                size: 20,
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              preview.partner!.name ?? 'Người dùng',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            if (preview.partner!.email != null)
+                              Text(
+                                preview.partner!.email!,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-              ),
-            );
-          }),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+          const SizedBox(height: 12),
+          // Connect button
+          Builder(
+            builder: (context) {
+              final isLoading = coupleState.isLoading;
+              final canConnect =
+                  coupleState.canConnect &&
+                  coupleState.partnerPreview?.canPair == true;
+
+              return SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: canConnect && !isLoading
+                      ? () => ref
+                            .read(coupleConnectionNotifierProvider.notifier)
+                            .connect()
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canConnect
+                        ? AppColors.primaryPink
+                        : AppColors.buttonDisabled,
+                    foregroundColor: canConnect
+                        ? AppColors.backgroundWhite
+                        : AppColors.buttonDisabledText,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: canConnect ? 2 : 0,
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'Kết nối',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

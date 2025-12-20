@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pixel_love/features/pet_scene/domain/entities/pet_scene.dart';
-import 'package:pixel_love/features/pet_scene/presentation/controllers/pet_scene_controller.dart';
+import 'package:pixel_love/features/pet_scene/providers/pet_scene_providers.dart';
 
-class PetSceneScreen extends StatefulWidget {
+class PetSceneScreen extends ConsumerStatefulWidget {
   const PetSceneScreen({super.key});
 
   @override
-  State<PetSceneScreen> createState() => _PetSceneScreenState();
+  ConsumerState<PetSceneScreen> createState() => _PetSceneScreenState();
 }
 
-class _PetSceneScreenState extends State<PetSceneScreen> {
-  final PetSceneController controller = Get.find<PetSceneController>();
+class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
   final TransformationController _transformationController =
       TransformationController();
   PetScene? _lastPetSceneData;
@@ -36,39 +36,51 @@ class _PetSceneScreenState extends State<PetSceneScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Get.back(),
+          onPressed: () => context.pop(),
         ),
+        actions: [
+          IconButton(
+            onPressed: () => context.go('/pet-album'),
+            icon: const Icon(Icons.photo_library, color: Colors.white),
+            tooltip: 'Xem Album Kỷ Niệm',
+          ),
+        ],
       ),
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light.copyWith(
           statusBarColor: Colors.transparent,
         ),
-        child: Obx(() {
-          if (controller.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            );
-          }
+        child: Builder(
+          builder: (context) {
+            final sceneState = ref.watch(petSceneNotifierProvider);
+            
+            if (sceneState.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              );
+            }
 
-          final petSceneData = controller.petSceneData;
-          if (petSceneData == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Failed to load pet scene',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: controller.fetchPetScene,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
+            final petSceneData = sceneState.petSceneData;
+            if (petSceneData == null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      sceneState.errorMessage ?? 'Failed to load pet scene',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        ref.read(petSceneNotifierProvider.notifier).fetchPetScene();
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
 
           return Stack(
             children: [
@@ -85,7 +97,8 @@ class _PetSceneScreenState extends State<PetSceneScreen> {
               ),
             ],
           );
-        }),
+          },
+        ),
       ),
     );
   }

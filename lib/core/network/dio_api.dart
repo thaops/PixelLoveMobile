@@ -5,11 +5,12 @@ import 'package:pixel_love/core/network/api_result.dart';
 import 'package:pixel_love/core/network/interceptors/auth_interceptor.dart';
 import 'package:pixel_love/core/network/interceptors/error_interceptor.dart';
 import 'package:pixel_love/core/network/interceptors/log_interceptor.dart';
+import 'package:pixel_love/core/services/storage_service.dart';
 
 class DioApi {
   late final Dio _dio;
 
-  DioApi() {
+  DioApi(this._storageService) {
     _dio = Dio(
       BaseOptions(
         baseUrl: Env.apiBaseUrl,
@@ -23,11 +24,13 @@ class DioApi {
     );
 
     _dio.interceptors.addAll([
-      AuthInterceptor(),
+      AuthInterceptor(_storageService),
       CustomLogInterceptor(),
       ErrorInterceptor(),
     ]);
   }
+
+  final StorageService _storageService;
 
   Dio get dio => _dio;
 

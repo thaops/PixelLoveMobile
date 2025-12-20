@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "729972399696-ktaj4nk2ugorcvdfbdh6va0e9su2rcli.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.pixellove.app",
+            "certificate_hash": "4710e243b83ee19eedc4b957cf73445714b7bda4"
+          }
+        },
+        {
           "client_id": "729972399696-4nk4bb4e7h4704hojtjna7917sfom7ro.apps.googleusercontent.com",
           "client_type": 3
         }

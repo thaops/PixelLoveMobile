@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/home/domain/entities/home.dart';
-import 'package:pixel_love/features/home/presentation/controllers/home_controller.dart';
-import 'package:pixel_love/features/user/presentation/controllers/user_controller.dart';
-import 'package:pixel_love/routes/app_routes.dart';
+import 'package:pixel_love/features/home/providers/home_providers.dart';
+import 'package:pixel_love/core/theme/app_colors.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final HomeController controller = Get.find<HomeController>();
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TransformationController _transformationController =
       TransformationController();
   Home? _lastHomeData;
@@ -28,6 +28,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
+    final homeState = ref.watch(homeNotifierProvider);
+    final storageService = ref.read(storageServiceProvider);
+    final user = storageService.getUser();
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -37,78 +40,80 @@ class _HomeScreenState extends State<HomeScreen> {
         value: SystemUiOverlayStyle.light.copyWith(
           statusBarColor: Colors.transparent,
         ),
-        child: Obx(() {
-          // Only show loading if no cache and still loading
-          if (controller.isLoading && controller.homeData == null) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            );
-          }
+        child: Builder(
+          builder: (context) {
+            // Only show loading if no cache and still loading
+            if (homeState.isLoading && homeState.homeData == null) {
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              );
+            }
 
-          final homeData = controller.homeData;
-          if (homeData == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Failed to load home data',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: controller.refresh,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
+            final homeData = homeState.homeData;
+            if (homeData == null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      homeState.errorMessage ?? 'Failed to load home data',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        ref.read(homeNotifierProvider.notifier).refresh();
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-          return Stack(
-            children: [
-              _buildInteractiveViewer(screenSize, homeData),
+            return Stack(
+              children: [
+                _buildInteractiveViewer(screenSize, homeData),
 
-              // Silent update indicator (top left, subtle)
-              if (controller.isUpdating)
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: SafeArea(
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                // Silent update indicator (top left, subtle)
+                if (homeState.isUpdating)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: SafeArea(
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-              // Profile avatar button overlay
-              Positioned(
-                top: 8,
-                right: 8,
-                child: SafeArea(
-                  child: GetX<UserController>(
-                    builder: (userController) {
-                      final user = userController.currentUser;
-                      final avatarUrl = user?.avatar;
+                // Profile avatar button overlay
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: SafeArea(
+                    child: Builder(
+                      builder: (context) {
+                        final avatarUrl = user?.avatar;
 
-                      return Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => Get.toNamed(AppRoutes.profile),
-                          borderRadius: BorderRadius.circular(24),
-                          child: Container(
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => context.go('/profile'),
+                            borderRadius: BorderRadius.circular(24),
+                            child: Container(
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
@@ -171,15 +176,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        }),
+
+                // Paw floating button
+                _buildPawButton(),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -260,11 +269,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     top: obj.y * scaleY,
                     width: obj.width * scaleX,
                     height: obj.height * scaleY,
-                    child: GestureDetector(
+                      child: GestureDetector(
                       onTap: () {
                         // Nếu object là pet, navigate đến pet scene
                         if (obj.type == 'pet') {
-                          Get.toNamed(AppRoutes.petScene);
+                          context.go('/pet-scene');
                         }
                       },
                       child: ClipRect(
@@ -296,6 +305,50 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPawButton() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 24,
+      child: SafeArea(
+        top: false,
+        child: Center(
+          child: Material(
+            elevation: 8,
+            shape: const CircleBorder(),
+            color: AppColors.primaryPink,
+            shadowColor: Colors.black54,
+            child: InkWell(
+              onTap: () => context.go('/pet-capture'),
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 72,
+                height: 72,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primaryPink,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.pets_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

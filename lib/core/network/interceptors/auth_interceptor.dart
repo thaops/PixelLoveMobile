@@ -1,12 +1,14 @@
 import 'package:dio/dio.dart';
-import 'package:get_storage/get_storage.dart';
+import 'package:pixel_love/core/services/storage_service.dart';
 
 class AuthInterceptor extends Interceptor {
-  final GetStorage _storage = GetStorage();
+  final StorageService _storageService;
+
+  AuthInterceptor(this._storageService);
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final token = _storage.read<String>('access_token');
+    final token = _storageService.getToken();
 
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
@@ -18,7 +20,7 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 401) {
-      _storage.remove('access_token');
+      _storageService.removeToken();
     }
     super.onError(err, handler);
   }

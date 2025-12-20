@@ -6,7 +6,8 @@ class AppRoutes {
   static const String coupleConnection = '/couple-connection';
   static const String home = '/home';
   static const String profile = '/profile';
-  static const String pet = '/pet';
   static const String petScene = '/pet-scene';
+  static const String petAlbum = '/pet-album';
+  static const String petCapture = '/pet-capture';
   static const String settings = '/settings';
 }
