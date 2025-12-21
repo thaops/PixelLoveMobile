@@ -23,6 +23,33 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
   bool _wasSending = false;
   final ImagePicker _imagePicker = ImagePicker();
   double _zoomLevel = 1.0;
+  final FocusNode _captionFocusNode = FocusNode();
+  bool _isKeyboardVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _captionFocusNode.addListener(_onCaptionFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _captionFocusNode.removeListener(_onCaptionFocusChange);
+    _captionFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onCaptionFocusChange() {
+    final isFocused = _captionFocusNode.hasFocus;
+    if (_isKeyboardVisible != isFocused) {
+      setState(() {
+        _isKeyboardVisible = isFocused;
+      });
+    } else {
+      // Trigger rebuild để ẩn/hiện hint text
+      setState(() {});
+    }
+  }
 
   void _triggerFlashOverlay() {
     setState(() => _flashOverlay = true);
@@ -87,6 +114,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
+        resizeToAvoidBottomInset: false, // Tránh resize khi bàn phím hiện lên
         body: SafeArea(
           child: CameraAwesomeBuilder.custom(
             saveConfig: SaveConfig.photo(
@@ -115,38 +143,57 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
 
               return Stack(
                 children: [
-                  // Mask để che phần preview ngoài container
-                  // Tạo hiệu ứng "cửa sổ" để chỉ hiển thị preview trong container
-                  _buildPreviewMask(),
+                  // Overlay đen che toàn bộ màn hình khi ở preview mode để ẩn camera
+                  if (captureState.isPreviewMode)
+                    Positioned.fill(
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        opacity: 1.0,
+                        child: Container(color: Colors.black),
+                      ),
+                    ),
+
+                  // Mask để che phần preview ngoài container (chỉ khi không ở preview mode)
+                  if (!captureState.isPreviewMode) _buildPreviewMask(),
 
                   Column(
                     children: [
                       // Header mới với Flash và Zoom
                       if (!captureState.isPreviewMode)
-                        _buildNewHeader(captureState, captureNotifier),
+                        _buildNewHeader(captureState, captureNotifier)
+                      else
+                        // Spacer để giữ vị trí ảnh preview giống như khi có header
+                        // Header có padding vertical 12, icon size 24 + padding 8*2 = 40, tổng ~64
+                        const SizedBox(height: 0),
 
                       // Camera preview container
                       Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          child: Center(
-                            child: _buildCameraContainer(
-                              cameraState,
-                              preview,
-                              captureState,
-                              captureNotifier,
-                            ),
-                          ),
+                        child: _buildPreviewContainer(
+                          cameraState,
+                          preview,
+                          captureState,
+                          captureNotifier,
                         ),
                       ),
 
                       // Action bar: Gallery (trái), Shutter (giữa), Switch camera (phải)
-                      _buildActionBar(captureState, captureNotifier),
+                      // Chỉ hiển thị trong Column khi ở camera mode
+                      if (!captureState.isPreviewMode)
+                        _buildActionBar(captureState, captureNotifier)
+                      else
+                        // Spacer để giữ vị trí ảnh preview giống như khi có action bar
+                        const SizedBox(height: 120),
 
                       // Footer với "Lịch sử"
                       if (!captureState.isPreviewMode) _buildFooter(),
                     ],
                   ),
+
+                  // Action bar: Gallery (trái), Shutter (giữa), Switch camera (phải)
+                  // Đặt bằng Positioned khi ở preview mode để giữ vị trí cố định
+                  if (captureState.isPreviewMode)
+                    _buildActionBarPositioned(captureState, captureNotifier),
 
                   // Loading overlay khi gửi
                   if (captureState.isSending) _buildSendingOverlay(),
@@ -213,12 +260,38 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
           // Text input xuất hiện sau khi chụp
           _buildCaptionFieldOnPreview(captureState, captureNotifier),
 
-          // Nút gửi (chỉ hiển thị khi đã chụp)
-          _buildSendButtonOnPreview(captureState, captureNotifier),
-
           // Nút đóng preview
           _buildClosePreviewButtonOnPreview(captureState, captureNotifier),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewContainer(
+    CameraState cameraState,
+    Object preview,
+    PetCaptureState captureState,
+    PetCaptureNotifier captureNotifier,
+  ) {
+    // Lấy chiều cao bàn phím để đẩy ảnh preview lên khi bàn phím hiện
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    // Chỉ đẩy lên khi ở preview mode và có bàn phím
+    final bottomPadding = captureState.isPreviewMode && keyboardHeight > 0
+        ? keyboardHeight *
+              0.8 // Đẩy lên 30% chiều cao bàn phím
+        : 0.0;
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutCubic,
+      padding: EdgeInsets.only(bottom: 30 + bottomPadding),
+      child: Center(
+        child: _buildCameraContainer(
+          cameraState,
+          preview,
+          captureState,
+          captureNotifier,
+        ),
       ),
     );
   }
@@ -238,7 +311,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
         : 50.0; // Header mới nhỏ hơn
     final footerHeight = captureState.isPreviewMode ? 0.0 : 60.0;
     final actionBarHeight = 120.0;
-    final cameraPaddingBottom = 24.0; // Padding bottom của camera container
+    final cameraPaddingBottom = 62.0; // Padding bottom của camera container
 
     // Tính toán vị trí container trong Column layout
     final availableHeight =
@@ -321,7 +394,49 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
     );
   }
 
+  Widget _buildActionBarPositioned(
+    PetCaptureState state,
+    PetCaptureNotifier notifier,
+  ) {
+    // Lấy chiều cao bàn phím để đẩy action bar lên khi bàn phím hiện
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    // Tính toán vị trí bottom cố định: footer height (60)
+    // Vị trí này giống như khi action bar nằm trong Column với footer
+    final footerHeight = state.isPreviewMode ? 60.0 : 0.0;
+    // Khi bàn phím hiện, chỉ đẩy action bar lên một phần nhỏ (30%) để không che text field
+    // Ảnh preview đã đẩy lên nhiều nên action bar chỉ cần đẩy lên ít
+    final bottomPosition =
+        footerHeight +
+        (keyboardHeight > 0
+            ? keyboardHeight * 0.73
+            : 0); // Chỉ đẩy lên 30% chiều cao bàn phím
+
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutCubic,
+      left: 0,
+      right: 0,
+      bottom: bottomPosition,
+      child: _buildActionBarContent(state, notifier),
+    );
+  }
+
   Widget _buildActionBar(PetCaptureState state, PetCaptureNotifier notifier) {
+    // Lấy chiều cao bàn phím để đẩy action bar lên khi bàn phím hiện
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutCubic,
+      padding: EdgeInsets.only(bottom: keyboardHeight > 0 ? keyboardHeight : 0),
+      child: _buildActionBarContent(state, notifier),
+    );
+  }
+
+  Widget _buildActionBarContent(
+    PetCaptureState state,
+    PetCaptureNotifier notifier,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Row(
@@ -351,21 +466,30 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
               ),
             ),
           ),
-          // Shutter button (giữa) - Viền vàng, lõi trắng
+          // Shutter button (giữa) - Chuyển thành icon gửi khi ở preview mode
           GestureDetector(
             onTap: state.isPreviewMode
-                ? null
+                ? (state.isSending ? null : notifier.send)
                 : () async {
                     _triggerFlashOverlay();
                     await notifier.capturePhoto();
                   },
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
               width: 80,
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primaryPink, width: 5),
-                color: Colors.white,
+                border: Border.all(
+                  color: state.isPreviewMode
+                      ? AppColors.primaryPink
+                      : AppColors.primaryPink,
+                  width: 5,
+                ),
+                color: state.isPreviewMode
+                    ? AppColors.primaryPink
+                    : Colors.white,
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.primaryPink.withOpacity(0.4),
@@ -374,12 +498,23 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
                   ),
                 ],
               ),
-              child: Container(
-                margin: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: state.isPreviewMode
+                    ? Icon(
+                        Icons.send_rounded,
+                        key: const ValueKey('send'),
+                        color: Colors.white,
+                        size: 32,
+                      )
+                    : Container(
+                        key: const ValueKey('shutter'),
+                        margin: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -411,84 +546,48 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
     );
   }
 
-  Widget _buildSendButtonOnPreview(
-    PetCaptureState state,
-    PetCaptureNotifier notifier,
-  ) {
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      bottom: state.isPreviewMode ? 16 : -100,
-      right: 16,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 200),
-        opacity: state.isPreviewMode ? 1 : 0,
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.primaryPink,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryPink.withOpacity(0.5),
-                blurRadius: 12,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(28),
-              onTap: state.isPreviewMode && !state.isSending
-                  ? notifier.send
-                  : null,
-              child: const Center(
-                child: Icon(Icons.send_rounded, color: Colors.white, size: 24),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildCaptionFieldOnPreview(
     PetCaptureState state,
     PetCaptureNotifier notifier,
   ) {
+    // Text field đứng yên, không bị đẩy lên khi bàn phím hiện
+    final bottomPosition = state.isPreviewMode ? 60.0 : -120.0;
+    // Ẩn hint text khi text field được focus hoặc có text
+    final hasText = notifier.captionController.text.isNotEmpty;
+    final isFocused = _captionFocusNode.hasFocus;
+    final showHint = !isFocused && !hasText;
+
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutCubic,
       left: 16,
-      right: 80, // Tránh nút send
-      bottom: state.isPreviewMode ? 16 : -120,
+      right: 16,
+      bottom: bottomPosition,
       child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 260),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
         opacity: state.isPreviewMode ? 1 : 0,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white24, width: 1),
-          ),
-          child: TextField(
-            controller: notifier.captionController,
-            style: const TextStyle(color: Colors.white),
-            cursorColor: AppColors.primaryPink,
-            maxLines: 1,
-            maxLength: 60,
-            decoration: const InputDecoration(
-              isDense: true,
-              counterText: '',
-              border: InputBorder.none,
-              hintText: 'Đang nghĩ gì?',
-              hintStyle: TextStyle(color: Colors.white60, fontSize: 14),
+        child: TextField(
+          controller: notifier.captionController,
+          focusNode: _captionFocusNode,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white),
+          cursorColor: AppColors.primaryPink,
+          maxLines: 1,
+          maxLength: 60,
+          onChanged: (_) =>
+              setState(() {}), // Trigger rebuild khi text thay đổi
+          decoration: InputDecoration(
+            isDense: true,
+            counterText: '',
+            border: InputBorder.none,
+            hintText: showHint ? 'Đang nghĩ gì?' : '',
+            hintStyle: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 14,
             ),
-            inputFormatters: [LengthLimitingTextInputFormatter(60)],
           ),
+          inputFormatters: [LengthLimitingTextInputFormatter(60)],
         ),
       ),
     );

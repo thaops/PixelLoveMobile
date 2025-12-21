@@ -9,8 +9,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
+import 'package:pixel_love/core/utils/image_cache_helper.dart';
 import 'package:pixel_love/features/pet_image/domain/entities/pet_image.dart';
 import 'package:pixel_love/features/pet_image/presentation/models/timeline_item.dart';
+import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_album_notifier.dart';
 import 'package:pixel_love/features/pet_image/providers/pet_image_providers.dart';
 import 'package:pixel_love/features/pet_scene/providers/pet_scene_providers.dart';
 
@@ -19,6 +21,11 @@ class PetAlbumScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Khởi tạo cache khi build lần đầu
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ImageCacheHelper.initialize();
+    });
+
     final albumState = ref.watch(petAlbumNotifierProvider);
 
     final canPop = context.canPop();
@@ -91,6 +98,20 @@ class PetAlbumScreen extends ConsumerWidget {
                             .read(petAlbumNotifierProvider.notifier)
                             .buildTimelineItems();
 
+                        // Lấy danh sách image URLs để preload
+                        final imageUrls = timelineItems
+                            .whereType<ImageItem>()
+                            .map((item) => item.image.imageUrl)
+                            .toList();
+
+                        // Thêm URLs từ ComboItem
+                        for (final item
+                            in timelineItems.whereType<ComboItem>()) {
+                          imageUrls.addAll(
+                            item.images.map((img) => img.imageUrl),
+                          );
+                        }
+
                         return Container(
                           color: Colors.white.withOpacity(0.08),
                           child: RefreshIndicator(
@@ -98,60 +119,13 @@ class PetAlbumScreen extends ConsumerWidget {
                                 .read(petAlbumNotifierProvider.notifier)
                                 .refresh(),
                             color: AppColors.primaryPink,
-                            child: CustomScrollView(
-                              slivers: [
-                                SliverPadding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 4,
-                                  ),
-                                  sliver: SliverList(
-                                    delegate: SliverChildBuilderDelegate(
-                                      (context, index) {
-                                        if (index < timelineItems.length) {
-                                          final item = timelineItems[index];
-                                          final nextItem =
-                                              index < timelineItems.length - 1
-                                              ? timelineItems[index + 1]
-                                              : null;
-                                          return _buildTimelineItem(
-                                            context,
-                                            item,
-                                            nextItem: nextItem,
-                                          );
-                                        } else if (albumState.hasMore) {
-                                          WidgetsBinding.instance
-                                              .addPostFrameCallback((_) {
-                                                ref
-                                                    .read(
-                                                      petAlbumNotifierProvider
-                                                          .notifier,
-                                                    )
-                                                    .loadMore();
-                                              });
-                                          return _buildLoadingMoreIndicator();
-                                        } else {
-                                          return const SizedBox.shrink();
-                                        }
-                                      },
-                                      childCount:
-                                          timelineItems.length +
-                                          (albumState.hasMore ? 1 : 0),
-                                    ),
-                                  ),
-                                ),
-                                if (albumState.isLoadingMore)
-                                  const SliverToBoxAdapter(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(16),
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
+                            child: _OptimizedScrollView(
+                              imageUrls: imageUrls,
+                              timelineItems: timelineItems,
+                              albumState: albumState,
+                              onLoadMore: () => ref
+                                  .read(petAlbumNotifierProvider.notifier)
+                                  .loadMore(),
                             ),
                           ),
                         );
@@ -165,6 +139,19 @@ class PetAlbumScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Build timeline item dựa trên type
+  Widget _buildTimelineItemInstance(
+    BuildContext context,
+    TimelineItem item, {
+    TimelineItem? nextItem,
+  }) {
+    return _buildTimelineItem(context, item, nextItem: nextItem);
+  }
+
+  Widget _buildLoadingMoreIndicatorInstance() {
+    return _buildLoadingMoreIndicator();
   }
 
   /// Build timeline item dựa trên type
@@ -311,13 +298,30 @@ class PetAlbumScreen extends ConsumerWidget {
                           width: double.infinity,
                           height: 200,
                           fit: BoxFit.cover,
+                          // Tối ưu cache: giảm kích thước memory cache để load nhanh hơn
+                          memCacheWidth: (MediaQuery.of(context).size.width * 2)
+                              .toInt(),
+                          memCacheHeight: 400,
+                          // Disk cache tối đa
+                          maxWidthDiskCache: 1000,
+                          maxHeightDiskCache: 1000,
+                          // Fade in mượt mà
+                          fadeInDuration: const Duration(milliseconds: 200),
+                          fadeOutDuration: const Duration(milliseconds: 100),
+                          // Giữ ảnh cũ khi URL thay đổi để tránh flicker
+                          useOldImageOnUrlChange: true,
+                          // Placeholder từ cache nếu có
                           placeholder: (context, url) => Container(
                             height: 200,
                             color: Colors.grey.shade800,
                             child: const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
                               ),
                             ),
                           ),
@@ -579,13 +583,25 @@ class PetAlbumScreen extends ConsumerWidget {
             width: double.infinity,
             height: 120,
             fit: BoxFit.cover,
+            // Tối ưu cache cho combo images (nhỏ hơn)
+            memCacheWidth: 600,
+            memCacheHeight: 240,
+            maxWidthDiskCache: 600,
+            maxHeightDiskCache: 600,
+            fadeInDuration: const Duration(milliseconds: 200),
+            fadeOutDuration: const Duration(milliseconds: 100),
+            useOldImageOnUrlChange: true,
             placeholder: (context, url) => Container(
               height: 120,
               color: Colors.grey.shade800,
               child: const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
                 ),
               ),
             ),
@@ -634,7 +650,7 @@ class PetAlbumScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildLoadingMoreIndicator() {
+  static Widget _buildLoadingMoreIndicator() {
     return const Padding(
       padding: EdgeInsets.all(16),
       child: Center(child: CircularProgressIndicator(color: Colors.white)),
@@ -694,6 +710,15 @@ class PetAlbumScreen extends ConsumerWidget {
               child: CachedNetworkImage(
                 imageUrl: image.imageUrl,
                 fit: BoxFit.contain,
+                // Full resolution cho detail view
+                memCacheWidth: (MediaQuery.of(context).size.width * 3).toInt(),
+                memCacheHeight: (MediaQuery.of(context).size.height * 3)
+                    .toInt(),
+                maxWidthDiskCache: 2000,
+                maxHeightDiskCache: 2000,
+                fadeInDuration: const Duration(milliseconds: 300),
+                fadeOutDuration: const Duration(milliseconds: 150),
+                useOldImageOnUrlChange: true,
                 placeholder: (context, url) => Container(
                   color: Colors.grey.shade900,
                   child: const Center(
@@ -887,6 +912,205 @@ class PetAlbumScreen extends ConsumerWidget {
   }
 }
 
+/// Widget tối ưu scroll view với preload ảnh
+class _OptimizedScrollView extends StatefulWidget {
+  final List<String> imageUrls;
+  final List<TimelineItem> timelineItems;
+  final PetAlbumState albumState;
+  final VoidCallback onLoadMore;
+
+  const _OptimizedScrollView({
+    required this.imageUrls,
+    required this.timelineItems,
+    required this.albumState,
+    required this.onLoadMore,
+  });
+
+  @override
+  State<_OptimizedScrollView> createState() => _OptimizedScrollViewState();
+}
+
+class _OptimizedScrollViewState extends State<_OptimizedScrollView> {
+  final ScrollController _scrollController = ScrollController();
+  int _lastPreloadedIndex = -1;
+  List<String> _previousImageUrls = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _previousImageUrls = List.from(widget.imageUrls);
+
+    // Preload ảnh đầu tiên khi khởi tạo
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.imageUrls.isNotEmpty) {
+        ImageCacheHelper.preloadUpcomingImages(
+          imageUrls: widget.imageUrls,
+          currentIndex: 0,
+          context: context,
+          lookAhead: 5, // Preload 5 ảnh đầu tiên
+        );
+        _lastPreloadedIndex = 4;
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(_OptimizedScrollView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Preload ảnh mới nếu có thêm ảnh từ socket hoặc refresh
+    if (widget.imageUrls.length > _previousImageUrls.length) {
+      final newUrls = widget.imageUrls
+          .where((url) => !_previousImageUrls.contains(url))
+          .toList();
+
+      if (newUrls.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ImageCacheHelper.preloadImages(newUrls, context);
+          }
+        });
+      }
+    }
+
+    _previousImageUrls = List.from(widget.imageUrls);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    // Tính toán index của item đang visible
+    final scrollPosition = _scrollController.position;
+    final scrollOffset = scrollPosition.pixels;
+
+    // Ước tính index dựa trên scroll position (mỗi item ~250px)
+    final estimatedIndex = (scrollOffset / 250).floor();
+
+    // Preload ảnh tiếp theo nếu chưa preload
+    if (estimatedIndex > _lastPreloadedIndex &&
+        estimatedIndex < widget.imageUrls.length) {
+      final lookAhead = 3;
+      final startIndex = (_lastPreloadedIndex + 1).clamp(
+        0,
+        widget.imageUrls.length,
+      );
+      final endIndex = (estimatedIndex + lookAhead).clamp(
+        0,
+        widget.imageUrls.length,
+      );
+
+      if (startIndex < endIndex) {
+        ImageCacheHelper.preloadUpcomingImages(
+          imageUrls: widget.imageUrls,
+          currentIndex: startIndex,
+          context: context,
+          lookAhead: endIndex - startIndex,
+        );
+        _lastPreloadedIndex = endIndex - 1;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                if (index < widget.timelineItems.length) {
+                  final item = widget.timelineItems[index];
+                  final nextItem = index < widget.timelineItems.length - 1
+                      ? widget.timelineItems[index + 1]
+                      : null;
+
+                  // Preload ảnh khi item sắp hiển thị
+                  if (index > _lastPreloadedIndex &&
+                      index < widget.imageUrls.length) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        final imageIndex = _getImageIndexForTimelineIndex(
+                          index,
+                        );
+                        if (imageIndex >= 0 &&
+                            imageIndex < widget.imageUrls.length) {
+                          ImageCacheHelper.preloadImage(
+                            widget.imageUrls[imageIndex],
+                            context,
+                          );
+                        }
+                      }
+                    });
+                  }
+
+                  // Tạo instance tạm để gọi method
+                  final screen = PetAlbumScreen();
+                  return screen._buildTimelineItemInstance(
+                    context,
+                    item,
+                    nextItem: nextItem,
+                  );
+                } else if (widget.albumState.hasMore) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    widget.onLoadMore();
+                  });
+                  final screen = PetAlbumScreen();
+                  return screen._buildLoadingMoreIndicatorInstance();
+                } else {
+                  return const SizedBox.shrink();
+                }
+              },
+              childCount:
+                  widget.timelineItems.length +
+                  (widget.albumState.hasMore ? 1 : 0),
+            ),
+          ),
+        ),
+        if (widget.albumState.isLoadingMore)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Tìm image index tương ứng với timeline index
+  int _getImageIndexForTimelineIndex(int timelineIndex) {
+    int imageCount = 0;
+    for (
+      int i = 0;
+      i <= timelineIndex && i < widget.timelineItems.length;
+      i++
+    ) {
+      final item = widget.timelineItems[i];
+      if (item is ImageItem) {
+        if (i == timelineIndex) return imageCount;
+        imageCount++;
+      } else if (item is ComboItem) {
+        if (i == timelineIndex)
+          return imageCount; // Return first image of combo
+        imageCount += 2; // Combo có 2 ảnh
+      }
+    }
+    return -1;
+  }
+}
+
 class PetMiniStatusBar extends ConsumerWidget {
   const PetMiniStatusBar({super.key});
 
@@ -933,7 +1157,14 @@ class PetMiniStatusBar extends ConsumerWidget {
                   color: AppColors.primaryPink.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.pets, color: AppColors.primaryPink, size: 22),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/pet-level-1.png',
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(

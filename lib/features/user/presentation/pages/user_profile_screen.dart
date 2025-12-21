@@ -11,7 +11,7 @@ class UserProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userState = ref.watch(userNotifierProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -30,106 +30,108 @@ class UserProfileScreen extends ConsumerWidget {
 
           final user = userState.currentUser;
 
-        if (user == null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('Failed to load profile'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => ref.read(userNotifierProvider.notifier).fetchProfile(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          );
-        }
+          if (user == null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Failed to load profile'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () =>
+                        ref.read(userNotifierProvider.notifier).fetchProfile(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
 
           return RefreshIndicator(
-            onRefresh: () => ref.read(userNotifierProvider.notifier).fetchProfile(),
+            onRefresh: () =>
+                ref.read(userNotifierProvider.notifier).fetchProfile(),
             child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundImage: user.avatar != null
-                      ? NetworkImage(user.avatar!)
-                      : null,
-                  child: user.avatar == null
-                      ? Text(
-                          user.name?.isNotEmpty == true
-                              ? user.name![0].toUpperCase()
-                              : 'U',
-                          style: const TextStyle(fontSize: 40),
-                        )
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  user.name ?? 'User',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 60,
+                    backgroundImage: user.avatar != null
+                        ? NetworkImage(user.avatar!)
+                        : null,
+                    child: user.avatar == null
+                        ? Text(
+                            user.name?.isNotEmpty == true
+                                ? user.name![0].toUpperCase()
+                                : 'U',
+                            style: const TextStyle(fontSize: 40),
+                          )
+                        : null,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Mode: ${user.mode}',
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  child: Column(
-                    children: [
-                      _buildInfoTile(
-                        icon: Icons.email,
-                        label: 'Email',
-                        value: user.email ?? 'Not set',
-                      ),
-                      const Divider(height: 1),
-                      _buildInfoTile(
-                        icon: Icons.phone,
-                        label: 'Phone',
-                        value: user.phone ?? 'Not set',
-                      ),
-                      const Divider(height: 1),
-                      _buildInfoTile(
-                        icon: Icons.monetization_on,
-                        label: 'Coins',
-                        value: user.coins.toString(),
-                      ),
-                      if (user.coupleRoomId != null) ...[
-                        const Divider(height: 1),
-                        _buildInfoTile(
-                          icon: Icons.favorite,
-                          label: 'Couple Room',
-                          value: user.coupleRoomId!,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showLogoutDialog(context, ref),
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Đăng xuất'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                  const SizedBox(height: 16),
+                  Text(
+                    user.name ?? 'User',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Mode: ${user.mode}',
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 24),
+                  Card(
+                    child: Column(
+                      children: [
+                        _buildInfoTile(
+                          icon: Icons.email,
+                          label: 'Email',
+                          value: user.email ?? 'Not set',
+                        ),
+                        const Divider(height: 1),
+                        _buildInfoTile(
+                          icon: Icons.phone,
+                          label: 'Phone',
+                          value: user.phone ?? 'Not set',
+                        ),
+                        const Divider(height: 1),
+                        _buildInfoTile(
+                          icon: Icons.monetization_on,
+                          label: 'Coins',
+                          value: user.coins.toString(),
+                        ),
+                        if (user.coupleRoomId != null) ...[
+                          const Divider(height: 1),
+                          _buildInfoTile(
+                            icon: Icons.favorite,
+                            label: 'Couple Room',
+                            value: user.coupleRoomId!,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showLogoutDialog(context, ref),
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Đăng xuất'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
+          );
         },
       ),
     );
@@ -192,9 +194,9 @@ class UserProfileScreen extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(userNotifierProvider.notifier).updateProfile(
-                name: nameController.text,
-              );
+              ref
+                  .read(userNotifierProvider.notifier)
+                  .updateProfile(name: nameController.text);
               Navigator.of(context).pop();
             },
             child: const Text('Save'),

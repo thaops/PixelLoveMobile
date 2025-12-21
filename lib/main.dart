@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pixel_love/core/env/env.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/core/router/app_router.dart';
+import 'package:pixel_love/core/utils/image_cache_helper.dart';
 import 'package:pixel_love/firebase_options.dart';
 
 void main() async {
@@ -13,6 +14,9 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await Env.load();
+
+  // Initialize image cache
+  ImageCacheHelper.initialize();
 
   // Initialize SharedPreferences before ProviderScope
   final sharedPreferences = await SharedPreferences.getInstance();
