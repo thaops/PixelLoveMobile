@@ -1,52 +1,22 @@
 import 'dart:io';
+
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/pet_image/providers/pet_image_providers.dart';
+import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_capture_state.dart';
+import 'package:pixel_love/features/pet_image/presentation/utils/image_crop_utils.dart';
+import 'package:image/image.dart' as img;
 
-/// Pet Capture State
-class PetCaptureState {
-  final bool isPreviewMode;
-  final bool isSending;
-  final bool isCapturing;
-  final FlashMode flashMode;
-  final File? previewFile;
-  final DateTime? capturedAt;
-
-  const PetCaptureState({
-    this.isPreviewMode = false,
-    this.isSending = false,
-    this.isCapturing = false,
-    this.flashMode = FlashMode.auto,
-    this.previewFile,
-    this.capturedAt,
-  });
-
-  PetCaptureState copyWith({
-    bool? isPreviewMode,
-    bool? isSending,
-    bool? isCapturing,
-    FlashMode? flashMode,
-    File? previewFile,
-    DateTime? capturedAt,
-  }) {
-    return PetCaptureState(
-      isPreviewMode: isPreviewMode ?? this.isPreviewMode,
-      isSending: isSending ?? this.isSending,
-      isCapturing: isCapturing ?? this.isCapturing,
-      flashMode: flashMode ?? this.flashMode,
-      previewFile: previewFile ?? this.previewFile,
-      capturedAt: capturedAt ?? this.capturedAt,
-    );
-  }
-}
-
-/// Pet Capture Notifier - Handles camera capture and image sending
 class PetCaptureNotifier extends Notifier<PetCaptureState> {
   final TextEditingController captionController = TextEditingController();
   PhotoCameraState? _photoState;
+
+  // Tỉ lệ khung preview (phải khớp với mask & khung hiển thị review)
+  // Đã đổi từ 4/3.5 về 4/3 để khớp với sensor ratio_4_3
+  static const double _previewAspectRatio = 4 / 3;
 
   @override
   PetCaptureState build() {
@@ -112,9 +82,11 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
         // Error sẽ được handle ở UI layer
         return;
       }
-      final file = File(path);
+      final originalFile = File(path);
+      final croppedFile = await _cropToPreviewAspect(originalFile);
       this.state = this.state.copyWith(
-        previewFile: file,
+        // Luôn dùng file đã crop (nếu crop lỗi thì dùng ảnh gốc)
+        previewFile: croppedFile ?? originalFile,
         capturedAt: DateTime.now(),
         isPreviewMode: true,
         isCapturing: false,
@@ -135,11 +107,14 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
   }
 
   void setPreviewFile(File file) {
-    state = state.copyWith(
-      previewFile: file,
-      capturedAt: DateTime.now(),
-      isPreviewMode: true,
-    );
+    // Khi chọn từ gallery cũng crop lại theo khung preview
+    _cropToPreviewAspect(file).then((cropped) {
+      state = state.copyWith(
+        previewFile: cropped ?? file,
+        capturedAt: DateTime.now(),
+        isPreviewMode: true,
+      );
+    });
   }
 
   Future<void> send() async {
@@ -193,6 +168,29 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
       single: (single) => single.file?.path,
       multiple: (multiple) => multiple.fileBySensor.values.first?.path,
     );
+  }
+
+  /// Crop ảnh theo tỉ lệ khung preview để:
+  /// - Màn review hiển thị gần giống lúc chụp
+  /// - Ảnh gửi lên server đúng với những gì user thấy trong khung
+  Future<File?> _cropToPreviewAspect(File file) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final image = img.decodeImage(bytes);
+      if (image == null) return null;
+
+      final cropped = cropCenterToAspect(
+        image,
+        targetAspect: _previewAspectRatio,
+      );
+
+      final encoded = img.encodeJpg(cropped, quality: 90);
+      await file.writeAsBytes(encoded, flush: true);
+      return file;
+    } catch (_) {
+      // Nếu có lỗi (file hỏng, decode fail, ...) thì trả null để dùng ảnh gốc
+      return null;
+    }
   }
 }
 

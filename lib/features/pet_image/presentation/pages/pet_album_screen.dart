@@ -297,7 +297,7 @@ class PetAlbumScreen extends ConsumerWidget {
                           imageUrl: image.imageUrl,
                           width: double.infinity,
                           height: 200,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           // Tối ưu cache: giảm kích thước memory cache để load nhanh hơn
                           memCacheWidth: (MediaQuery.of(context).size.width * 2)
                               .toInt(),
@@ -583,7 +583,6 @@ class PetAlbumScreen extends ConsumerWidget {
             width: double.infinity,
             height: 120,
             fit: BoxFit.cover,
-            // Tối ưu cache cho combo images (nhỏ hơn)
             memCacheWidth: 600,
             memCacheHeight: 240,
             maxWidthDiskCache: 600,

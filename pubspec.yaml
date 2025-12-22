@@ -80,6 +80,9 @@ dependencies:
 
   # Camera (cross‑platform, tích hợp UI tốt cho Android & iOS)
   camerawesome: ^2.5.0
+
+  # Image processing (crop ảnh theo khung preview trước khi gửi server)
+  image: ^4.2.0
   
 dev_dependencies:
   flutter_test:

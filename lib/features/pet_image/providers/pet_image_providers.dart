@@ -7,13 +7,16 @@ import 'package:pixel_love/features/pet_image/domain/usecases/get_pet_images_use
 import 'package:pixel_love/features/pet_image/domain/usecases/send_image_to_pet_usecase.dart';
 import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_album_notifier.dart';
 import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_capture_notifier.dart';
+import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_capture_state.dart';
 
 // ============================================
 // Pet Image Feature Providers
 // ============================================
 
 /// Pet Image Remote DataSource provider
-final petImageRemoteDataSourceProvider = Provider<PetImageRemoteDataSource>((ref) {
+final petImageRemoteDataSourceProvider = Provider<PetImageRemoteDataSource>((
+  ref,
+) {
   final dioApi = ref.watch(dioApiProvider);
   return PetImageRemoteDataSourceImpl(dioApi);
 });
@@ -37,12 +40,11 @@ final sendImageToPetUseCaseProvider = Provider<SendImageToPetUseCase>((ref) {
 });
 
 /// Pet Album Notifier provider (Riverpod v3)
-final petAlbumNotifierProvider = NotifierProvider<PetAlbumNotifier, PetAlbumState>(
-  PetAlbumNotifier.new,
-);
+final petAlbumNotifierProvider =
+    NotifierProvider<PetAlbumNotifier, PetAlbumState>(PetAlbumNotifier.new);
 
 /// Pet Capture Notifier provider (Riverpod v3)
-final petCaptureNotifierProvider = NotifierProvider<PetCaptureNotifier, PetCaptureState>(
-  PetCaptureNotifier.new,
-);
-
+final petCaptureNotifierProvider =
+    NotifierProvider<PetCaptureNotifier, PetCaptureState>(
+      PetCaptureNotifier.new,
+    );
