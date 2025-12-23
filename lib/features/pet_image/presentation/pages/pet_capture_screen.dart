@@ -67,6 +67,38 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
     });
   }
 
+  List<Widget> _buildDecorativeHearts() {
+    return [
+      Positioned(
+        bottom: 100,
+        left: 30,
+        child: Icon(
+          Icons.favorite,
+          size: 50,
+          color: AppColors.iconPurple.withOpacity(0.3),
+        ),
+      ),
+      Positioned(
+        bottom: 180,
+        right: 40,
+        child: Icon(
+          Icons.favorite_border,
+          size: 45,
+          color: AppColors.iconPurple.withOpacity(0.25),
+        ),
+      ),
+      Positioned(
+        bottom: 750,
+        left: 60,
+        child: Icon(
+          Icons.favorite,
+          size: 40,
+          color: AppColors.iconPurple.withOpacity(0.2),
+        ),
+      ),
+    ];
+  }
+
   Future<void> _pickFromGallery() async {
     try {
       final XFile? image = await _imagePicker.pickImage(
@@ -116,64 +148,105 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
           }
         }
       },
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        resizeToAvoidBottomInset: false,
-        body: SafeArea(
-          child: CameraAwesomeBuilder.custom(
-            saveConfig: SaveConfig.photo(),
-            // Đổi từ cover sang contain để preview không crop quá nhiều
-            // Giúp preview (x1) khớp với ảnh thật khi review (x1)
-            previewFit: CameraPreviewFit.contain,
-            previewAlignment: const Alignment(
-              0,
-              -0.80,
-            ), // Top center nhưng cách top một chút
-            sensorConfig: SensorConfig.single(
-              sensor: Sensor.position(SensorPosition.back),
-              // Dùng 4:3 để gần với tỉ lệ khung preview (4/3.5 ≈ 1.143)
-              aspectRatio: CameraAspectRatios.ratio_4_3,
-              flashMode: FlashMode.none,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light.copyWith(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: AppColors.backgroundGradient,
+              ),
             ),
-            builder: (cameraState, preview) {
-              final captureNotifier = ref.read(
-                petCaptureNotifierProvider.notifier,
-              );
-              captureNotifier.attachState(cameraState);
+            child: SafeArea(
+              child: CameraAwesomeBuilder.custom(
+                saveConfig: SaveConfig.photo(),
+                // Đổi từ cover sang contain để preview không crop quá nhiều
+                // Giúp preview (x1) khớp với ảnh thật khi review (x1)
+                previewFit: CameraPreviewFit.contain,
+                previewAlignment: const Alignment(
+                  0,
+                  -0.55,
+                ), // Top center nhưng cách top một chút
+                sensorConfig: SensorConfig.single(
+                  sensor: Sensor.position(SensorPosition.back),
+                  // Dùng 4:3 để gần với tỉ lệ khung preview (4/3.5 ≈ 1.143)
+                  aspectRatio: CameraAspectRatios.ratio_4_3,
+                  flashMode: FlashMode.none,
+                ),
+                builder: (cameraState, preview) {
+                  final captureNotifier = ref.read(
+                    petCaptureNotifierProvider.notifier,
+                  );
+                  captureNotifier.attachState(cameraState);
 
-              return Stack(
-                children: [
-                  if (captureState.isPreviewMode)
-                    Positioned.fill(
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        opacity: 1.0,
-                        child: Container(color: Colors.black),
-                      ),
-                    ),
-                  if (!captureState.isPreviewMode) const PetPreviewMask(),
-                  Column(
+                  return Stack(
                     children: [
-                      if (!captureState.isPreviewMode)
-                        PetCaptureHeader(
-                          state: captureState,
-                          notifier: captureNotifier,
-                          zoomLevel: _zoomLevel,
-                        )
-                      else
-                        const SizedBox(height: 0),
-
-                      Expanded(
-                        child: _buildPreviewContainer(
-                          cameraState,
-                          captureState,
-                          captureNotifier,
+                      // Decorative heart icons ở dưới background
+                      ..._buildDecorativeHearts(),
+                      if (captureState.isPreviewMode)
+                        Positioned.fill(
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            opacity: 1.0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: AppColors.backgroundGradient,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
+                      if (!captureState.isPreviewMode) const PetPreviewMask(),
+                      Column(
+                        children: [
+                          if (!captureState.isPreviewMode)
+                            PetCaptureHeader(
+                              state: captureState,
+                              notifier: captureNotifier,
+                              zoomLevel: _zoomLevel,
+                            )
+                          else
+                            const SizedBox(height: 0),
+
+                          Expanded(
+                            child: _buildPreviewContainer(
+                              cameraState,
+                              captureState,
+                              captureNotifier,
+                            ),
+                          ),
+
+                          if (!captureState.isPreviewMode)
+                            PetCaptureActionBar(
+                              state: captureState,
+                              notifier: captureNotifier,
+                              onPickFromGallery: _pickFromGallery,
+                              onCapture: () async {
+                                _triggerFlashOverlay();
+                                await captureNotifier.capturePhoto();
+                              },
+                            )
+                          else
+                            const SizedBox(height: 150),
+
+                          if (!captureState.isPreviewMode)
+                            const PetCaptureFooter(),
+                        ],
                       ),
 
-                      if (!captureState.isPreviewMode)
-                        PetCaptureActionBar(
+                      if (captureState.isPreviewMode)
+                        PetCaptureActionBarPositioned(
                           state: captureState,
                           notifier: captureNotifier,
                           onPickFromGallery: _pickFromGallery,
@@ -181,29 +254,15 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
                             _triggerFlashOverlay();
                             await captureNotifier.capturePhoto();
                           },
-                        )
-                      else
-                        const SizedBox(height: 150),
+                        ),
 
-                      if (!captureState.isPreviewMode) const PetCaptureFooter(),
+                      if (captureState.isSending)
+                        const PetCaptureSendingOverlay(),
                     ],
-                  ),
-
-                  if (captureState.isPreviewMode)
-                    PetCaptureActionBarPositioned(
-                      state: captureState,
-                      notifier: captureNotifier,
-                      onPickFromGallery: _pickFromGallery,
-                      onCapture: () async {
-                        _triggerFlashOverlay();
-                        await captureNotifier.capturePhoto();
-                      },
-                    ),
-
-                  if (captureState.isSending) const PetCaptureSendingOverlay(),
-                ],
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
         ),
       ),
@@ -218,7 +277,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     // Phải khớp với tỉ lệ & kích thước trong PetPreviewMask (đã đổi về 4/3)
     final containerWidth = screenWidth * 0.92;
-    final containerHeight = containerWidth * 4 / 3;
+    final containerHeight = containerWidth * 4 / 3.5;
 
     // Chỉ hiển thị container khi review (lúc chụp camera tự render full màn + mask)
     if (!captureState.isPreviewMode || captureState.previewFile == null) {
@@ -259,7 +318,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
         ? keyboardHeight * 0.8
         : 0.0;
 
-    // Điều chỉnh padding để container review khớp với vị trí mask mới (đã xích lên)
+    // Điều chỉnh padding để container review khớp với vị trí mask mớBi (đã xích lên)
     final offsetUp = 20.0;
     return AnimatedPadding(
       duration: const Duration(milliseconds: 300),
@@ -279,7 +338,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Nền blur để đánh lừa cảm giác “zoom out” khi xem lại
+        // Nền blur để đánh lừa cảm giác "zoom out" khi xem lại
         Image.file(file, fit: BoxFit.cover),
         BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -295,7 +354,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
     PetCaptureState state,
     PetCaptureNotifier notifier,
   ) {
-    final bottomPosition = state.isPreviewMode ? 60.0 : -120.0;
+    final bottomPosition = state.isPreviewMode ? 40.0 : -120.0;
     final hasText = notifier.captionController.text.isNotEmpty;
     final isFocused = _captionFocusNode.hasFocus;
     final showHint = !isFocused && !hasText;

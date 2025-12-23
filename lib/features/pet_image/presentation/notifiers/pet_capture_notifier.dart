@@ -13,9 +13,6 @@ import 'package:image/image.dart' as img;
 class PetCaptureNotifier extends Notifier<PetCaptureState> {
   final TextEditingController captionController = TextEditingController();
   PhotoCameraState? _photoState;
-
-  // Tỉ lệ khung preview (phải khớp với mask & khung hiển thị review)
-  // Đã đổi từ 4/3.5 về 4/3 để khớp với sensor ratio_4_3
   static const double _previewAspectRatio = 4 / 3;
 
   @override
@@ -23,13 +20,11 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
     return const PetCaptureState();
   }
 
-  /// Nhận state từ builder để thao tác chụp/flash/switch camera
   void attachState(CameraState cameraState) {
     cameraState.when(
       onPhotoMode: (photoState) {
         _photoState = photoState;
         final newFlashMode = photoState.sensorConfig.flashMode;
-        // Only update if flashMode changed and delay to avoid modifying during build
         if (state.flashMode != newFlashMode) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             state = state.copyWith(flashMode: newFlashMode);

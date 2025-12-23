@@ -100,9 +100,9 @@ class _ActionBarContent extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.15),
+                color: AppColors.primaryPink.withOpacity(0.05),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: AppColors.primaryPink.withOpacity(0.3),
                   width: 1.5,
                 ),
               ),
@@ -110,7 +110,7 @@ class _ActionBarContent extends StatelessWidget {
                 Icons.photo_library_rounded,
                 color: state.isPreviewMode
                     ? Colors.white.withOpacity(0.3)
-                    : Colors.white,
+                    : AppColors.primaryPink,
                 size: 24,
               ),
             ),
@@ -146,7 +146,7 @@ class _ActionBarContent extends StatelessWidget {
                     ? const Icon(
                         Icons.send_rounded,
                         key: ValueKey('send'),
-                        color: Colors.white,
+                        color: AppColors.primaryPink,
                         size: 32,
                       )
                     : Container(
@@ -154,7 +154,7 @@ class _ActionBarContent extends StatelessWidget {
                         margin: const EdgeInsets.all(6),
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white,
+                          color: AppColors.primaryPink,
                         ),
                       ),
               ),
@@ -167,9 +167,9 @@ class _ActionBarContent extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.15),
+                color: AppColors.primaryPink.withOpacity(0.05),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: AppColors.primaryPink.withOpacity(0.3),
                   width: 1.5,
                 ),
               ),
@@ -177,7 +177,7 @@ class _ActionBarContent extends StatelessWidget {
                 Icons.cameraswitch_rounded,
                 color: state.isPreviewMode
                     ? Colors.white.withOpacity(0.3)
-                    : Colors.white,
+                    : AppColors.primaryPink,
                 size: 24,
               ),
             ),

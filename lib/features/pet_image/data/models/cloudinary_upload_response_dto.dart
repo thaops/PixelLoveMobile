@@ -1,4 +1,3 @@
-/// DTO cho response từ API upload Cloudinary
 class CloudinaryUploadResponseDto {
   final String publicId;
   final String secureUrl;

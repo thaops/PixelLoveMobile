@@ -29,12 +29,16 @@ class PetCaptureHeader extends StatelessWidget {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.black.withOpacity(0.5),
+                color: AppColors.primaryPink.withOpacity(0.05),
+                border: Border.all(
+                  color: AppColors.primaryPink.withOpacity(0.3),
+                  width: 1.5,
+                ),
               ),
               child: Icon(
                 _flashIcon(state.flashMode),
                 color: state.flashMode == FlashMode.none
-                    ? Colors.white.withOpacity(0.5)
+                    ? AppColors.primaryPink.withOpacity(1)
                     : AppColors.primaryPink,
                 size: 24,
               ),
@@ -43,13 +47,17 @@ class PetCaptureHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
+              color: AppColors.primaryPink.withOpacity(0.05),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.primaryPink.withOpacity(0.3),
+                width: 1.5,
+              ),
             ),
             child: Text(
               '${zoomLevel.toStringAsFixed(1)}x',
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.primaryPink,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),

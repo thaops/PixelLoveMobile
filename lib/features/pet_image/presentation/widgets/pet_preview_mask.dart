@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/pet_image/providers/pet_image_providers.dart';
 
 class PetPreviewMask extends ConsumerWidget {
@@ -9,13 +10,13 @@ class PetPreviewMask extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    final containerWidth = screenWidth * 0.92;
+    final containerWidth = screenWidth * 0.95;
     // Đổi từ 4/3.5 về 4/3 để khớp với sensor ratio_4_3
-    final containerHeight = containerWidth * 4 / 3.5;
+    final containerHeight = containerWidth * 4 / 3.9;
     final containerLeft = (screenWidth - containerWidth) / 2;
 
     final captureState = ref.watch(petCaptureNotifierProvider);
-    final headerHeight = captureState.isPreviewMode ? 0.0 : 50.0;
+    final headerHeight = captureState.isPreviewMode ? 0.0 : 120.0;
     final footerHeight = captureState.isPreviewMode ? 0.0 : 00.0;
     final actionBarHeight = 190.0;
     final cameraPaddingBottom = 62.0;
@@ -59,8 +60,15 @@ class PreviewMaskPainter extends CustomPainter {
       ..addRRect(containerRect)
       ..fillType = PathFillType.evenOdd;
 
+    // Vẽ gradient background thay vì màu đen
+    final gradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: AppColors.backgroundGradient,
+    );
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     final paint = Paint()
-      ..color = Colors.black
+      ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(maskPath, paint);
