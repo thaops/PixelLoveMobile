@@ -17,7 +17,8 @@ class ImageCacheHelper {
   /// Trả về true nếu preload thành công hoặc đã có trong cache
   static Future<bool> preloadImage(String imageUrl, BuildContext context) async {
     try {
-      final imageProvider = CachedNetworkImageProvider(imageUrl);
+      final imageProvider = CachedNetworkImageProvider(
+        imageUrl);
       
       // Preload vào memory (precacheImage sẽ tự kiểm tra cache)
       await precacheImage(imageProvider, context);

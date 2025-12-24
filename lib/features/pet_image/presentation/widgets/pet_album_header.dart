@@ -1,0 +1,42 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pixel_love/core/theme/app_colors.dart';
+import 'package:pixel_love/features/pet_image/presentation/widgets/pet_mini_status_bar.dart';
+import 'package:pixel_love/routes/app_routes.dart';
+
+class PetAlbumHeader extends StatelessWidget {
+  final bool canPop;
+
+  const PetAlbumHeader({super.key, required this.canPop});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 16, 12),
+      child: Row(
+        children: [
+          IconButton(
+            padding: const EdgeInsets.all(8),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white.withOpacity(0.08),
+            ),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.home);
+              }
+            },
+            icon: const Icon(
+              Icons.arrow_back,
+              color: AppColors.primaryPinkDark,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(child: PetMiniStatusBar()),
+        ],
+      ),
+    );
+  }
+}
+

@@ -13,9 +13,14 @@ import 'package:pixel_love/features/auth/notifiers/auth_notifier.dart';
 // Auth Feature Providers
 // ============================================
 
-/// GoogleSignIn provider
+/// Khởi tạo GoogleSignIn (v7+ dùng singleton + initialize)
+final googleSignInInitProvider = FutureProvider<void>((ref) async {
+  await GoogleSignIn.instance.initialize();
+});
+
+/// GoogleSignIn singleton
 final googleSignInProvider = Provider<GoogleSignIn>((ref) {
-  return GoogleSignIn(scopes: ['email', 'profile']);
+  return GoogleSignIn.instance;
 });
 
 /// Auth Remote DataSource provider

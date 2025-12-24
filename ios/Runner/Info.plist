@@ -47,5 +47,18 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Ứng dụng cần quyền camera để chụp và gửi khoảnh khắc.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.729972399696-0305tva3s76vpbj38hbktbht7q7i11q7</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>729972399696-0305tva3s76vpbj38hbktbht7q7i11q7.apps.googleusercontent.com</string>
 </dict>
 </plist>

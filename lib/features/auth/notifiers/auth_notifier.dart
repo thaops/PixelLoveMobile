@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/auth/domain/entities/auth_user.dart';
 import 'package:pixel_love/features/auth/providers/auth_providers.dart';
@@ -56,20 +57,17 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
+      // Đảm bảo GoogleSignIn đã initialize (v7+ yêu cầu)
+      await ref.read(googleSignInInitProvider.future);
       final googleSignIn = ref.read(googleSignInProvider);
       final loginGoogleUseCase = ref.read(loginGoogleUseCaseProvider);
       final storageService = ref.read(storageServiceProvider);
       final socketService = ref.read(socketServiceProvider);
 
-      final googleUser = await googleSignIn.signIn();
-
-      if (googleUser == null) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: 'Google sign in cancelled',
-        );
-        return;
-      }
+      // authenticate thay cho signIn() ở v7+, sẽ throw nếu bị huỷ hoặc lỗi
+      final googleUser = await googleSignIn.authenticate(
+        scopeHint: const ['email', 'profile'],
+      );
 
       final googleAuth = await googleUser.authentication;
       final idToken = googleAuth.idToken;
@@ -103,6 +101,20 @@ class AuthNotifier extends Notifier<AuthState> {
           errorMessage: result.error!.message,
         );
       }
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled ||
+          e.code == GoogleSignInExceptionCode.interrupted) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Google sign in cancelled',
+        );
+        return;
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Google login error: ${e.code.name}',
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -145,6 +157,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> logout() async {
     final logoutUseCase = ref.read(logoutUseCaseProvider);
+    await ref.read(googleSignInInitProvider.future);
     final googleSignIn = ref.read(googleSignInProvider);
     final socketService = ref.read(socketServiceProvider);
 

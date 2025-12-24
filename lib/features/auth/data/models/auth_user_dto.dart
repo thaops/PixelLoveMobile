@@ -55,6 +55,9 @@ class AuthUserDto {
       }
     }
 
+    // Map couple id from multiple possible keys
+    final coupleRoomId = json['coupleRoomId'] ?? json['coupleId'];
+
     return AuthUserDto(
       id: json['id'] ?? json['_id'] ?? '',
       name: json['displayName'] ?? json['name'] ?? json['nickname'],
@@ -64,7 +67,7 @@ class AuthUserDto {
       zodiac: json['zodiac'],
       mode: json['mode'] ?? 'solo',
       coupleCode: json['coupleCode'],
-      coupleRoomId: json['coupleRoomId'],
+      coupleRoomId: coupleRoomId,
       partnerId: partnerId,
       isOnboarded: json['isOnboarded'] ?? false,
       coins: json['coins'] ?? 0,
