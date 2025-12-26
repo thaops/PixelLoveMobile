@@ -8,6 +8,7 @@ import 'package:pixel_love/features/auth/domain/usecases/get_me_usecase.dart';
 import 'package:pixel_love/features/auth/domain/usecases/login_google_usecase.dart';
 import 'package:pixel_love/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:pixel_love/features/auth/notifiers/auth_notifier.dart';
+import 'package:pixel_love/features/auth/notifiers/auth_state.dart';
 
 // ============================================
 // Auth Feature Providers
@@ -56,4 +57,3 @@ final logoutUseCaseProvider = Provider<LogoutUseCase>((ref) {
 final authNotifierProvider = NotifierProvider<AuthNotifier, AuthState>(
   AuthNotifier.new,
 );
-

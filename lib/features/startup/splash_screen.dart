@@ -22,43 +22,33 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    print('🚀 [SplashScreen] Initializing...');
   }
 
   Future<void> _navigateBasedOnState() async {
     if (!mounted) {
-      print('⚠️ [SplashScreen] Widget not mounted, skipping navigation');
       return;
     }
 
-    print('🧭 [SplashScreen] Determining navigation...');
 
     final storageService = ref.read(storageServiceProvider);
     final token = storageService.getToken();
 
     if (token == null || token.isEmpty) {
-      print('➡️ [SplashScreen] No token, navigating to login');
       context.go(AppRoutes.login);
       return;
     }
 
     final user = storageService.getUser();
     if (user == null) {
-      print('➡️ [SplashScreen] No user data, navigating to login');
       context.go(AppRoutes.login);
       return;
     }
 
-    print(
-      '👤 [SplashScreen] User found: mode=${user.mode}, isOnboarded=${user.isOnboarded}',
-    );
 
-    // Navigate based on user state
+
     if (!user.isOnboarded) {
-      print('➡️ [SplashScreen] User not onboarded, navigating to onboard');
       context.go(AppRoutes.onboard);
     } else if (user.mode == 'solo') {
-      print('➡️ [SplashScreen] Solo mode, navigating to couple-connection');
       context.go(AppRoutes.coupleConnection);
     } else if (user.mode == 'couple') {
       final hasPartner = user.partnerId != null && user.partnerId!.isNotEmpty;
@@ -66,16 +56,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           user.coupleRoomId != null && user.coupleRoomId!.isNotEmpty;
 
       if (hasCoupleRoom || hasPartner) {
-        print('➡️ [SplashScreen] Couple connected, navigating to home');
         context.go(AppRoutes.home);
       } else {
-        print(
-          '➡️ [SplashScreen] Couple not connected, navigating to couple-connection',
-        );
+    
         context.go(AppRoutes.coupleConnection);
       }
     } else {
-      print('➡️ [SplashScreen] Unknown mode, navigating to couple-connection');
       context.go(AppRoutes.coupleConnection);
     }
   }
@@ -84,25 +70,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     final startupState = ref.watch(startupNotifierProvider);
 
-    // Listen to state changes and navigate when ready
     ref.listen(startupNotifierProvider, (previous, next) {
       if (_hasNavigated) return;
 
       next.when(
         data: (state) {
-          print(
-            '📊 [SplashScreen] Startup state updated: isLoading=${state.isLoading}',
-          );
+  
           if (!state.isLoading && mounted) {
             _hasNavigated = true;
             _navigateBasedOnState();
           }
         },
         loading: () {
-          print('⏳ [SplashScreen] Startup still loading...');
         },
         error: (error, stack) {
-          print('❌ [SplashScreen] Startup error: $error');
           if (mounted && !_hasNavigated) {
             _hasNavigated = true;
             context.go(AppRoutes.login);
@@ -158,7 +139,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   startupState.when(
                     data: (state) {
                       if (state.isLoading) {
-                        return const CustomLoadingWidget(showBackdrop: false);
+                        return CustomLoadingWidget(size: 120);
                       } else if (state.errorMessage != null) {
                         return Padding(
                           padding: const EdgeInsets.all(16),
@@ -172,8 +153,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         return const SizedBox.shrink();
                       }
                     },
-                    loading: () =>
-                        const CustomLoadingWidget(showBackdrop: false),
+                    loading: () => const CustomLoadingWidget(),
                     error: (error, stack) => Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(

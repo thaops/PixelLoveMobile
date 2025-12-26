@@ -24,8 +24,9 @@ class PetAlbumScreen extends ConsumerWidget {
 
     final albumState = ref.watch(petAlbumNotifierProvider);
     final albumNotifier = ref.read(petAlbumNotifierProvider.notifier);
-    final timelineItems =
-        albumState.isEmpty ? <TimelineItem>[] : albumNotifier.buildTimelineItems();
+    final timelineItems = albumState.isEmpty
+        ? <TimelineItem>[]
+        : albumNotifier.buildTimelineItems();
     final imageUrls = _collectImageUrls(timelineItems);
 
     final canPop = context.canPop();
@@ -102,9 +103,19 @@ class _AlbumBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (albumState.isLoading && albumState.images.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: Colors.white,
+      return SizedBox(
+        width: MediaQuery.of(context).size.width * 0.8,
+
+        height: MediaQuery.of(context).size.height * 0.1,
+        child: Center(
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primaryPink.withOpacity(0.05),
+            ),
+          ),
         ),
       );
     }

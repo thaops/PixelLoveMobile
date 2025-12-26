@@ -161,12 +161,14 @@ class _ComboImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const aspectRatio = 4 / 3;
+    
     return Stack(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: AspectRatio(
-            aspectRatio: 4 / 3,
+            aspectRatio: aspectRatio,
             child: CachedNetworkImage(
               imageUrl: image.imageUrl,
               width: double.infinity,
@@ -179,6 +181,7 @@ class _ComboImage extends StatelessWidget {
               fadeOutDuration: const Duration(milliseconds: 100),
               useOldImageOnUrlChange: true,
               placeholder: (context, url) => Container(
+                width: double.infinity,
                 color: Colors.grey.shade800,
                 child: const Center(
                   child: SizedBox(
@@ -192,6 +195,7 @@ class _ComboImage extends StatelessWidget {
                 ),
               ),
               errorWidget: (context, url, error) => Container(
+                width: double.infinity,
                 color: Colors.grey.shade800,
                 child: const Icon(Icons.error, color: Colors.white, size: 30),
               ),

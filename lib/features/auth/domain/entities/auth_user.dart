@@ -43,6 +43,7 @@ class AuthUser extends Equatable {
     String? partnerId,
     bool? isOnboarded,
     int? coins,
+    String? accessToken,
   }) {
     return AuthUser(
       id: id,
@@ -57,7 +58,7 @@ class AuthUser extends Equatable {
       partnerId: partnerId ?? this.partnerId,
       isOnboarded: isOnboarded ?? this.isOnboarded,
       coins: coins ?? this.coins,
-      accessToken: accessToken,
+      accessToken: accessToken ?? this.accessToken,
     );
   }
 
@@ -99,18 +100,18 @@ class AuthUser extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        email,
-        avatar,
-        dob,
-        zodiac,
-        mode,
-        coupleCode,
-        coupleRoomId,
-        partnerId,
-        isOnboarded,
-        coins,
-        accessToken,
-      ];
+    id,
+    name,
+    email,
+    avatar,
+    dob,
+    zodiac,
+    mode,
+    coupleCode,
+    coupleRoomId,
+    partnerId,
+    isOnboarded,
+    coins,
+    accessToken,
+  ];
 }

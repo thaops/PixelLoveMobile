@@ -24,9 +24,9 @@ class PetCaptureFooter extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Lịch sử',
+              'Album',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.95),
+                color: AppColors.primaryPink.withOpacity(0.95),
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),

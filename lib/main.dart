@@ -6,6 +6,7 @@ import 'package:pixel_love/core/env/env.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/core/router/app_router.dart';
 import 'package:pixel_love/core/utils/image_cache_helper.dart';
+import 'package:pixel_love/core/widgets/app_loader_overlay.dart';
 import 'package:pixel_love/firebase_options.dart';
 
 void main() async {
@@ -38,26 +39,28 @@ class PixelLoveApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
-    return MaterialApp.router(
-      title: 'Pixel Love',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.pink,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+    return AppLoaderOverlay(
+      child: MaterialApp.router(
+        title: 'Pixel Love',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.pink,
+            brightness: Brightness.light,
+          ),
+          useMaterial3: true,
+          appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),
+        routerConfig: router,
       ),
-      routerConfig: router,
     );
   }
 }

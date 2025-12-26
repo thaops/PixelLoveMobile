@@ -9,16 +9,13 @@ class ImageBubble extends StatelessWidget {
   final ImageItem item;
   final bool hasNext;
 
-  const ImageBubble({
-    super.key,
-    required this.item,
-    required this.hasNext,
-  });
+  const ImageBubble({super.key, required this.item, required this.hasNext});
 
   @override
   Widget build(BuildContext context) {
-    final genderColor =
-        item.gender == 'male' ? AppColors.genderMale : AppColors.genderFemale;
+    final genderColor = item.gender == 'male'
+        ? AppColors.genderMale
+        : AppColors.genderFemale;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20, left: 8),
@@ -54,11 +51,11 @@ class ImageBubble extends StatelessWidget {
                   _MetaBar(item: item),
                   const SizedBox(height: 8),
                   _ImageCard(imageItem: item),
-                  if (item.image.text != null && item.image.text!.isNotEmpty)
-                    ...[
-                      const SizedBox(height: 8),
-                      _Caption(text: item.image.text!),
-                    ],
+                  if (item.image.text != null &&
+                      item.image.text!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _Caption(text: item.image.text!),
+                  ],
                 ],
               ),
             ),
@@ -114,23 +111,26 @@ class _ImageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tỉ lệ cố định để giữ khung ổn định khi loading
+    const aspectRatio = 4 / 3;
+
     return Stack(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(30),
-          child:  CachedNetworkImage(
+          child: AspectRatio(
+            aspectRatio: aspectRatio,
+            child: CachedNetworkImage(
               imageUrl: imageItem.image.imageUrl,
               width: double.infinity,
               fit: BoxFit.cover,
-              memCacheWidth:
-                  (MediaQuery.of(context).size.width * 2).toInt(), // đồng bộ size
               memCacheHeight: 600,
               maxWidthDiskCache: 1200,
               maxHeightDiskCache: 1200,
-              fadeInDuration: const Duration(milliseconds: 200),
-              fadeOutDuration: const Duration(milliseconds: 100),
+
               useOldImageOnUrlChange: true,
               placeholder: (context, url) => Container(
+                width: double.infinity,
                 color: Colors.grey.shade800,
                 child: const Center(
                   child: SizedBox(
@@ -144,12 +144,9 @@ class _ImageCard extends StatelessWidget {
                 ),
               ),
               errorWidget: (context, url, error) => Container(
+                width: double.infinity,
                 color: Colors.grey.shade800,
-                child: const Icon(
-                  Icons.error,
-                  color: Colors.white,
-                  size: 40,
-              
+                child: const Icon(Icons.error, color: Colors.white, size: 40),
               ),
             ),
           ),
@@ -172,11 +169,7 @@ class _ImageCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.star,
-                  color: Colors.amber,
-                  size: 12,
-                ),
+                const Icon(Icons.star, color: Colors.amber, size: 12),
                 const SizedBox(width: 4),
                 Text(
                   '${imageItem.image.totalExp} EXP',
@@ -246,4 +239,3 @@ class _MoodChip extends StatelessWidget {
     );
   }
 }
-

@@ -7,53 +7,21 @@ class StorageService {
 
   StorageService(this._prefs);
 
-  // Token management
   Future<void> saveToken(String token) async {
-    print('💾 [StorageService] Saving token (length: ${token.length})');
-    final success = await _prefs.setString('access_token', token);
-    if (success) {
-      print('✅ [StorageService] Token saved successfully');
-      // Verify token was saved
-      final savedToken = _prefs.getString('access_token');
-      if (savedToken == null || savedToken.isEmpty) {
-        print('⚠️ [StorageService] WARNING: Token was not saved correctly!');
-      }
-    } else {
-      print('❌ [StorageService] Failed to save token');
-    }
+    await _prefs.setString('access_token', token);
   }
 
   String? getToken() {
-    final token = _prefs.getString('access_token');
-    // Debug log để kiểm tra token
-    if (token == null) {
-      print('🔍 [StorageService] getToken() returned null');
-    } else if (token.isEmpty) {
-      print('🔍 [StorageService] getToken() returned empty string');
-    } else {
-      print(
-        '🔍 [StorageService] getToken() returned token (length: ${token.length})',
-      );
-    }
-    return token;
+    return _prefs.getString('access_token');
   }
 
   Future<void> removeToken() async {
-    print('🗑️ [StorageService] removeToken() called');
-    final tokenBefore = _prefs.getString('access_token');
-    print(
-      '   - Token before remove: ${tokenBefore != null ? "exists" : "null"}',
-    );
     await _prefs.remove('access_token');
-    final tokenAfter = _prefs.getString('access_token');
-    print(
-      '   - Token after remove: ${tokenAfter != null ? "exists (ERROR!)" : "null (OK)"}',
-    );
   }
 
-  // User management
   Future<void> saveUser(AuthUser user) async {
-    await _prefs.setString('user_data', jsonEncode(user.toJson()));
+    final userJson = jsonEncode(user.toJson());
+    await _prefs.setString('user_data', userJson);
   }
 
   AuthUser? getUser() {
@@ -72,27 +40,14 @@ class StorageService {
     await _prefs.remove('user_data');
   }
 
-  // Clear all data
   Future<void> clearAll() async {
-    print('🗑️ [StorageService] clearAll() called - clearing all data');
-    final tokenBefore = _prefs.getString('access_token');
-    print(
-      '   - Token before clear: ${tokenBefore != null ? "exists" : "null"}',
-    );
     await _prefs.clear();
-    final tokenAfter = _prefs.getString('access_token');
-    print(
-      '   - Token after clear: ${tokenAfter != null ? "exists (ERROR!)" : "null (OK)"}',
-    );
   }
 
-  // Check if user is logged in
   bool get isLoggedIn {
     final token = getToken();
     return token != null && token.isNotEmpty;
   }
-
-  // Home data cache
   Future<void> saveHomeData(Map<String, dynamic> homeData) async {
     await _prefs.setString('home_data', jsonEncode(homeData));
     await _prefs.setString(

@@ -32,46 +32,55 @@ class AuthUserDto {
   });
 
   factory AuthUserDto.fromJson(Map<String, dynamic> json) {
-    // Parse partnerId từ nhiều nguồn có thể
     String? partnerId;
 
-    // Nguồn 1: partnerId ở root (backend đã làm sẵn)
-    if (json['partnerId'] != null) {
-      partnerId = json['partnerId'] as String;
-    }
-    // Nguồn 2: Parse từ couple.partners[] (nếu backend chưa có partnerId)
-    else if (json['couple'] != null && json['couple'] is Map) {
+    if (json['partnerId'] != null && json['partnerId'].toString().isNotEmpty) {
+      partnerId = json['partnerId'].toString();
+    } else if (json['couple'] != null && json['couple'] is Map) {
       final couple = json['couple'] as Map<String, dynamic>;
       final partners = couple['partners'] as List?;
       if (partners != null && partners.isNotEmpty) {
-        // Lấy partner khác (không phải chính mình)
         final currentUserId = json['id'] ?? json['_id'] ?? '';
         for (var partner in partners) {
-          if (partner is Map && partner['id'] != currentUserId) {
-            partnerId = partner['id'] as String?;
-            break;
+          if (partner is Map) {
+            final partnerIdStr = partner['id']?.toString();
+            if (partnerIdStr != null && partnerIdStr != currentUserId) {
+              partnerId = partnerIdStr;
+              break;
+            }
           }
         }
       }
     }
 
-    // Map couple id from multiple possible keys
-    final coupleRoomId = json['coupleRoomId'] ?? json['coupleId'];
+    final coupleRoomId =
+        json['coupleRoomId']?.toString() ?? json['coupleId']?.toString();
+
+    final accessToken =
+        json['accessToken'] ?? json['access_token'] ?? json['token'] ?? '';
+
+    final name = json['nickname'] ?? json['displayName'] ?? json['name'];
+    final avatar = json['avatarUrl'] ?? json['avatar'];
+    final dob = json['birthDate']?.toString() ?? json['dob']?.toString();
 
     return AuthUserDto(
-      id: json['id'] ?? json['_id'] ?? '',
-      name: json['displayName'] ?? json['name'] ?? json['nickname'],
-      email: json['email'],
-      avatar: json['avatarUrl'] ?? json['avatar'],
-      dob: json['birthDate'] ?? json['dob'],
-      zodiac: json['zodiac'],
-      mode: json['mode'] ?? 'solo',
-      coupleCode: json['coupleCode'],
+      id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+      name: name?.toString(),
+      email: json['email']?.toString(),
+      avatar: avatar?.toString(),
+      dob: dob,
+      zodiac: json['zodiac']?.toString(),
+      mode: json['mode']?.toString() ?? 'solo',
+      coupleCode: json['coupleCode']?.toString(),
       coupleRoomId: coupleRoomId,
       partnerId: partnerId,
-      isOnboarded: json['isOnboarded'] ?? false,
-      coins: json['coins'] ?? 0,
-      accessToken: json['token'] ?? json['access_token'] ?? '',
+      isOnboarded: json['isOnboarded'] == true,
+      coins: (json['coins'] is int)
+          ? json['coins'] as int
+          : (json['coins'] is String)
+          ? int.tryParse(json['coins']) ?? 0
+          : 0,
+      accessToken: accessToken,
     );
   }
 

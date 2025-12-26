@@ -93,28 +93,28 @@ class _ActionBarContent extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          GestureDetector(
-            onTap: state.isPreviewMode ? null : onPickFromGallery,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primaryPink.withOpacity(0.05),
-                border: Border.all(
-                  color: AppColors.primaryPink.withOpacity(0.3),
-                  width: 1.5,
+          state.isPreviewMode
+              ? const SizedBox.shrink()
+              : GestureDetector(
+                  onTap: state.isPreviewMode ? null : onPickFromGallery,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryPink.withOpacity(0.05),
+                      border: Border.all(
+                        color: AppColors.primaryPink.withOpacity(0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.photo_library_rounded,
+                      color: AppColors.primaryPink,
+                      size: 24,
+                    ),
+                  ),
                 ),
-              ),
-              child: Icon(
-                Icons.photo_library_rounded,
-                color: state.isPreviewMode
-                    ? Colors.white.withOpacity(0.3)
-                    : AppColors.primaryPink,
-                size: 24,
-              ),
-            ),
-          ),
           GestureDetector(
             onTap: state.isPreviewMode
                 ? (state.isSending ? null : notifier.send)
@@ -143,12 +143,24 @@ class _ActionBarContent extends StatelessWidget {
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 child: state.isPreviewMode
-                    ? const Icon(
-                        Icons.send_rounded,
-                        key: ValueKey('send'),
-                        color: AppColors.primaryPink,
-                        size: 32,
-                      )
+                    ? state.isSending
+                          ? const SizedBox(
+                              key: ValueKey('loading'),
+                              width: 32,
+                              height: 32,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.backgroundLight,
+                                ),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.send_rounded,
+                              key: ValueKey('send'),
+                              color: AppColors.backgroundLight,
+                              size: 32,
+                            )
                     : Container(
                         key: const ValueKey('shutter'),
                         margin: const EdgeInsets.all(6),
@@ -160,28 +172,28 @@ class _ActionBarContent extends StatelessWidget {
               ),
             ),
           ),
-          GestureDetector(
-            onTap: state.isPreviewMode ? null : notifier.switchCamera,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primaryPink.withOpacity(0.05),
-                border: Border.all(
-                  color: AppColors.primaryPink.withOpacity(0.3),
-                  width: 1.5,
+          state.isPreviewMode
+              ? const SizedBox.shrink()
+              : GestureDetector(
+                  onTap: state.isPreviewMode ? null : notifier.switchCamera,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryPink.withOpacity(0.05),
+                      border: Border.all(
+                        color: AppColors.primaryPink.withOpacity(0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.cameraswitch_rounded,
+                      color: AppColors.primaryPink,
+                      size: 24,
+                    ),
+                  ),
                 ),
-              ),
-              child: Icon(
-                Icons.cameraswitch_rounded,
-                color: state.isPreviewMode
-                    ? Colors.white.withOpacity(0.3)
-                    : AppColors.primaryPink,
-                size: 24,
-              ),
-            ),
-          ),
         ],
       ),
     );
