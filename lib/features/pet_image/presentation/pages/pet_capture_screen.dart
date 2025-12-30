@@ -32,6 +32,8 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   // Zoom mặc định khi vào màn hình
   double _zoomLevel = 1.0;
+  // 🔥 Lưu notifier để tránh lỗi khi widget unmount
+  PetCaptureNotifier? _captureNotifier;
 
   void _triggerCaptureAnimation() {
     setState(() => _captureAnimationActive = true);
@@ -59,8 +61,29 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // 🔥 Lưu notifier reference để dùng an toàn trong callbacks
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _captureNotifier = ref.read(petCaptureNotifierProvider.notifier);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // 🔥 Clear reference để tránh sử dụng sau khi dispose
+    _captureNotifier = null;
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final captureState = ref.watch(petCaptureNotifierProvider);
+
+    // 🔥 Cập nhật notifier reference mỗi lần build để đảm bảo luôn có giá trị mới nhất
+    _captureNotifier = ref.read(petCaptureNotifierProvider.notifier);
 
     ref.listen<PetCaptureState?>(petCaptureNotifierProvider, (previous, next) {
       if (_wasSending &&
@@ -120,9 +143,10 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
                   ),
                 ),
                 onImageForAnalysis: (image) async {
-                  ref
-                      .read(petCaptureNotifierProvider.notifier)
-                      .onLiveFrame(image);
+                  // 🔥 Kiểm tra mounted và notifier trước khi sử dụng
+                  if (mounted && _captureNotifier != null) {
+                    _captureNotifier!.onLiveFrame(image);
+                  }
                 },
                 previewFit: CameraPreviewFit.contain,
                 previewAlignment: const Alignment(0, -0.49),
