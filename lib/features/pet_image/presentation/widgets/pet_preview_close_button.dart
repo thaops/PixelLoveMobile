@@ -14,8 +14,8 @@ class PetPreviewCloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!state.isPreviewMode) return const SizedBox.shrink();
-    
+    if (!state.isFrozen) return const SizedBox.shrink();
+
     return Positioned(
       top: 12,
       left: 12,
@@ -34,4 +34,3 @@ class PetPreviewCloseButton extends StatelessWidget {
     );
   }
 }
-

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_capture_notifier.dart';
 import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_capture_state.dart';
+import 'package:pixel_love/features/pet_image/presentation/widgets/capture_button.dart';
 
 class PetCaptureActionBar extends StatelessWidget {
   const PetCaptureActionBar({
@@ -35,43 +36,6 @@ class PetCaptureActionBar extends StatelessWidget {
   }
 }
 
-class PetCaptureActionBarPositioned extends StatelessWidget {
-  const PetCaptureActionBarPositioned({
-    super.key,
-    required this.state,
-    required this.notifier,
-    required this.onPickFromGallery,
-    required this.onCapture,
-  });
-
-  final PetCaptureState state;
-  final PetCaptureNotifier notifier;
-  final VoidCallback onPickFromGallery;
-  final Future<void> Function() onCapture;
-
-  @override
-  Widget build(BuildContext context) {
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    final footerHeight = state.isPreviewMode ? 60.0 : 0.0;
-    final bottomPosition =
-        footerHeight + (keyboardHeight > 0 ? keyboardHeight * 0.73 : 0);
-
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOutCubic,
-      left: 0,
-      right: 0,
-      bottom: bottomPosition,
-      child: _ActionBarContent(
-        state: state,
-        notifier: notifier,
-        onPickFromGallery: onPickFromGallery,
-        onCapture: onCapture,
-      ),
-    );
-  }
-}
-
 class _ActionBarContent extends StatelessWidget {
   const _ActionBarContent({
     required this.state,
@@ -87,16 +51,20 @@ class _ActionBarContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Kiểm tra nếu đã freeze
+    final isFrozen = state.isFrozen;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          state.isPreviewMode
-              ? const SizedBox.shrink()
+          // 🔥 Khi frozen: hiển thị nút X, khi live: hiển thị gallery
+          isFrozen
+              ? SizedBox.shrink()
               : GestureDetector(
-                  onTap: state.isPreviewMode ? null : onPickFromGallery,
+                  onTap: onPickFromGallery,
                   child: Container(
                     width: 48,
                     height: 48,
@@ -115,67 +83,20 @@ class _ActionBarContent extends StatelessWidget {
                     ),
                   ),
                 ),
-          GestureDetector(
-            onTap: state.isPreviewMode
-                ? (state.isSending ? null : notifier.send)
+          // Capture button - tự động đổi nút bên trong
+          CaptureButton(
+            state: state,
+            onTap: isFrozen
+                ? notifier.send
                 : () async {
                     await onCapture();
                   },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primaryPink, width: 5),
-                color: state.isPreviewMode
-                    ? AppColors.primaryPink
-                    : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryPink.withOpacity(0.4),
-                    blurRadius: 12,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: state.isPreviewMode
-                    ? state.isSending
-                          ? const SizedBox(
-                              key: ValueKey('loading'),
-                              width: 32,
-                              height: 32,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.backgroundLight,
-                                ),
-                              ),
-                            )
-                          : const Icon(
-                              Icons.send_rounded,
-                              key: ValueKey('send'),
-                              color: AppColors.backgroundLight,
-                              size: 32,
-                            )
-                    : Container(
-                        key: const ValueKey('shutter'),
-                        margin: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primaryPink,
-                        ),
-                      ),
-              ),
-            ),
           ),
-          state.isPreviewMode
-              ? const SizedBox.shrink()
+          // 🔥 Khi frozen: hiển thị nút send, khi live: hiển thị switch camera
+          isFrozen
+              ? const SizedBox.shrink() // Nút send đã có trong CaptureButton
               : GestureDetector(
-                  onTap: state.isPreviewMode ? null : notifier.switchCamera,
+                  onTap: notifier.switchCamera,
                   child: Container(
                     width: 48,
                     height: 48,

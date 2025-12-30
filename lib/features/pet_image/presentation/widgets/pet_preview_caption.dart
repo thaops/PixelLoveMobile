@@ -48,7 +48,8 @@ class _PetPreviewCaptionState extends State<PetPreviewCaption> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPosition = widget.state.isPreviewMode ? 40.0 : -120.0;
+    final isFrozen = widget.state.isFrozen;
+    final bottomPosition = isFrozen ? 40.0 : -120.0;
     final hasText = widget.notifier.captionController.text.isNotEmpty;
     final isFocused = _captionFocusNode.hasFocus;
     final showHint = !isFocused && !hasText;
@@ -62,7 +63,7 @@ class _PetPreviewCaptionState extends State<PetPreviewCaption> {
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        opacity: widget.state.isPreviewMode ? 1 : 0,
+        opacity: isFrozen ? 1 : 0,
         child: TextField(
           controller: widget.notifier.captionController,
           focusNode: _captionFocusNode,
@@ -88,4 +89,3 @@ class _PetPreviewCaptionState extends State<PetPreviewCaption> {
     );
   }
 }
-
