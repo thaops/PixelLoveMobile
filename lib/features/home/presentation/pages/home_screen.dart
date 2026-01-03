@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/features/home/domain/entities/home.dart';
@@ -15,10 +16,29 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with AutomaticKeepAliveClientMixin {
   final TransformationController _transformationController =
       TransformationController();
   Home? _lastHomeData;
+  bool _isInitialized = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Lưu transformation state mỗi khi thay đổi
+    _transformationController.addListener(() {
+      if (mounted) {
+        ref
+            .read(homeTransformationProvider.notifier)
+            .updateTransformation(_transformationController.value);
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -28,6 +48,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final screenSize = MediaQuery.of(context).size;
     final homeState = ref.watch(homeNotifierProvider);
     final storageService = ref.read(storageServiceProvider);
@@ -43,32 +64,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         child: Builder(
           builder: (context) {
-            // Only show loading if no cache and still loading
-            if (homeState.isLoading && homeState.homeData == null) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              );
-            }
-
             final homeData = homeState.homeData;
+
+            // Nếu không có data, hiển thị màn hình đen (splash đã preload rồi nên sẽ có data ngay)
+            // Chỉ hiển thị error nếu thực sự có lỗi
             if (homeData == null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      homeState.errorMessage ?? 'Failed to load home data',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        ref.read(homeNotifierProvider.notifier).refresh();
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+              return Container(
+                color: Colors.black,
+                child: homeState.errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              homeState.errorMessage!,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                ref
+                                    .read(homeNotifierProvider.notifier)
+                                    .refresh();
+                              },
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(), // Không hiển thị gì, chỉ màn hình đen
               );
             }
 
@@ -133,39 +157,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                               child: ClipOval(
                                 child: avatarUrl != null && avatarUrl.isNotEmpty
-                                    ? Image.network(
-                                        avatarUrl,
+                                    ? CachedNetworkImage(
+                                        imageUrl: avatarUrl,
                                         fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return Container(
-                                                color: Colors.grey.shade300,
-                                                child: const Icon(
-                                                  Icons.account_circle,
-                                                  color: Colors.grey,
-                                                  size: 28,
-                                                ),
-                                              );
-                                            },
-                                        loadingBuilder:
-                                            (context, child, loadingProgress) {
-                                              if (loadingProgress == null)
-                                                return child;
-                                              return Container(
-                                                color: Colors.grey.shade300,
-                                                child: const Center(
-                                                  child: SizedBox(
-                                                    width: 20,
-                                                    height: 20,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                          color: Colors.white,
-                                                        ),
-                                                  ),
-                                                ),
-                                              );
-                                            },
+                                        errorWidget: (context, url, error) {
+                                          return Container(
+                                            color: Colors.grey.shade300,
+                                            child: const Icon(
+                                              Icons.account_circle,
+                                              color: Colors.grey,
+                                              size: 28,
+                                            ),
+                                          );
+                                        },
+                                        placeholder: (context, url) {
+                                          return Container(
+                                            color: Colors.grey.shade300,
+                                            child: const Center(
+                                              child: SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       )
                                     : Container(
                                         color: Colors.grey.shade300,
@@ -207,12 +227,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final offsetX = (finalWidth - screenSize.width) / 2;
     final offsetY = (finalHeight - screenSize.height) / 2;
 
-    // Set initial position để center ảnh (reset khi homeData thay đổi)
+    // Set initial position để center ảnh (chỉ reset khi homeData thay đổi lần đầu, giữ position khi quay về)
     if (_lastHomeData != homeData) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _transformationController.value = Matrix4.identity()
-            ..translate(-offsetX, -offsetY);
+          // Chỉ reset position nếu chưa được khởi tạo (lần đầu load hoặc chưa có saved state)
+          // Nếu đã có saved state từ provider, nó đã được restore trong initState
+          if (!_isInitialized) {
+            final savedTransformation = ref.read(homeTransformationProvider);
+            if (savedTransformation != null) {
+              // Có saved state → dùng lại
+              _transformationController.value = savedTransformation;
+            } else {
+              // Không có saved state → reset về center
+              _transformationController.value = Matrix4.identity()
+                ..translate(-offsetX, -offsetY);
+            }
+            _isInitialized = true;
+          }
           _lastHomeData = homeData;
         }
       });
@@ -234,7 +266,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Background image
+                // Background image (dùng Image.network như pet scene để hiển thị ngay từ memory cache)
                 homeData.background.imageUrl.isNotEmpty
                     ? Image.network(
                         homeData.background.imageUrl,
@@ -242,6 +274,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         height: finalHeight,
                         fit: BoxFit.cover,
                         alignment: Alignment.center,
+                        // Không có placeholder, hiển thị ngay nếu đã cache (splash đã preload)
                         errorBuilder: (context, error, stackTrace) {
                           return Image.asset(
                             'assets/images/background.jpg',
@@ -278,23 +311,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         }
                       },
                       child: ClipRect(
-                        child: Image.network(
-                          obj.imageUrl,
+                        child: CachedNetworkImage(
+                          imageUrl: obj.imageUrl,
                           fit: BoxFit.contain,
-                          isAntiAlias: true,
                           filterQuality: FilterQuality.high,
-                          frameBuilder:
-                              (context, child, frame, wasSynchronouslyLoaded) {
-                                if (wasSynchronouslyLoaded) return child;
-                                return frame != null ? child : const SizedBox();
-                              },
-                          errorBuilder: (context, error, stackTrace) {
+                          errorWidget: (context, url, error) {
                             return Container(
                               color: Colors.red.withOpacity(0.3),
                               child: const Center(
                                 child: Icon(Icons.error, color: Colors.red),
                               ),
                             );
+                          },
+                          placeholder: (context, url) {
+                            return const SizedBox();
                           },
                         ),
                       ),

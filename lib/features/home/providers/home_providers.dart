@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/home/data/datasources/home_remote_datasource.dart';
@@ -32,4 +33,24 @@ final getHomeDataUseCaseProvider = Provider<GetHomeDataUseCase>((ref) {
 final homeNotifierProvider = NotifierProvider<HomeNotifier, HomeState>(
   HomeNotifier.new,
 );
+
+/// Home Transformation State Provider - Lưu vị trí scroll/pan của home screen
+final homeTransformationProvider =
+    NotifierProvider<HomeTransformationNotifier, Matrix4?>(
+  HomeTransformationNotifier.new,
+);
+
+/// Home Transformation Notifier
+class HomeTransformationNotifier extends Notifier<Matrix4?> {
+  @override
+  Matrix4? build() => null;
+
+  void updateTransformation(Matrix4? matrix) {
+    state = matrix;
+  }
+
+  void reset() {
+    state = null;
+  }
+}
 

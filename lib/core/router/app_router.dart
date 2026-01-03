@@ -6,6 +6,7 @@ import 'package:pixel_love/features/auth/presentation/pages/complete_profile_scr
 import 'package:pixel_love/features/couple/presentation/pages/couple_connection_screen.dart';
 import 'package:pixel_love/features/home/presentation/pages/home_screen.dart';
 import 'package:pixel_love/features/pet_image/presentation/pages/pet_album_screen.dart';
+import 'package:pixel_love/features/pet_image/presentation/pages/pet_album_swipe_screen.dart';
 import 'package:pixel_love/features/pet_image/presentation/pages/pet_capture_screen.dart';
 import 'package:pixel_love/features/pet_scene/presentation/pages/pet_scene_screen.dart';
 import 'package:pixel_love/features/startup/splash_screen.dart';
@@ -124,6 +125,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.petAlbum,
         builder: (context, state) => const PetAlbumScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.petAlbumSwipe,
+        builder: (context, state) => const PetAlbumSwipeScreen(),
       ),
       GoRoute(
         path: AppRoutes.petCapture,

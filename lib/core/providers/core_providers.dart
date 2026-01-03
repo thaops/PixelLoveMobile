@@ -34,8 +34,30 @@ final socketServiceProvider = Provider<SocketService>((ref) {
 });
 
 /// CloudinaryUploadService provider (singleton)
-final cloudinaryUploadServiceProvider = Provider<CloudinaryUploadService>((ref) {
+final cloudinaryUploadServiceProvider = Provider<CloudinaryUploadService>((
+  ref,
+) {
   final storageService = ref.watch(storageServiceProvider);
   return CloudinaryUploadService(storageService);
 });
 
+/// Background Loading Progress Provider (0.0 - 100.0)
+/// Dùng chung cho các màn hình cần preload background image
+final backgroundLoadingProgressProvider =
+    NotifierProvider<BackgroundLoadingProgressNotifier, double>(
+      BackgroundLoadingProgressNotifier.new,
+    );
+
+/// Background Loading Progress Notifier
+class BackgroundLoadingProgressNotifier extends Notifier<double> {
+  @override
+  double build() => 0.0;
+
+  void update(double progress) {
+    state = progress;
+  }
+
+  void reset() {
+    state = 0.0;
+  }
+}

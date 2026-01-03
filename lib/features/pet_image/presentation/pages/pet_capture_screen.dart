@@ -92,7 +92,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
           previous?.isFrozen == true &&
           !next.isFrozen) {
         if (mounted) {
-          context.push(AppRoutes.petAlbum);
+          context.push(AppRoutes.petAlbumSwipe);
         }
       }
       _wasSending = next?.isSending ?? false;
@@ -152,7 +152,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
                 previewAlignment: const Alignment(0, -0.49),
                 sensorConfig: SensorConfig.single(
                   sensor: Sensor.position(SensorPosition.back),
-                  aspectRatio: CameraAspectRatios.ratio_4_3,
+                  aspectRatio: CameraAspectRatios.ratio_1_1,
                   flashMode: FlashMode.none,
                 ),
                 builder: (cameraState, preview) {

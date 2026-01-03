@@ -85,6 +85,10 @@ dependencies:
 
   # Image processing (crop ảnh theo khung preview trước khi gửi server)
   image: ^4.2.0
+  flutter_image_compress: ^2.3.0
+  
+  # Card Swiper
+  flutter_card_swiper: ^7.2.0
   
 dev_dependencies:
   flutter_test:

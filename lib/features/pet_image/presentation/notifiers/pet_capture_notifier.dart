@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
@@ -180,20 +181,69 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
     try {
       // Đọc bytes từ file gốc
       final originalBytes = await originalFile.readAsBytes();
-      final image = img.decodeImage(originalBytes);
+      var image = img.decodeImage(originalBytes);
       if (image == null) return null;
 
       // 🔥 Crop ảnh
-      final cropped = _cropCenter(image, _previewAspectRatio);
+      var processed = _cropCenter(image, _previewAspectRatio);
 
-      // 🔥 Encode JPG một lần duy nhất (không double encode)
-      final encoded = img.encodeJpg(cropped, quality: 90);
+      // 🔥 Resize để đảm bảo kích thước tối thiểu (giữ tỷ lệ)
+      // Đảm bảo chiều dài nhất >= 1280px
+      const int minLongestSide = 1280;
+      final longestSide = processed.width > processed.height
+          ? processed.width
+          : processed.height;
 
-      // 🔥 Sử dụng app temp directory (an toàn cho iOS)
+      int targetWidth = processed.width;
+      int targetHeight = processed.height;
+
+      if (longestSide < minLongestSide) {
+        // Tính scale factor để resize
+        final scale = minLongestSide / longestSide;
+        targetWidth = (processed.width * scale).round();
+        targetHeight = (processed.height * scale).round();
+        processed = img.copyResize(
+          processed,
+          width: targetWidth,
+          height: targetHeight,
+          interpolation: img.Interpolation.linear,
+        );
+      }
+
+      // 🔥 Lưu ảnh đã crop và resize vào temp file
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().microsecondsSinceEpoch;
+      final tempProcessedFile = File(
+        '${tempDir.path}/pet_processed_$timestamp.jpg',
+      );
+      final encoded = img.encodeJpg(processed, quality: 90);
+      await tempProcessedFile.writeAsBytes(encoded);
+
+      // 🔥 Dùng flutter_image_compress để xóa EXIF metadata và đảm bảo kích thước
+      // keepExif: false → Xóa Location/GPS metadata
+      final compressedBytes = await FlutterImageCompress.compressWithFile(
+        tempProcessedFile.absolute.path,
+        minWidth: targetWidth,
+        minHeight: targetHeight,
+        quality: 90,
+        keepExif: false, // 🔥 QUAN TRỌNG: Xóa EXIF metadata (Location)
+      );
+
+      if (compressedBytes == null) {
+        // Fallback: dùng file đã process nếu compress fail
+        return tempProcessedFile;
+      }
+
+      // 🔥 Lưu file cuối cùng (đã xóa EXIF)
       final finalFile = File('${tempDir.path}/pet_$timestamp.jpg');
-      await finalFile.writeAsBytes(encoded);
+      await finalFile.writeAsBytes(compressedBytes);
+
+      // Xóa temp file
+      try {
+        await tempProcessedFile.delete();
+      } catch (_) {
+        // Ignore delete error
+      }
 
       return finalFile;
     } catch (_) {

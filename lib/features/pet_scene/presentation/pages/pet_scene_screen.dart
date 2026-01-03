@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:pixel_love/features/pet_scene/domain/entities/pet_scene.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/features/pet_scene/providers/pet_scene_providers.dart';
+import 'package:pixel_love/core/widgets/background_loading_screen.dart';
+import 'package:pixel_love/core/widgets/love_background.dart';
+import 'package:pixel_love/core/widgets/custom_loading_widget.dart';
+import 'package:pixel_love/core/utils/image_loader_utils.dart';
 
 class PetSceneScreen extends ConsumerStatefulWidget {
   const PetSceneScreen({super.key});
@@ -17,6 +22,8 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
   final TransformationController _transformationController =
       TransformationController();
   PetScene? _lastPetSceneData;
+  bool _backgroundLoaded = false;
+  bool _isPreloading = false;
 
   @override
   void dispose() {
@@ -24,10 +31,105 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
     super.dispose();
   }
 
+  /// Preload và đợi background render xong (giống splash screen)
+  Future<void> _preloadAndWaitForBackground(String imageUrl) async {
+    if (_isPreloading || _backgroundLoaded) return;
+
+    setState(() {
+      _isPreloading = true;
+    });
+
+    try {
+      if (imageUrl.isNotEmpty && mounted) {
+        final imageProvider = NetworkImage(imageUrl);
+        final rendered = await ImageLoaderUtils.waitForImageToRender(
+          imageProvider,
+          context,
+        );
+        if (rendered) {
+          print('✅ Pet scene background image rendered successfully');
+        } else {
+          print('⚠️ Timeout or error rendering image, proceeding anyway');
+        }
+      }
+    } catch (e) {
+      print('⚠️ Preload error: $e');
+      // Vẫn tiếp tục dù preload lỗi
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPreloading = false;
+          _backgroundLoaded = true;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final canPop = context.canPop();
+    final sceneState = ref.watch(petSceneNotifierProvider);
+
+    // Nếu đang loading data hoặc chưa có data, hiển thị loading với LoveBackground
+    if (sceneState.isLoading || sceneState.petSceneData == null) {
+      return Scaffold(
+        body: LoveBackground(
+          showDecorativeIcons: true,
+          child: const Center(child: CustomLoadingWidget(size: 120)),
+        ),
+      );
+    }
+
+    final petSceneData = sceneState.petSceneData!;
+    final backgroundUrl = petSceneData.background.imageUrl;
+
+    // Preload background trước khi hiển thị màn hình (giống splash)
+    if (!_backgroundLoaded && backgroundUrl.isNotEmpty && !_isPreloading) {
+      // Trigger preload
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _preloadAndWaitForBackground(backgroundUrl);
+      });
+
+      // Hiển thị loading screen với progress trong lúc preload
+      return BackgroundLoadingScreen(
+        backgroundImageUrl: backgroundUrl,
+        title: 'Đang tải khung cảnh',
+        subtitle: 'Vui lòng đợi...',
+        onLoadComplete: () {
+          // onLoadComplete sẽ được gọi từ BackgroundLoadingScreen
+          // Nhưng chúng ta cũng cần đợi preload xong
+          // Nên không set _backgroundLoaded ở đây
+        },
+        onLoadError: () {
+          // Nếu load lỗi, vẫn cho vào màn hình (fallback)
+          if (mounted) {
+            setState(() {
+              _backgroundLoaded = true;
+            });
+          }
+        },
+      );
+    }
+
+    // Nếu đang preload, vẫn hiển thị loading screen
+    if (_isPreloading) {
+      return BackgroundLoadingScreen(
+        backgroundImageUrl: backgroundUrl,
+        title: 'Đang tải khung cảnh',
+        subtitle: 'Vui lòng đợi...',
+        onLoadComplete: () {
+          // Không làm gì, đợi _preloadAndWaitForBackground xong
+        },
+        onLoadError: () {
+          if (mounted) {
+            setState(() {
+              _backgroundLoaded = true;
+            });
+          }
+        },
+      );
+    }
 
     return PopScope(
       canPop: canPop,
@@ -60,7 +162,7 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
           ),
           actions: [
             IconButton(
-              onPressed: () => context.go(AppRoutes.petAlbum),
+              onPressed: () => context.go(AppRoutes.petAlbumSwipe),
               icon: const Icon(Icons.photo_library, color: Colors.white),
               tooltip: 'Xem Album Kỷ Niệm',
             ),
@@ -72,22 +174,15 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
           ),
           child: Builder(
             builder: (context) {
-              final sceneState = ref.watch(petSceneNotifierProvider);
-
-              if (sceneState.isLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
-                );
-              }
-
-              final petSceneData = sceneState.petSceneData;
-              if (petSceneData == null) {
+              // Hiển thị error nếu có
+              if (sceneState.errorMessage != null &&
+                  sceneState.petSceneData == null) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        sceneState.errorMessage ?? 'Failed to load pet scene',
+                        sceneState.errorMessage!,
                         style: const TextStyle(color: Colors.white),
                       ),
                       const SizedBox(height: 16),
@@ -104,6 +199,7 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
                 );
               }
 
+              // Hiển thị pet scene
               return Stack(
                 children: [
                   _buildInteractiveViewer(screenSize, petSceneData),

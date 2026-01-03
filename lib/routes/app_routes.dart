@@ -8,6 +8,7 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String petScene = '/pet-scene';
   static const String petAlbum = '/pet-album';
+  static const String petAlbumSwipe = '/pet-album-swipe';
   static const String petCapture = '/pet-capture';
   static const String settings = '/settings';
 }
