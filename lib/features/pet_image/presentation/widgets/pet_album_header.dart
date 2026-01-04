@@ -39,4 +39,3 @@ class PetAlbumHeader extends StatelessWidget {
     );
   }
 }
-

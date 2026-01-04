@@ -264,6 +264,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     return Stack(
       children: [
         CardSwiper(
+          padding: EdgeInsetsGeometry.symmetric(horizontal: 4),
           controller: _swiperController,
           cardsCount: totalCards,
           onSwipe: (previousIndex, currentIndex, direction) {
@@ -344,16 +345,24 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
 
   // 1️⃣ ENTRY MOMENT: Skeleton cards
   Widget _buildSkeletonCards() {
+    final cardHeight = _getCardHeight();
+    final cardWidth = _getCardWidth();
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(3, (index) {
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(2, (index) {
           return Container(
-            margin: EdgeInsets.only(bottom: index == 2 ? 0 : 20),
-            width: MediaQuery.of(context).size.width * 0.9,
-            height: MediaQuery.of(context).size.height * 0.6,
+            margin: EdgeInsets.only(bottom: index == 1 ? 0 : 20),
+            width: cardWidth,
+            height: cardHeight,
+            constraints: BoxConstraints(
+              maxWidth: cardWidth,
+              maxHeight: cardHeight,
+            ),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(44),
               color: Colors.white.withOpacity(0.1),
             ),
             child: AnimatedBuilder(
@@ -361,7 +370,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               builder: (context, child) {
                 return Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(44),
                     gradient: LinearGradient(
                       begin: Alignment(-1.0 + _shimmerController.value * 2, 0),
                       end: Alignment(1.0 + _shimmerController.value * 2, 0),
@@ -381,33 +390,33 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     );
   }
 
-  // Helper method để tính chiều cao card
+  // Helper method để tính chiều cao card - style giống capture_layout_metrics
   double _getCardHeight() {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final safeAreaTop = MediaQuery.of(context).padding.top;
-    final safeAreaBottom = MediaQuery.of(context).padding.bottom;
-    final availableHeight = screenHeight - safeAreaTop - safeAreaBottom;
-    // Chiều cao card = 70% chiều cao khả dụng, giới hạn từ 400-600
-    return (availableHeight * 0.6).clamp(400.0, 600.0);
+    final screenWidth = MediaQuery.of(context).size.width;
+    // 🔥 Dùng 95% width như preview trong capture screen để khớp kích thước
+    final cardWidth = screenWidth;
+    // Tỷ lệ 4:3.9 giống capture layout
+    return cardWidth * 4 / 3.9;
+  }
+
+  // Helper method để tính chiều rộng card - style giống capture_layout_metrics
+  double _getCardWidth() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    // 🔥 Dùng 95% width như preview trong capture screen để khớp kích thước
+    return screenWidth;
   }
 
   // 5️⃣ INFINITE ILLUSION: Ghost card
   Widget _buildGhostCard(bool isLoading) {
     final cardHeight = _getCardHeight();
-    final screenWidth = MediaQuery.of(context).size.width;
-    // Giảm padding horizontal: card chiếm 95% chiều rộng màn hình
-    final cardWidth = screenWidth * 0.95;
+    final cardWidth = _getCardWidth();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 40),
       width: cardWidth,
       height: cardHeight,
-      constraints: BoxConstraints(
-        maxWidth: cardWidth,
-        maxHeight: cardHeight,
-        minHeight: 400.0,
-      ),
+      constraints: BoxConstraints(maxWidth: cardWidth, maxHeight: cardHeight),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(44),
         color: Colors.black.withOpacity(0.3),
       ),
       child: Center(
@@ -454,9 +463,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     final isFromPartner =
         image.userId != currentUserId && image.userId == partnerId;
     final cardHeight = _getCardHeight();
-    final screenWidth = MediaQuery.of(context).size.width;
-    // Giảm padding horizontal: card chiếm 95% chiều rộng màn hình
-    final cardWidth = screenWidth * 1;
+    final cardWidth = _getCardWidth();
     return GestureDetector(
       onLongPressStart: (_) {
         setState(() {
@@ -475,16 +482,14 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
         });
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 40),
+        margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
         width: cardWidth,
         height: cardHeight,
-        constraints: BoxConstraints(
-          maxWidth: cardWidth,
-          maxHeight: cardHeight,
-          minHeight: 400.0,
-        ),
+        constraints: BoxConstraints(maxWidth: cardWidth, maxHeight: cardHeight),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(44),
+          color: Colors
+              .black, // 🔥 Background đen để không lộ khi ảnh không fill hết
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.2),
@@ -494,14 +499,15 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(44),
           child: Stack(
             fit: StackFit.expand,
             children: [
               // 4️⃣ ANTICIPATION: Blur next card
               CachedNetworkImage(
                 imageUrl: image.imageUrl,
-                fit: BoxFit.cover,
+                fit: BoxFit
+                    .cover, // 🔥 Dùng contain để hiển thị toàn bộ ảnh như preview camera
                 color: isNextCard ? Colors.black.withOpacity(0.3) : null,
                 colorBlendMode: isNextCard ? BlendMode.darken : null,
                 imageBuilder: (context, imageProvider) {
@@ -509,7 +515,9 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                     decoration: BoxDecoration(
                       image: DecorationImage(
                         image: imageProvider,
-                        fit: BoxFit.cover,
+                        fit: BoxFit
+                            .cover, // 🔥 Dùng contain để hiển thị toàn bộ ảnh như preview
+                        alignment: Alignment.center, // Center alignment
                       ),
                     ),
                     child: isNextCard

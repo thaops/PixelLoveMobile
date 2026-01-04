@@ -24,7 +24,8 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
   int _sensorRotation = 0;
   double _currentZoom = 1.0; // 🔥 Zoom hiện tại của camera
 
-  static const double _previewAspectRatio = 4 / 3;
+  static const double _previewAspectRatio =
+      4 / 3.9; // 🔥 Khớp với CaptureLayoutMetrics (4/3.9)
 
   @override
   PetCaptureState build() {

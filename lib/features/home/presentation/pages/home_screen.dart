@@ -163,10 +163,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         errorWidget: (context, url, error) {
                                           return Container(
                                             color: Colors.grey.shade300,
-                                            child: const Icon(
-                                              Icons.account_circle,
-                                              color: Colors.grey,
-                                              size: 28,
+                                            child: Image.asset(
+                                              'assets/images/avata-male.png',
                                             ),
                                           );
                                         },
@@ -189,10 +187,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                       )
                                     : Container(
                                         color: Colors.grey.shade300,
-                                        child: const Icon(
-                                          Icons.account_circle,
-                                          color: Colors.grey,
-                                          size: 28,
+                                        child: Image.asset(
+                                          'assets/images/avata-male.png',
                                         ),
                                       ),
                               ),
