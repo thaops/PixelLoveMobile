@@ -29,7 +29,6 @@ class PetCaptureScreen extends ConsumerStatefulWidget {
 
 class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
   bool _captureAnimationActive = false;
-  bool _wasSending = false;
   final ImagePicker _imagePicker = ImagePicker();
   // Zoom mặc định khi vào màn hình
   double _zoomLevel = 1.0;
@@ -97,16 +96,25 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
     _captureNotifier = ref.read(petCaptureNotifierProvider.notifier);
 
     ref.listen<PetCaptureState?>(petCaptureNotifierProvider, (previous, next) {
-      if (_wasSending &&
+      // 🔥 Navigate sau khi send (không đợi upload xong)
+      // Kiểm tra: đã gọi send (isSending = true) và có temporary image
+      if (previous != null &&
           next != null &&
-          !next.isSending &&
-          previous?.isFrozen == true &&
-          !next.isFrozen) {
-        if (mounted) {
-          context.push(AppRoutes.petAlbumSwipe);
-        }
+          next.isSending &&
+          !previous.isSending) {
+        // 🔥 Delay ngắn để ảnh review hiển thị một chút trước khi fade
+        // Sau đó navigate với fade transition mượt mà
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) {
+            context.push(AppRoutes.petAlbumSwipe).then((_) {
+              // 🔥 Reset preview sau khi navigate (khi quay lại)
+              if (mounted) {
+                ref.read(petCaptureNotifierProvider.notifier).resetPreview();
+              }
+            });
+          }
+        });
       }
-      _wasSending = next?.isSending ?? false;
     });
     // Cho phép back khi chưa freeze
     final canPop = !captureState.isFrozen && context.canPop();

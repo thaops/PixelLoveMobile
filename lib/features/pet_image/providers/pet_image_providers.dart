@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/pet_image/data/datasources/pet_image_remote_datasource.dart';
@@ -47,4 +48,37 @@ final petAlbumNotifierProvider =
 final petCaptureNotifierProvider =
     NotifierProvider<PetCaptureNotifier, PetCaptureState>(
       PetCaptureNotifier.new,
+    );
+
+/// Temporary captured image state - dùng để hiển thị ảnh vừa chụp trong swipe screen
+class TemporaryCapturedImage {
+  final Uint8List bytes;
+  final String? caption;
+  final DateTime capturedAt;
+
+  TemporaryCapturedImage({
+    required this.bytes,
+    this.caption,
+    required this.capturedAt,
+  });
+}
+
+/// Notifier để quản lý temporary captured image
+class TemporaryCapturedImageNotifier extends Notifier<TemporaryCapturedImage?> {
+  @override
+  TemporaryCapturedImage? build() => null;
+
+  void setImage(TemporaryCapturedImage? image) {
+    state = image;
+  }
+
+  void clear() {
+    state = null;
+  }
+}
+
+/// Provider để lưu temporary captured image (local file/bytes) cho swipe screen
+final temporaryCapturedImageProvider =
+    NotifierProvider<TemporaryCapturedImageNotifier, TemporaryCapturedImage?>(
+      TemporaryCapturedImageNotifier.new,
     );

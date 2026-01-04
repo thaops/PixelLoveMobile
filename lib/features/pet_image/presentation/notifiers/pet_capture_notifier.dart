@@ -303,7 +303,31 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
     if (state.isSending) return;
     if (state.bytes == null) return; // 🔥 Cần có bytes để send
 
+    // 🔥 Set isSending = true để trigger listener và navigate
     state = state.copyWith(isSending: true);
+
+    // 🔥 Lưu temporary image vào provider để swipe screen hiển thị ngay
+    ref
+        .read(temporaryCapturedImageProvider.notifier)
+        .setImage(
+          TemporaryCapturedImage(
+            bytes: state.bytes!,
+            caption: captionController.text.trim().isEmpty
+                ? null
+                : captionController.text.trim(),
+            capturedAt: state.capturedAt ?? DateTime.now(),
+          ),
+        );
+
+    // 🔥 Upload ngầm (fire and forget) - không đợi kết quả
+    _uploadInBackground();
+
+    // 🔥 KHÔNG reset preview ở đây - sẽ reset sau khi navigate
+    // Reset preview sẽ được gọi từ capture screen sau khi navigate
+  }
+
+  // ===== Upload ngầm (background) =====
+  Future<void> _uploadInBackground() async {
     try {
       File? fileToUpload;
 
@@ -340,19 +364,27 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
 
           apiResult.when(
             success: (_) {
-              resetPreview();
+              // 🔥 Upload thành công - KHÔNG clear temporary image
+              // Temporary image sẽ LUÔN hiển thị ở vị trí đầu tiên
+              // Chỉ refresh album để cập nhật danh sách (để lấy EXP từ server)
+              ref.read(petAlbumNotifierProvider.notifier).refresh();
+              // 🔥 Set isSending = false sau khi upload xong
               state = state.copyWith(isSending: false);
             },
             error: (_) {
+              // 🔥 Upload lỗi - vẫn giữ temporary image để user thấy
+              // Có thể thêm retry logic sau
               state = state.copyWith(isSending: false);
             },
           );
         },
         error: (_) {
+          // 🔥 Upload lỗi - vẫn giữ temporary image
           state = state.copyWith(isSending: false);
         },
       );
     } catch (_) {
+      // 🔥 Upload lỗi - vẫn giữ temporary image
       state = state.copyWith(isSending: false);
     }
   }

@@ -46,6 +46,10 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
   late AnimationController _memoryHighlightController;
   late AnimationController _shimmerController;
   late AnimationController _entryMessageController;
+  late AnimationController _fadeController;
+
+  // 🔥 Track temporary image
+  TemporaryCapturedImage? _temporaryImage;
 
   @override
   void initState() {
@@ -66,6 +70,26 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    // 🔥 FIX 1: Mặc định HIỂN THỊ ngay từ frame đầu (không opacity = 0)
+    // Fade chỉ dùng cho route transition, không cho frame đầu
+    _fadeController.value = 1.0;
+
+    // 🔥 Lấy temporary image từ provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final tempImage = ref.read(temporaryCapturedImageProvider);
+      if (tempImage != null && mounted) {
+        setState(() {
+          _temporaryImage = tempImage;
+        });
+        // ❌ KHÔNG gọi _fadeController.forward() nữa
+        // Fade chỉ dùng cho route transition
+      }
+    });
   }
 
   @override
@@ -75,6 +99,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     _memoryHighlightController.dispose();
     _shimmerController.dispose();
     _entryMessageController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
@@ -89,6 +114,25 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     final currentUser = storageService.getUser();
     final currentUserId = currentUser?.id ?? '';
     final partnerId = currentUser?.partnerId;
+
+    // 🔥 Listen temporary image provider để cập nhật UI khi upload xong
+    ref.listen<TemporaryCapturedImage?>(temporaryCapturedImageProvider, (
+      previous,
+      next,
+    ) {
+      if (mounted) {
+        setState(() {
+          _temporaryImage = next;
+        });
+      }
+    });
+
+    // 🔥 Load ảnh ngầm nếu chưa load (chỉ khi có temporary image)
+    if (_temporaryImage != null && !albumState.isLoading && images.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        albumNotifier.loadImages(showLoading: false);
+      });
+    }
 
     // 1️⃣ ENTRY MOMENT: Check nếu ảnh mới nhất là của partner
     if (images.isNotEmpty && !_showEntryMessage && currentUserId.isNotEmpty) {
@@ -169,26 +213,29 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                   child: Opacity(
                     opacity:
                         1.0 - (_verticalDragOffset.abs() / 300).clamp(0.0, 0.5),
-                    child: Stack(
-                      children: [
-                        Column(
-                          children: [
-                            PetAlbumHeader(canPop: canPop),
-                            Expanded(
-                              child: _buildSwipeContent(
-                                albumState,
-                                images,
-                                albumNotifier,
-                                currentUserId,
-                                partnerId,
+                    child: FadeTransition(
+                      opacity: _fadeController,
+                      child: Stack(
+                        children: [
+                          Column(
+                            children: [
+                              PetAlbumHeader(canPop: canPop),
+                              Expanded(
+                                child: _buildSwipeContent(
+                                  albumState,
+                                  images,
+                                  albumNotifier,
+                                  currentUserId,
+                                  partnerId,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        // 1️⃣ ENTRY MOMENT: Partner signal
-                        if (_showEntryMessage && _entryMessageText != null)
-                          _buildEntryMessage(),
-                      ],
+                            ],
+                          ),
+                          // 1️⃣ ENTRY MOMENT: Partner signal
+                          if (_showEntryMessage && _entryMessageText != null)
+                            _buildEntryMessage(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -207,8 +254,9 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     String currentUserId,
     String? partnerId,
   ) {
-    // 1️⃣ ENTRY MOMENT: Skeleton loading thay vì spinner
-    if (albumState.isLoading && images.isEmpty) {
+    // 🔥 FIX 2: Skeleton KHÔNG được hiển thị nếu có temporary image
+    // Khi đã có ảnh vừa chụp → tuyệt đối không skeleton
+    if (_temporaryImage == null && albumState.isLoading && images.isEmpty) {
       return _buildSkeletonCards();
     }
 
@@ -258,18 +306,82 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
       );
     }
 
-    // 5️⃣ INFINITE ILLUSION: Thêm ghost cards
-    final totalCards = images.length + (albumState.hasMore ? 2 : 0);
+    // 🔥 Temporary image LUÔN hiển thị ở vị trí đầu tiên (ảnh vừa chụp)
+    // Dù API đã load xong, vẫn hiển thị temporary image, chỉ cập nhật EXP từ server
+    // 🔥 QUAN TRỌNG: Đọc lại từ provider mỗi lần build để đảm bảo luôn có giá trị mới nhất
+    final tempImageFromProvider = ref.read(temporaryCapturedImageProvider);
+    if (tempImageFromProvider != null &&
+        _temporaryImage != tempImageFromProvider) {
+      // Cập nhật nếu provider có giá trị mới
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _temporaryImage = tempImageFromProvider;
+          });
+        }
+      });
+    }
+    final hasTemporaryImage = _temporaryImage != null;
+
+    // 🔥 Tìm ảnh match từ API để lấy EXP và thông tin (nhưng không thay thế ảnh)
+    PetImage? uploadedImage;
+    if (hasTemporaryImage && images.isNotEmpty) {
+      try {
+        uploadedImage = images.firstWhere((image) {
+          if (_temporaryImage == null) return false;
+          final timeDiff = image.actionAt
+              .difference(_temporaryImage!.capturedAt)
+              .abs()
+              .inSeconds;
+          final sameUser =
+              image.userId == ref.read(storageServiceProvider).getUser()?.id;
+          final sameCaption =
+              (image.text == null && _temporaryImage!.caption == null) ||
+              (image.text == _temporaryImage!.caption);
+          return sameUser && sameCaption && timeDiff < 5;
+        });
+      } catch (_) {
+        // Không tìm thấy match
+        uploadedImage = null;
+      }
+    }
+
+    // 🔥 Temporary image LUÔN hiển thị khi có (không clear)
+    final shouldShowTemporaryImage = hasTemporaryImage;
+
+    // 🔥 FIX 3: Ép CardSwiper có content ngay frame đầu
+    // Nếu có temporary image hoặc images → luôn có ít nhất 1 card
+    if (!shouldShowTemporaryImage && images.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // 🔥 Tính totalCards: temporary image (luôn 1 nếu có) + images từ API + ghost cards
+    // QUAN TRỌNG: Temporary image LUÔN ở index 0, không bao giờ bị thay thế
+    final totalCards =
+        (shouldShowTemporaryImage ? 1 : 0) +
+        images.length +
+        (albumState.hasMore ? 2 : 0);
+
+    // 🔥 Debug: Đảm bảo temporary image luôn hiển thị
+    if (shouldShowTemporaryImage && totalCards == 0) {
+      debugPrint(
+        '⚠️ WARNING: shouldShowTemporaryImage=true nhưng totalCards=0',
+      );
+    }
 
     return Stack(
       children: [
         CardSwiper(
-          padding: EdgeInsetsGeometry.symmetric(horizontal: 4),
+          padding: EdgeInsetsGeometry.symmetric(horizontal: 8, vertical: 14),
           controller: _swiperController,
           cardsCount: totalCards,
           onSwipe: (previousIndex, currentIndex, direction) {
             if (currentIndex != null) {
-              _currentIndex = currentIndex;
+              // 🔥 Tính imageIndex thực (bỏ qua temporary image nếu có)
+              final imageIndex = hasTemporaryImage
+                  ? currentIndex - 1
+                  : currentIndex;
+              _currentIndex = imageIndex;
               _swipeCount++;
 
               // 3️⃣ VARIABLE REWARD: Pet state change (nhẹ, không random)
@@ -278,44 +390,56 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               // images đã được sắp xếp mới nhất trước
               // index 0 = ảnh mới nhất, index cao = ảnh cũ nhất
 
-              // 2️⃣ Memory highlight chỉ khi swipe sâu (ảnh cũ)
-              // Khi _currentIndex gần bằng images.length - 1 (ảnh cũ nhất)
-              if (_currentIndex >= images.length - 10 && images.length > 10) {
-                // Chỉ khi đang xem 10 ảnh cũ nhất
-                _checkMemoryHighlight(images, _currentIndex);
-              }
+              // 🔥 Chỉ xử lý khi đã qua temporary image (imageIndex >= 0)
+              if (imageIndex >= 0) {
+                // 2️⃣ Memory highlight chỉ khi swipe sâu (ảnh cũ)
+                // Khi imageIndex gần bằng images.length - 1 (ảnh cũ nhất)
+                if (imageIndex >= images.length - 10 && images.length > 10) {
+                  // Chỉ khi đang xem 10 ảnh cũ nhất
+                  _checkMemoryHighlight(images, imageIndex);
+                }
 
-              // 7️⃣ SESSION ENDING: Khi đến ảnh cũ nhất
-              if (_currentIndex >= images.length - 1 && images.isNotEmpty) {
-                _showSessionEnding();
-              }
+                // 7️⃣ SESSION ENDING: Khi đến ảnh cũ nhất
+                if (imageIndex >= images.length - 1 && images.isNotEmpty) {
+                  _showSessionEnding();
+                }
 
-              // 5️⃣ INFINITE ILLUSION: Load more khi gần cuối (ảnh cũ)
-              // Load more khi _currentIndex >= images.length - 3 (gần ảnh cũ nhất)
-              if (_currentIndex >= images.length - 3 &&
-                  albumState.hasMore &&
-                  !albumState.isLoadingMore) {
-                albumNotifier.loadMore();
+                // 5️⃣ INFINITE ILLUSION: Load more khi gần cuối (ảnh cũ)
+                // Load more khi imageIndex >= images.length - 3 (gần ảnh cũ nhất)
+                if (imageIndex >= images.length - 3 &&
+                    albumState.hasMore &&
+                    !albumState.isLoadingMore) {
+                  albumNotifier.loadMore();
+                }
               }
             }
             return true;
           },
           cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
-            // 5️⃣ INFINITE ILLUSION: Ghost cards
-            if (index >= images.length) {
+            // 🔥 Card đầu tiên = temporary image (LUÔN hiển thị khi có)
+            if (shouldShowTemporaryImage && index == 0) {
+              return _buildTemporaryImageCard(
+                images: images,
+                uploadedImage: uploadedImage,
+              );
+            }
+
+            // 🔥 Ghost cards (cuối danh sách)
+            final imageIndex = shouldShowTemporaryImage ? index - 1 : index;
+            if (imageIndex >= images.length) {
               return _buildGhostCard(albumState.isLoadingMore);
             }
 
             // images đã được sắp xếp mới nhất trước
-            // index 0 = ảnh mới nhất, index cuối = ảnh cũ nhất
-            if (index < 0 || index >= images.length) {
+            // imageIndex 0 = ảnh mới nhất, imageIndex cuối = ảnh cũ nhất
+            if (imageIndex < 0 || imageIndex >= images.length) {
               return const SizedBox.shrink();
             }
 
-            final image = images[index];
+            final image = images[imageIndex];
 
             // 4️⃣ ANTICIPATION: Preview card sau với blur
-            final isNextCard = index == _currentIndex + 1;
+            final isNextCard = imageIndex == _currentIndex + 1;
 
             return _buildImageCard(
               image,
@@ -448,6 +572,160 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 🔥 Build temporary image card (ảnh vừa chụp, local file)
+  Widget _buildTemporaryImageCard({
+    required List<PetImage> images,
+    PetImage? uploadedImage,
+  }) {
+    if (_temporaryImage == null) {
+      return const SizedBox.shrink();
+    }
+
+    final cardHeight = _getCardHeight();
+    final cardWidth = _getCardWidth();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      width: cardWidth,
+      height: cardHeight,
+      constraints: BoxConstraints(maxWidth: cardWidth, maxHeight: cardHeight),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(44),
+        color: Colors.black,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(44),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 🔥 Hiển thị ảnh từ bytes (local)
+            Image.memory(
+              _temporaryImage!.bytes,
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            ),
+            // Gradient overlay
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                  ),
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Text caption
+                    if (_temporaryImage!.caption != null &&
+                        _temporaryImage!.caption!.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          _temporaryImage!.caption!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    // Info row
+                    Row(
+                      children: [
+                        // 🔥 EXP badge - luôn hiển thị 20 EXP
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryPink,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.star, color: Colors.white, size: 16),
+                              SizedBox(width: 4),
+                              Text(
+                                '+20 EXP',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        // Date
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.today,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _formatDateTime(_temporaryImage!.capturedAt),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

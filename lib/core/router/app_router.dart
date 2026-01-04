@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
@@ -128,7 +129,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.petAlbumSwipe,
-        builder: (context, state) => const PetAlbumSwipeScreen(),
+        pageBuilder: (context, state) {
+          // 🔥 Custom fade transition - ảnh review mờ dần, swipe screen hiện lên rõ dần
+          return CustomTransitionPage<void>(
+            key: state.pageKey,
+            child: const PetAlbumSwipeScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  // 🔥 Fade transition mượt mà - swipe screen hiện lên rõ dần
+                  return FadeTransition(opacity: animation, child: child);
+                },
+            transitionDuration: const Duration(milliseconds: 400),
+            reverseTransitionDuration: const Duration(milliseconds: 300),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.petCapture,
