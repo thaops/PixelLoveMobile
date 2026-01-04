@@ -535,7 +535,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     final cardHeight = _getCardHeight();
     final cardWidth = _getCardWidth();
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 40),
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       width: cardWidth,
       height: cardHeight,
       constraints: BoxConstraints(maxWidth: cardWidth, maxHeight: cardHeight),
@@ -591,7 +591,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     final cardWidth = _getCardWidth();
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
       width: cardWidth,
       height: cardHeight,
       constraints: BoxConstraints(maxWidth: cardWidth, maxHeight: cardHeight),
@@ -760,7 +760,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
         });
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
         width: cardWidth,
         height: cardHeight,
         constraints: BoxConstraints(maxWidth: cardWidth, maxHeight: cardHeight),
