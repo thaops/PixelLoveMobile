@@ -12,7 +12,7 @@ import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_album_n
 import 'package:pixel_love/features/pet_image/presentation/widgets/pet_album_header.dart';
 import 'package:pixel_love/features/pet_image/providers/pet_image_providers.dart';
 import 'package:pixel_love/routes/app_routes.dart';
-import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import 'package:flutter_card_swiper/flutter_card_swiper.dart' as card_swiper;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 
@@ -26,13 +26,21 @@ class PetAlbumSwipeScreen extends ConsumerStatefulWidget {
 
 class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     with TickerProviderStateMixin {
-  final CardSwiperController _swiperController = CardSwiperController();
+  final card_swiper.CardSwiperController _swiperController =
+      card_swiper.CardSwiperController();
   final Random _random = Random();
 
   // State tracking
   double _verticalDragOffset = 0.0;
+  // 🔥 _currentIndex: index trong images[] (không phải swiper index)
+  // Luôn là imageIndex, có thể dùng cho tracking/debug trong tương lai
+  // ignore: unused_field
   int _currentIndex = 0;
   int _swipeCount = 0;
+  // 🔥 Track swiper index hiện tại để biết có thể undo không
+  // Swiper index 0 = card đầu tiên → không thể undo
+  // Swiper index > 0 → có thể undo
+  int _currentSwiperIndex = 0;
   bool _showPartnerSignal = false;
   String? _partnerSignalText;
   bool _isHolding = false;
@@ -371,17 +379,54 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
 
     return Stack(
       children: [
-        CardSwiper(
+        card_swiper.CardSwiper(
           padding: EdgeInsetsGeometry.symmetric(horizontal: 8, vertical: 14),
           controller: _swiperController,
           cardsCount: totalCards,
           onSwipe: (previousIndex, currentIndex, direction) {
-            if (currentIndex != null) {
-              // 🔥 Tính imageIndex thực (bỏ qua temporary image nếu có)
-              final imageIndex = hasTemporaryImage
-                  ? currentIndex - 1
-                  : currentIndex;
-              _currentIndex = imageIndex;
+            // 🔥 FIX: Validate previousIndex trước khi tính toán (tránh index âm)
+            // previousIndex có thể là -1 khi không có card nào (edge case)
+            if (previousIndex < 0 || previousIndex >= totalCards) {
+              return true;
+            }
+
+            // 🔥 ĐẢO NGƯỢC: Swipe trái → xem ảnh cũ hơn, Swipe phải → undo
+            // Swipe phải (right) → undo (quay lại ảnh mới hơn)
+            if (direction == card_swiper.CardSwiperDirection.right) {
+              // 🔥 Kiểm tra có thể undo không dựa trên swiper index thực tế
+              // previousIndex là card vừa bị swipe đi
+              // Nếu previousIndex == 0 → đang ở card đầu tiên → không thể undo
+              // Nếu previousIndex > 0 → có thể undo
+              final canUndo = previousIndex > 0;
+
+              if (!canUndo) {
+                // Không có card để undo (đang ở card đầu tiên) → return false để không cho swipe
+                return false;
+              }
+
+              // Có thể undo → gọi undo() programmatically
+              // CardSwiper sẽ tự động gọi onUndo callback
+              _swiperController.undo();
+              // Return false để không xử lý swipe này như swipe thường
+              return false;
+            }
+
+            // 🔥 Swipe trái (left) → xem ảnh cũ hơn
+            // Dùng previousIndex (card vừa bị swipe đi) làm nguồn sự thật
+            // previousIndex = card vừa bị swipe → logic timeline chuẩn
+            // Tính imageIndex từ previousIndex (card vừa swipe đi)
+            final imageIndex = hasTemporaryImage
+                ? previousIndex - 1
+                : previousIndex;
+
+            // Chỉ cập nhật _currentIndex khi imageIndex hợp lệ
+            // imageIndex có thể < 0 khi swipe temporary image (index 0) → bỏ qua
+            if (imageIndex >= 0 && imageIndex < images.length) {
+              setState(() {
+                _currentIndex = imageIndex;
+                // 🔥 Cập nhật swiper index hiện tại (card vừa swipe đi + 1)
+                _currentSwiperIndex = previousIndex + 1;
+              });
               _swipeCount++;
 
               // 3️⃣ VARIABLE REWARD: Pet state change (nhẹ, không random)
@@ -390,65 +435,82 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               // images đã được sắp xếp mới nhất trước
               // index 0 = ảnh mới nhất, index cao = ảnh cũ nhất
 
-              // 🔥 Chỉ xử lý khi đã qua temporary image (imageIndex >= 0)
-              if (imageIndex >= 0) {
-                // 2️⃣ Memory highlight chỉ khi swipe sâu (ảnh cũ)
-                // Khi imageIndex gần bằng images.length - 1 (ảnh cũ nhất)
-                if (imageIndex >= images.length - 10 && images.length > 10) {
-                  // Chỉ khi đang xem 10 ảnh cũ nhất
-                  _checkMemoryHighlight(images, imageIndex);
-                }
+              // 2️⃣ Memory highlight chỉ khi swipe sâu (ảnh cũ)
+              // Khi imageIndex gần bằng images.length - 1 (ảnh cũ nhất)
+              if (imageIndex >= images.length - 10 && images.length > 10) {
+                // Chỉ khi đang xem 10 ảnh cũ nhất
+                _checkMemoryHighlight(images, imageIndex);
+              }
 
-                // 7️⃣ SESSION ENDING: Khi đến ảnh cũ nhất
-                if (imageIndex >= images.length - 1 && images.isNotEmpty) {
-                  _showSessionEnding();
-                }
+              // 7️⃣ SESSION ENDING: Khi đến ảnh cũ nhất
+              if (imageIndex >= images.length - 1 && images.isNotEmpty) {
+                _showSessionEnding();
+              }
 
-                // 5️⃣ INFINITE ILLUSION: Load more khi gần cuối (ảnh cũ)
-                // Load more khi imageIndex >= images.length - 3 (gần ảnh cũ nhất)
-                if (imageIndex >= images.length - 3 &&
-                    albumState.hasMore &&
-                    !albumState.isLoadingMore) {
-                  albumNotifier.loadMore();
-                }
+              // 🔥 BƯỚC 4: Load more dựa trên previousIndex (swiper truth)
+              // Tính swiper index của ảnh cũ nhất
+              final lastImageSwiperIndex =
+                  (hasTemporaryImage ? 1 : 0) + images.length - 1;
+              final isNearEnd = previousIndex >= lastImageSwiperIndex - 2;
+
+              // 5️⃣ INFINITE ILLUSION: Load more khi gần cuối (ảnh cũ)
+              if (isNearEnd &&
+                  albumState.hasMore &&
+                  !albumState.isLoadingMore) {
+                albumNotifier.loadMore();
               }
             }
             return true;
           },
           cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
-            // 🔥 Card đầu tiên = temporary image (LUÔN hiển thị khi có)
-            if (shouldShowTemporaryImage && index == 0) {
-              return _buildTemporaryImageCard(
-                images: images,
-                uploadedImage: uploadedImage,
+            // 🔥 FIX: Validate index trước khi tính toán (tránh index âm)
+            // Thêm try-catch để tránh crash khi CardSwiper gọi với index không hợp lệ
+            try {
+              if (index < 0 || index >= totalCards) {
+                return const SizedBox.shrink();
+              }
+
+              // 🔥 Card đầu tiên = temporary image (LUÔN hiển thị khi có)
+              if (shouldShowTemporaryImage && index == 0) {
+                return _buildTemporaryImageCard(
+                  images: images,
+                  uploadedImage: uploadedImage,
+                );
+              }
+
+              // 🔥 Ghost cards (cuối danh sách)
+              final imageIndex = shouldShowTemporaryImage ? index - 1 : index;
+
+              // Validate imageIndex trước khi truy cập images
+              if (imageIndex < 0) {
+                return const SizedBox.shrink();
+              }
+
+              if (imageIndex >= images.length) {
+                return _buildGhostCard(albumState.isLoadingMore);
+              }
+
+              // images đã được sắp xếp mới nhất trước
+              // imageIndex 0 = ảnh mới nhất, imageIndex cuối = ảnh cũ nhất
+              final image = images[imageIndex];
+
+              // 🔥 BƯỚC 3: Blur dựa vào swiper index, không phụ thuộc _currentIndex
+              // Card index 0 = temporary/current, index 1 = current (nếu không temp), index 2 = preview (blur)
+              final isNextCard = index == (hasTemporaryImage ? 2 : 1);
+
+              return _buildImageCard(
+                image,
+                isNextCard: isNextCard,
+                currentUserId: currentUserId,
+                partnerId: partnerId,
               );
-            }
-
-            // 🔥 Ghost cards (cuối danh sách)
-            final imageIndex = shouldShowTemporaryImage ? index - 1 : index;
-            if (imageIndex >= images.length) {
-              return _buildGhostCard(albumState.isLoadingMore);
-            }
-
-            // images đã được sắp xếp mới nhất trước
-            // imageIndex 0 = ảnh mới nhất, imageIndex cuối = ảnh cũ nhất
-            if (imageIndex < 0 || imageIndex >= images.length) {
+            } catch (e) {
+              // 🔥 FIX: Tránh crash khi có lỗi bất ngờ
+              debugPrint('⚠️ CardBuilder error at index $index: $e');
               return const SizedBox.shrink();
             }
-
-            final image = images[imageIndex];
-
-            // 4️⃣ ANTICIPATION: Preview card sau với blur
-            final isNextCard = imageIndex == _currentIndex + 1;
-
-            return _buildImageCard(
-              image,
-              isNextCard: isNextCard,
-              currentUserId: currentUserId,
-              partnerId: partnerId,
-            );
           },
-          allowedSwipeDirection: AllowedSwipeDirection.symmetric(
+          allowedSwipeDirection: card_swiper.AllowedSwipeDirection.symmetric(
             horizontal: true,
           ),
           threshold: 50,
@@ -456,6 +518,36 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
           isLoop: false,
           backCardOffset: const Offset(0, 0),
           scale: 0.9,
+          // 🔥 BƯỚC 2: Bật UNDO đúng cách
+          // 🔥 ĐẢO NGƯỢC: undoDirection: right = swipe phải để undo (quay lại card trước)
+          // Khi swipe trái (xem ảnh cũ) → swipe phải để undo (quay lại ảnh mới)
+          showBackCardOnUndo: true,
+          undoDirection: card_swiper.UndoDirection.right,
+          undoSwipeThreshold:
+              40, // 🔥 Threshold vừa phải để dễ undo nhưng không quá nhạy
+          onUndo: (previousIndex, currentIndex, direction) {
+            // 🔥 FIX: Validate currentIndex trước khi tính toán
+            if (currentIndex < 0 || currentIndex >= totalCards) {
+              return true;
+            }
+
+            // Khi undo, currentIndex là card hiện tại (sau khi undo)
+            // Tính imageIndex từ currentIndex (card hiện tại sau undo)
+            final imageIndex = hasTemporaryImage
+                ? currentIndex - 1
+                : currentIndex;
+
+            // Chỉ cập nhật _currentIndex khi imageIndex hợp lệ
+            if (imageIndex >= 0 && imageIndex < images.length) {
+              setState(() {
+                _currentIndex = imageIndex;
+                // 🔥 Cập nhật swiper index hiện tại sau khi undo
+                // currentIndex là card hiện tại sau undo
+                _currentSwiperIndex = currentIndex;
+              });
+            }
+            return true;
+          },
         ),
         // 3️⃣ PARTNER SIGNAL: Partner đã xem/thích
         if (_showPartnerSignal && _partnerSignalText != null)

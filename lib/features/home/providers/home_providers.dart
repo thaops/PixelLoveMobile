@@ -37,8 +37,8 @@ final homeNotifierProvider = NotifierProvider<HomeNotifier, HomeState>(
 /// Home Transformation State Provider - Lưu vị trí scroll/pan của home screen
 final homeTransformationProvider =
     NotifierProvider<HomeTransformationNotifier, Matrix4?>(
-  HomeTransformationNotifier.new,
-);
+      HomeTransformationNotifier.new,
+    );
 
 /// Home Transformation Notifier
 class HomeTransformationNotifier extends Notifier<Matrix4?> {
@@ -53,4 +53,3 @@ class HomeTransformationNotifier extends Notifier<Matrix4?> {
     state = null;
   }
 }
-

@@ -11,4 +11,6 @@ class AppRoutes {
   static const String petAlbumSwipe = '/pet-album-swipe';
   static const String petCapture = '/pet-capture';
   static const String settings = '/settings';
+  static const String fridge = '/fridge';
+  static const String createNote = '/create-note';
 }

@@ -5,6 +5,8 @@ import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/auth/presentation/pages/auth_screen.dart';
 import 'package:pixel_love/features/auth/presentation/pages/complete_profile_screen.dart';
 import 'package:pixel_love/features/couple/presentation/pages/couple_connection_screen.dart';
+import 'package:pixel_love/features/fridge/presentation/pages/create_note_screen.dart';
+import 'package:pixel_love/features/fridge/presentation/pages/fridge_screen.dart';
 import 'package:pixel_love/features/home/presentation/pages/home_screen.dart';
 import 'package:pixel_love/features/pet_image/presentation/pages/pet_album_screen.dart';
 import 'package:pixel_love/features/pet_image/presentation/pages/pet_album_swipe_screen.dart';
@@ -32,6 +34,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Check if user is logged in
       final token = storageService.getToken();
+      print('🔑 Token: $token');
       if (token == null || token.isEmpty) {
         // Not logged in, redirect to login
         if (location != AppRoutes.login) {
@@ -151,6 +154,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.fridge,
+        builder: (context, state) => const FridgeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.createNote,
+        builder: (context, state) => const CreateNoteScreen(),
       ),
     ],
   );

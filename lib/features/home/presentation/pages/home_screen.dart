@@ -305,6 +305,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         if (obj.type == 'pet') {
                           context.go(AppRoutes.petScene);
                         }
+                        // Nếu object là fridge, navigate đến fridge screen
+                        else if (obj.type == 'fridge') {
+                          context.go(AppRoutes.fridge);
+                        }
                       },
                       child: ClipRect(
                         child: CachedNetworkImage(
