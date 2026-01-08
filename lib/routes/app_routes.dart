@@ -13,4 +13,5 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String fridge = '/fridge';
   static const String createNote = '/create-note';
+  static const String radio = '/radio';
 }

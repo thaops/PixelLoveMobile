@@ -301,13 +301,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     height: obj.height * scaleY,
                     child: GestureDetector(
                       onTap: () {
-                        // Nếu object là pet, navigate đến pet scene
                         if (obj.type == 'pet') {
                           context.go(AppRoutes.petScene);
-                        }
-                        // Nếu object là fridge, navigate đến fridge screen
-                        else if (obj.type == 'fridge') {
+                        } else if (obj.type == 'fridge') {
                           context.go(AppRoutes.fridge);
+                        } else if (obj.type == 'radio') {
+                          context.go(AppRoutes.radio);
                         }
                       },
                       child: ClipRect(

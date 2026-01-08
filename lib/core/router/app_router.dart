@@ -16,6 +16,7 @@ import 'package:pixel_love/features/startup/splash_screen.dart';
 import 'package:pixel_love/features/user/presentation/pages/onboard_screen.dart';
 import 'package:pixel_love/features/user/presentation/pages/settings_screen.dart';
 import 'package:pixel_love/features/user/presentation/pages/user_profile_screen.dart';
+import 'package:pixel_love/features/radio/presentation/pages/radio_screen.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 
 /// App Router configuration
@@ -162,6 +163,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.createNote,
         builder: (context, state) => const CreateNoteScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.radio,
+        builder: (context, state) => const RadioScreen(),
       ),
     ],
   );

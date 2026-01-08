@@ -30,9 +30,9 @@ class CloudinaryUploadService {
   }
 
   /// Upload file ảnh lên Cloudinary
-  /// 
+  ///
   /// [file]: File ảnh cần upload
-  /// 
+  ///
   /// Returns: [ApiResult<String>] với secure_url của ảnh đã upload
   Future<ApiResult<String>> uploadImage(File file) async {
     try {
@@ -66,11 +66,7 @@ class CloudinaryUploadService {
       final response = await _dio.post(
         '/cloudinary/upload',
         data: formData,
-        options: Options(
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
 
       // Lấy secure_url từ response
@@ -85,9 +81,55 @@ class CloudinaryUploadService {
     } on DioException catch (e) {
       return ApiResult.error(_handleDioError(e));
     } catch (e) {
-      return ApiResult.error(
-        ServerFailure(message: 'Lỗi không xác định: $e'),
+      return ApiResult.error(ServerFailure(message: 'Lỗi không xác định: $e'));
+    }
+  }
+
+  Future<ApiResult<String>> uploadAudio(File file) async {
+    try {
+      if (!await file.exists()) {
+        return ApiResult.error(
+          ValidationFailure(message: 'File không tồn tại'),
+        );
+      }
+
+      final fileSize = await file.length();
+      const maxSize = 20 * 1024 * 1024;
+      if (fileSize > maxSize) {
+        return ApiResult.error(
+          ValidationFailure(
+            message: 'File quá lớn. Vui lòng chọn audio nhỏ hơn 20MB',
+          ),
+        );
+      }
+
+      final fileName = file.path.split(RegExp(r'[/\\]')).last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+          contentType: DioMediaType('audio', 'mpeg'),
+        ),
+      });
+
+      final response = await _dio.post(
+        '/cloudinary/upload',
+        data: formData,
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
+
+      final secureUrl = response.data['secure_url'] as String?;
+      if (secureUrl == null || secureUrl.isEmpty) {
+        return ApiResult.error(
+          ServerFailure(message: 'Không nhận được URL audio từ server'),
+        );
+      }
+
+      return ApiResult.success(secureUrl);
+    } on DioException catch (e) {
+      return ApiResult.error(_handleDioError(e));
+    } catch (e) {
+      return ApiResult.error(ServerFailure(message: 'Lỗi không xác định: $e'));
     }
   }
 
@@ -110,7 +152,8 @@ class CloudinaryUploadService {
           if (msg is List) {
             message = msg.join(', ');
           } else {
-            message = msg?.toString() ??
+            message =
+                msg?.toString() ??
                 error.response?.statusMessage ??
                 'Lỗi server';
           }
@@ -135,10 +178,7 @@ class CloudinaryUploadService {
         );
 
       default:
-        return ServerFailure(
-          message: error.message ?? 'Lỗi không xác định',
-        );
+        return ServerFailure(message: error.message ?? 'Lỗi không xác định');
     }
   }
 }
-
