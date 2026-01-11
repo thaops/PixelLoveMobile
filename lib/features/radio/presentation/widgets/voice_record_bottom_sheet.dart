@@ -231,6 +231,7 @@ class _VoiceRecordBottomSheetState extends ConsumerState<VoiceRecordBottomSheet>
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -268,7 +269,7 @@ class _VoiceRecordBottomSheetState extends ConsumerState<VoiceRecordBottomSheet>
               ),
               const SizedBox(height: 8),
               Text(
-                'Gửi lời yêu thương đến pet của bạn',
+                'Gửi lời yêu thương đến người thương',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.6),
                   fontSize: 14,
