@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -139,7 +140,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         return Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => context.go(AppRoutes.profile),
+                            onTap: () => context.push(AppRoutes.profile),
                             borderRadius: BorderRadius.circular(24),
                             child: Container(
                               width: 44,
@@ -202,8 +203,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
                 ),
-                // Paw floating button
-                _buildPawButton(),
+                // Bottom Action Bar
+                _buildBottomActions(),
               ],
             );
           },
@@ -377,45 +378,123 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildPawButton() {
+  Widget _buildBottomActions() {
     return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 24,
+      left: 20,
+      right: 20,
+      bottom: 30,
       child: SafeArea(
-        top: false,
-        child: Center(
-          child: Material(
-            elevation: 8,
-            shape: const CircleBorder(),
-            color: AppColors.primaryPink,
-            shadowColor: Colors.black54,
-            child: InkWell(
-              onTap: () => context.go(AppRoutes.petCapture),
-              customBorder: const CircleBorder(),
-              child: Container(
-                width: 72,
-                height: 72,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primaryPink,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.35),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              height: 72,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.25),
+                    Colors.white.withOpacity(0.05),
                   ],
+                  stops: const [0.0, 1.0],
                 ),
-                child: const Icon(
-                  Icons.pets_rounded,
-                  color: Colors.white,
-                  size: 32,
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1.5,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildActionButton(
+                    Icons.photo_library_rounded,
+                    () => context.go(AppRoutes.petAlbumSwipe),
+                  ),
+                  _buildActionButton(
+                    Icons.pets_rounded,
+                    () => context.go(AppRoutes.petScene),
+                  ),
+                  _buildCenterShutterButton(),
+                  _buildActionButton(
+                    Icons.kitchen_rounded,
+                    () => context.go(AppRoutes.fridge),
+                  ),
+                  _buildActionButton(
+                    Icons.radio_rounded,
+                    () => context.go(AppRoutes.radio),
+                  ),
+                ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton(IconData icon, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Icon(
+            icon,
+            color: AppColors.textPrimary.withOpacity(0.8),
+            size: 26,
+            shadows: [
+              BoxShadow(
+                color: Colors.white.withOpacity(0.5),
+                blurRadius: 4,
+                offset: const Offset(0, 0),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCenterShutterButton() {
+    return GestureDetector(
+      onTap: () => context.go(AppRoutes.petCapture),
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.primaryPink, AppColors.primaryPink.withRed(200)],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryPink.withOpacity(0.5),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(width: 2, color: Colors.white),
+        ),
+        child: const Icon(
+          Icons.camera_alt_rounded,
+          color: Colors.white,
+          size: 28,
         ),
       ),
     );
