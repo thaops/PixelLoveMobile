@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -20,8 +21,10 @@ class VoiceRecordBottomSheet extends ConsumerStatefulWidget {
 class _VoiceRecordBottomSheetState extends ConsumerState<VoiceRecordBottomSheet>
     with SingleTickerProviderStateMixin {
   final AudioRecorder _recorder = AudioRecorder();
+  final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isRecording = false;
   bool _isUploading = false;
+  bool _isPreviewPlaying = false;
   String? _recordedFilePath;
   int _recordDuration = 0;
   Timer? _timer;
@@ -67,12 +70,18 @@ class _VoiceRecordBottomSheetState extends ConsumerState<VoiceRecordBottomSheet>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    _audioPlayer.onPlayerComplete.listen((_) {
+      if (mounted) {
+        setState(() => _isPreviewPlaying = false);
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     _recorder.dispose();
+    _audioPlayer.dispose();
     _pulseController.dispose();
     _textController.dispose();
     super.dispose();
@@ -139,6 +148,23 @@ class _VoiceRecordBottomSheetState extends ConsumerState<VoiceRecordBottomSheet>
     });
   }
 
+  Future<void> _togglePreview() async {
+    if (_recordedFilePath == null) return;
+
+    if (_isPreviewPlaying) {
+      await _audioPlayer.pause();
+      setState(() => _isPreviewPlaying = false);
+    } else {
+      await _audioPlayer.play(DeviceFileSource(_recordedFilePath!));
+      setState(() => _isPreviewPlaying = true);
+    }
+  }
+
+  Future<void> _stopPreview() async {
+    await _audioPlayer.stop();
+    setState(() => _isPreviewPlaying = false);
+  }
+
   Future<void> _uploadAndSend() async {
     if (_recordedFilePath == null) return;
     if (_textController.text.trim().isEmpty) {
@@ -151,6 +177,7 @@ class _VoiceRecordBottomSheetState extends ConsumerState<VoiceRecordBottomSheet>
       return;
     }
 
+    await _stopPreview();
     setState(() => _isUploading = true);
 
     try {
@@ -209,7 +236,8 @@ class _VoiceRecordBottomSheetState extends ConsumerState<VoiceRecordBottomSheet>
     }
   }
 
-  void _reset() {
+  Future<void> _reset() async {
+    await _stopPreview();
     if (_recordedFilePath != null) {
       final file = File(_recordedFilePath!);
       if (file.existsSync()) {
@@ -324,7 +352,7 @@ class _VoiceRecordBottomSheetState extends ConsumerState<VoiceRecordBottomSheet>
                               : (_isRecording
                                     ? _stopRecording
                                     : (_recordedFilePath != null
-                                          ? null
+                                          ? _togglePreview
                                           : _startRecording)),
                           customBorder: const CircleBorder(),
                           child: Center(
@@ -332,7 +360,9 @@ class _VoiceRecordBottomSheetState extends ConsumerState<VoiceRecordBottomSheet>
                               _isRecording
                                   ? Icons.stop_rounded
                                   : (_recordedFilePath != null
-                                        ? Icons.check_rounded
+                                        ? (_isPreviewPlaying
+                                              ? Icons.pause_rounded
+                                              : Icons.play_arrow_rounded)
                                         : Icons.mic_rounded),
                               size: 56,
                               color: Colors.white,

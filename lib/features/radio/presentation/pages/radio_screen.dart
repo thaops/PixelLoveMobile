@@ -120,6 +120,12 @@ class RadioScreen extends ConsumerWidget {
                   isPlaying: state.isPlaying,
                   onTap: () =>
                       ref.read(radioNotifierProvider.notifier).playVoice(voice),
+                  onPin: () => ref
+                      .read(radioNotifierProvider.notifier)
+                      .pinVoice(voice.id),
+                  onDelete: () => ref
+                      .read(radioNotifierProvider.notifier)
+                      .deleteVoice(voice.id),
                 );
               },
             ),

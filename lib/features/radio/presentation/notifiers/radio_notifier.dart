@@ -94,8 +94,14 @@ class RadioNotifier extends Notifier<RadioState> {
 
     result.when(
       success: (voiceList) {
+        final sortedVoices = List<Voice>.from(voiceList.items);
+        sortedVoices.sort((a, b) {
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          return b.createdAt.compareTo(a.createdAt);
+        });
         state = state.copyWith(
-          voices: voiceList.items,
+          voices: sortedVoices,
           total: voiceList.total,
           isLoading: false,
         );
@@ -152,5 +158,60 @@ class RadioNotifier extends Notifier<RadioState> {
 
   Future<void> seekTo(Duration position) async {
     await _audioPlayer.seek(position);
+  }
+
+  Future<bool> deleteVoice(String voiceId) async {
+    final dataSource = ref.read(radioRemoteDataSourceProvider);
+    final result = await dataSource.deleteVoice(voiceId);
+
+    return result.when(
+      success: (response) {
+        if (response.success) {
+          final updatedVoices = state.voices
+              .where((v) => v.id != voiceId)
+              .toList();
+          if (state.currentVoice?.id == voiceId) {
+            stopVoice();
+          }
+          state = state.copyWith(voices: updatedVoices, total: state.total - 1);
+          return true;
+        }
+        return false;
+      },
+      error: (error) {
+        state = state.copyWith(errorMessage: error.message);
+        return false;
+      },
+    );
+  }
+
+  Future<bool> pinVoice(String voiceId) async {
+    final dataSource = ref.read(radioRemoteDataSourceProvider);
+    final result = await dataSource.pinVoice(voiceId);
+
+    return result.when(
+      success: (response) {
+        if (response.success) {
+          final updatedVoices = state.voices.map((v) {
+            if (v.id == voiceId) {
+              return v.copyWith(isPinned: response.isPinned);
+            }
+            return v;
+          }).toList();
+          updatedVoices.sort((a, b) {
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+            return b.createdAt.compareTo(a.createdAt);
+          });
+          state = state.copyWith(voices: updatedVoices);
+          return true;
+        }
+        return false;
+      },
+      error: (error) {
+        state = state.copyWith(errorMessage: error.message);
+        return false;
+      },
+    );
   }
 }

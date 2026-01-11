@@ -25,8 +25,39 @@ class SendVoiceResponseDto {
   }
 }
 
+class PinVoiceResponseDto {
+  final bool success;
+  final String voiceId;
+  final bool isPinned;
+
+  PinVoiceResponseDto({
+    required this.success,
+    required this.voiceId,
+    required this.isPinned,
+  });
+
+  factory PinVoiceResponseDto.fromJson(Map<String, dynamic> json) {
+    return PinVoiceResponseDto(
+      success: json['success'] as bool? ?? false,
+      voiceId: json['voiceId'] as String? ?? '',
+      isPinned: json['isPinned'] as bool? ?? false,
+    );
+  }
+}
+
+class DeleteVoiceResponseDto {
+  final bool success;
+
+  DeleteVoiceResponseDto({required this.success});
+
+  factory DeleteVoiceResponseDto.fromJson(Map<String, dynamic> json) {
+    return DeleteVoiceResponseDto(success: json['success'] as bool? ?? false);
+  }
+}
+
 abstract class RadioRemoteDataSource {
   Future<ApiResult<VoiceListDto>> getVoices({int page = 1, int limit = 20});
+  Future<ApiResult<VoiceDto?>> getPinnedVoice();
   Future<ApiResult<SendVoiceResponseDto>> sendVoice({
     required String audioUrl,
     required int duration,
@@ -34,6 +65,8 @@ abstract class RadioRemoteDataSource {
     required String text,
     required String mood,
   });
+  Future<ApiResult<DeleteVoiceResponseDto>> deleteVoice(String voiceId);
+  Future<ApiResult<PinVoiceResponseDto>> pinVoice(String voiceId);
 }
 
 class RadioRemoteDataSourceImpl implements RadioRemoteDataSource {
@@ -71,6 +104,36 @@ class RadioRemoteDataSourceImpl implements RadioRemoteDataSource {
         'mood': mood,
       },
       fromJson: (json) => SendVoiceResponseDto.fromJson(json),
+    );
+  }
+
+  @override
+  Future<ApiResult<DeleteVoiceResponseDto>> deleteVoice(String voiceId) async {
+    return await _dioApi.delete(
+      '/pet/voices/$voiceId',
+      fromJson: (json) => DeleteVoiceResponseDto.fromJson(json),
+    );
+  }
+
+  @override
+  Future<ApiResult<PinVoiceResponseDto>> pinVoice(String voiceId) async {
+    return await _dioApi.post(
+      '/pet/voices/pin',
+      data: {'voiceId': voiceId},
+      fromJson: (json) => PinVoiceResponseDto.fromJson(json),
+    );
+  }
+
+  @override
+  Future<ApiResult<VoiceDto?>> getPinnedVoice() async {
+    return await _dioApi.get(
+      '/pet/voices/pinned',
+      fromJson: (json) {
+        if (json == null || (json is Map && json.isEmpty)) {
+          return null;
+        }
+        return VoiceDto.fromJson(json);
+      },
     );
   }
 }

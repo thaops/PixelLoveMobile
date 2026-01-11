@@ -8,6 +8,7 @@ import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/features/home/domain/entities/home.dart';
 import 'package:pixel_love/features/home/providers/home_providers.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
+import 'package:pixel_love/features/radio/presentation/widgets/radio_action_menu.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -22,6 +23,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       TransformationController();
   Home? _lastHomeData;
   bool _isInitialized = false;
+  bool _showRadioMenu = false;
+  Rect? _radioRect;
 
   @override
   bool get wantKeepAlive => true;
@@ -199,7 +202,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
                 ),
-
                 // Paw floating button
                 _buildPawButton(),
               ],
@@ -281,12 +283,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           );
                         },
                       )
-                    : Image.asset(
-                        'assets/images/background.jpg',
-                        width: finalWidth,
-                        height: finalHeight,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
+                    : GestureDetector(
+                        onTap: () {
+                          if (_showRadioMenu) {
+                            setState(() => _showRadioMenu = false);
+                          }
+                        },
+                        child: Image.asset(
+                          'assets/images/background.jpg',
+                          width: finalWidth,
+                          height: finalHeight,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                        ),
                       ),
                 // Objects (pet, etc.)
                 ...homeData.objects.map((obj) {
@@ -302,11 +311,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     child: GestureDetector(
                       onTap: () {
                         if (obj.type == 'pet') {
+                          if (_showRadioMenu)
+                            setState(() => _showRadioMenu = false);
                           context.go(AppRoutes.petScene);
                         } else if (obj.type == 'fridge') {
+                          if (_showRadioMenu)
+                            setState(() => _showRadioMenu = false);
                           context.go(AppRoutes.fridge);
                         } else if (obj.type == 'radio') {
-                          context.go(AppRoutes.radio);
+                          if (_showRadioMenu) {
+                            setState(() => _showRadioMenu = false);
+                            return;
+                          }
+                          final radioX = obj.x * scaleX;
+                          final radioY = obj.y * scaleY;
+                          final radioW = obj.width * scaleX;
+                          final radioH = obj.height * scaleY;
+                          setState(() {
+                            _radioRect = Rect.fromLTWH(
+                              radioX,
+                              radioY,
+                              radioW,
+                              radioH,
+                            );
+                            _showRadioMenu = true;
+                          });
                         }
                       },
                       child: ClipRect(
@@ -330,6 +359,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   );
                 }).toList(),
+
+                if (_showRadioMenu && _radioRect != null)
+                  Positioned(
+                    left: _radioRect!.center.dx - 120,
+                    top: _radioRect!.top - 60,
+                    child: RadioActionMenu(
+                      radioRect: _radioRect!,
+                      onClose: () => setState(() => _showRadioMenu = false),
+                    ),
+                  ),
               ],
             ),
           ),

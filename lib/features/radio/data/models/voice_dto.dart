@@ -1,9 +1,10 @@
 import 'package:pixel_love/features/radio/domain/entities/voice.dart';
 
 class VoiceDto {
+  final String id;
   final String audioUrl;
   final int duration;
-  final String userId;
+  final String oderId;
   final DateTime actionAt;
   final DateTime takenAt;
   final int baseExp;
@@ -11,11 +12,13 @@ class VoiceDto {
   final String text;
   final String mood;
   final DateTime createdAt;
+  final bool isPinned;
 
   VoiceDto({
+    required this.id,
     required this.audioUrl,
     required this.duration,
-    required this.userId,
+    required this.oderId,
     required this.actionAt,
     required this.takenAt,
     required this.baseExp,
@@ -23,13 +26,15 @@ class VoiceDto {
     required this.text,
     required this.mood,
     required this.createdAt,
+    required this.isPinned,
   });
 
   factory VoiceDto.fromJson(Map<String, dynamic> json) {
     return VoiceDto(
+      id: json['_id'] as String? ?? '',
       audioUrl: json['audioUrl'] as String? ?? '',
       duration: json['duration'] as int? ?? 0,
-      userId: json['userId'] as String? ?? '',
+      oderId: json['oderId'] as String? ?? '',
       actionAt:
           DateTime.tryParse(json['actionAt'] as String? ?? '') ??
           DateTime.now(),
@@ -42,14 +47,16 @@ class VoiceDto {
       createdAt:
           DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
+      isPinned: json['isPinned'] as bool? ?? false,
     );
   }
 
   Voice toEntity() {
     return Voice(
+      id: id,
       audioUrl: audioUrl,
       duration: duration,
-      userId: userId,
+      oderId: oderId,
       actionAt: actionAt,
       takenAt: takenAt,
       baseExp: baseExp,
@@ -57,6 +64,7 @@ class VoiceDto {
       text: text,
       mood: mood,
       createdAt: createdAt,
+      isPinned: isPinned,
     );
   }
 }
