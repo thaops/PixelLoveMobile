@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lottie/lottie.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/core/utils/image_loader_utils.dart';
@@ -268,7 +269,13 @@ class _BackgroundLoadingScreenState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Title
+                  Lottie.asset(
+                    'assets/lotties/pet-doggie-loading.json',
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.contain,
+                  ),
+
                   if (widget.title != null) ...[
                     Text(
                       widget.title!,
@@ -282,18 +289,18 @@ class _BackgroundLoadingScreenState
                     const SizedBox(height: 16),
                   ],
 
-                  // Subtitle
-                  if (widget.subtitle != null) ...[
-                    Text(
-                      widget.subtitle!,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 16,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 32),
-                  ],
+                  // // Subtitle
+                  // if (widget.subtitle != null) ...[
+                  //   Text(
+                  //     widget.subtitle!,
+                  //     style: const TextStyle(
+                  //       color: AppColors.textSecondary,
+                  //       fontSize: 16,
+                  //     ),
+                  //     textAlign: TextAlign.center,
+                  //   ),
+                  //   const SizedBox(height: 32),
+                  // ],
 
                   // Progress Bar
                   Container(
@@ -327,17 +334,17 @@ class _BackgroundLoadingScreenState
                     ),
                   ),
 
-                  // Error message
-                  if (_hasError) ...[
-                    const SizedBox(height: 24),
-                    Text(
-                      'Không thể tải ảnh nền',
-                      style: TextStyle(
-                        color: AppColors.errorText,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+                  // // Error message
+                  // if (_hasError) ...[
+                  //   const SizedBox(height: 24),
+                  //   Text(
+                  //     'Không thể tải ảnh nền',
+                  //     style: TextStyle(
+                  //       color: AppColors.errorText,
+                  //       fontSize: 14,
+                  //     ),
+                  //   ),
+                  // ],
                 ],
               ),
             ),
