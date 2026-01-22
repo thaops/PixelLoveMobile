@@ -8,5 +8,5 @@ abstract class CoupleRepository {
   Future<ApiResult<PartnerPreview>> previewCode(String code);
   Future<ApiResult<CouplePairResponse>> pairCouple(String code);
   Future<ApiResult<Map<String, dynamic>>> getCoupleInfo();
+  Future<ApiResult<void>> breakUp();
 }
-

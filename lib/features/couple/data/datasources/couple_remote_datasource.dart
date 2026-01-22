@@ -9,6 +9,7 @@ abstract class CoupleRemoteDataSource {
   Future<ApiResult<PartnerPreviewDto>> previewCode(String code);
   Future<ApiResult<CouplePairResponseDto>> pairCouple(String code);
   Future<ApiResult<Map<String, dynamic>>> getCoupleInfo();
+  Future<ApiResult<void>> breakUp();
 }
 
 class CoupleRemoteDataSourceImpl implements CoupleRemoteDataSource {
@@ -49,5 +50,13 @@ class CoupleRemoteDataSourceImpl implements CoupleRemoteDataSource {
       fromJson: (json) => json as Map<String, dynamic>,
     );
   }
-}
 
+  @override
+  Future<ApiResult<void>> breakUp() async {
+    return await _dioApi.post(
+      '/couple/break-up',
+      data: {},
+      fromJson: (json) {},
+    );
+  }
+}

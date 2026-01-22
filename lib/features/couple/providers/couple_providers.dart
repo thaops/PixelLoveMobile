@@ -3,6 +3,7 @@ import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/couple/data/datasources/couple_remote_datasource.dart';
 import 'package:pixel_love/features/couple/data/repositories/couple_repository_impl.dart';
 import 'package:pixel_love/features/couple/domain/repositories/couple_repository.dart';
+import 'package:pixel_love/features/couple/domain/usecases/break_up_usecase.dart';
 import 'package:pixel_love/features/couple/domain/usecases/create_code_usecase.dart';
 import 'package:pixel_love/features/couple/domain/usecases/pair_couple_usecase.dart';
 import 'package:pixel_love/features/couple/domain/usecases/preview_code_usecase.dart';
@@ -42,8 +43,14 @@ final pairCoupleUseCaseProvider = Provider<PairCoupleUseCase>((ref) {
   return PairCoupleUseCase(repository);
 });
 
-/// Couple Connection Notifier provider (Riverpod v3)
-final coupleConnectionNotifierProvider = NotifierProvider<CoupleConnectionNotifier, CoupleConnectionState>(
-  CoupleConnectionNotifier.new,
-);
+/// Break Up UseCase provider
+final breakUpUseCaseProvider = Provider<BreakUpUseCase>((ref) {
+  final repository = ref.watch(coupleRepositoryProvider);
+  return BreakUpUseCase(repository);
+});
 
+/// Couple Connection Notifier provider (Riverpod v3)
+final coupleConnectionNotifierProvider =
+    NotifierProvider<CoupleConnectionNotifier, CoupleConnectionState>(
+      CoupleConnectionNotifier.new,
+    );

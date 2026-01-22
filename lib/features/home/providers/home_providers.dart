@@ -11,8 +11,15 @@ import 'package:pixel_love/features/home/presentation/notifiers/home_notifier.da
 // Home Feature Providers
 // ============================================
 
+import 'package:pixel_love/features/home/data/datasources/fake_home_remote_datasource.dart';
+
+// ... other imports
+
 /// Home Remote DataSource provider
 final homeRemoteDataSourceProvider = Provider<HomeRemoteDataSource>((ref) {
+  // Uncomment to use fake data
+  // return FakeHomeRemoteDataSource();
+
   final dioApi = ref.watch(dioApiProvider);
   return HomeRemoteDataSourceImpl(dioApi);
 });

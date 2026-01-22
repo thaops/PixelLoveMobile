@@ -2,21 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/auth/providers/auth_providers.dart';
 import 'package:pixel_love/features/user/providers/user_providers.dart';
+import 'package:pixel_love/features/couple/providers/couple_providers.dart';
 
 /// Settings State
 class SettingsState {
   final bool isLoading;
   final String? errorMessage;
 
-  const SettingsState({
-    this.isLoading = false,
-    this.errorMessage,
-  });
+  const SettingsState({this.isLoading = false, this.errorMessage});
 
-  SettingsState copyWith({
-    bool? isLoading,
-    String? errorMessage,
-  }) {
+  SettingsState copyWith({bool? isLoading, String? errorMessage}) {
     return SettingsState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -52,14 +47,14 @@ class SettingsNotifier extends Notifier<SettingsState> {
         // Sign out from Google
         final googleSignIn = ref.read(googleSignInProvider);
         await googleSignIn.signOut();
-        
+
         // Disconnect socket
         final socketService = ref.read(socketServiceProvider);
         socketService.disconnectEvents();
-        
+
         // Clear all data
         await storageService.clearAll();
-        
+
         state = state.copyWith(isLoading: false);
         // Navigation sẽ được handle ở UI layer
       } else if (result.error != null) {
@@ -75,5 +70,35 @@ class SettingsNotifier extends Notifier<SettingsState> {
       );
     }
   }
-}
 
+  Future<void> breakUp() async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+
+      final breakUpUseCase = ref.read(breakUpUseCaseProvider);
+      final result = await breakUpUseCase.call();
+
+      if (result.isSuccess) {
+        // Success - Refresh user profile from server to get new 'solo' status
+        // First get latest data from server (which updates local storage)
+        final getMeUseCase = ref.read(getMeUseCaseProvider);
+        await getMeUseCase.call();
+
+        // Then refresh UI from storage
+        await ref.read(userNotifierProvider.notifier).fetchProfile();
+
+        state = state.copyWith(isLoading: false);
+      } else if (result.error != null) {
+        state = state.copyWith(
+          errorMessage: result.error!.message,
+          isLoading: false,
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Lỗi khi chia tay: $e',
+        isLoading: false,
+      );
+    }
+  }
+}

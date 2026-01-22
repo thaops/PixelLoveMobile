@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/couple/domain/entities/couple_code.dart';
@@ -43,23 +44,32 @@ class CoupleConnectionState {
 
 /// Couple Connection Notifier - Handles couple connection logic
 class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
+  Timer? _debounceTimer;
+
   @override
   CoupleConnectionState build() {
+    ref.onDispose(() {
+      _debounceTimer?.cancel();
+    });
+
     // Setup socket listeners
     _setupSocketListeners();
-    
+
     // Check and initialize after build completes
     // Use Future.microtask to avoid reading state before initialization
     Future.microtask(() {
       _checkAndInitialize();
     });
-    
+
     return const CoupleConnectionState();
   }
 
   void _setupSocketListeners() {
     final socketService = ref.read(socketServiceProvider);
-    
+
+    // Ensure we are connected to the events socket
+    socketService.connectEvents();
+
     socketService.onCouplePaired = (data) {
       _handleCouplePaired(data);
     };
@@ -84,10 +94,10 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
   void _checkAndInitialize() {
     final storageService = ref.read(storageServiceProvider);
     final authUser = storageService.getUser();
-    final hasCoupleRoom = authUser?.coupleRoomId != null && 
-                         authUser!.coupleRoomId!.isNotEmpty;
-    final hasPartner = authUser?.partnerId != null && 
-                      authUser!.partnerId!.isNotEmpty;
+    final hasCoupleRoom =
+        authUser?.coupleRoomId != null && authUser!.coupleRoomId!.isNotEmpty;
+    final hasPartner =
+        authUser?.partnerId != null && authUser!.partnerId!.isNotEmpty;
 
     // Nếu đã có coupleRoomId hoặc partnerId → đã kết nối
     // Navigation sẽ được handle ở UI layer
@@ -101,12 +111,16 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
   }
 
   void setInputCode(String value) {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+
     state = state.copyWith(inputCode: value);
-    final canConnect = value.trim().length >= 6;
-    state = state.copyWith(canConnect: canConnect);
-    
-    if (value.trim().length >= 6) {
-      _previewCode(value.trim());
+    final isValidLength = value.trim().length >= 6;
+    state = state.copyWith(canConnect: isValidLength);
+
+    if (isValidLength) {
+      _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+        _previewCode(value.trim());
+      });
     } else {
       state = state.copyWith(partnerPreview: null);
     }
@@ -125,7 +139,7 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
         },
         error: (error) {
           // Xử lý lỗi 400 - đã kết nối rồi
-          if (error.message.contains('already connected') || 
+          if (error.message.contains('already connected') ||
               error.message.contains('400')) {
             print('⚠️ User đã kết nối');
             state = state.copyWith(errorMessage: null, isLoading: false);
@@ -139,10 +153,7 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
         },
       );
     } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Lỗi tạo mã: $e',
-        isLoading: false,
-      );
+      state = state.copyWith(errorMessage: 'Lỗi tạo mã: $e', isLoading: false);
     }
   }
 
@@ -155,13 +166,14 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
         success: (preview) {
           state = state.copyWith(
             partnerPreview: preview,
+            // Update canConnect based on preview result if available
             canConnect: preview.canPair,
           );
         },
         error: (error) {
           state = state.copyWith(
             partnerPreview: null,
-            canConnect: false,
+            // Keep existing canConnect state (true if length valid) to allow user to try and fail explicitly
           );
         },
       );
@@ -192,22 +204,28 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
       final result = await pairCoupleUseCase.call(state.inputCode.trim());
 
       result.when(
-        success: (response) {
+        success: (response) async {
+          // Update local user data
+          final storageService = ref.read(storageServiceProvider);
+          final currentUser = storageService.getUser();
+
+          if (currentUser != null) {
+            final updatedUser = currentUser.copyWith(
+              coupleRoomId: response.coupleRoomId,
+              partnerId: response.partnerId,
+            );
+            await storageService.saveUser(updatedUser);
+          }
+
           state = state.copyWith(isLoading: false);
-          // Navigation sẽ được handle ở UI layer
+          // Navigation will be handled by UI layer listening to state/storage changes
         },
         error: (error) {
-          state = state.copyWith(
-            errorMessage: error.message,
-            isLoading: false,
-          );
+          state = state.copyWith(errorMessage: error.message, isLoading: false);
         },
       );
     } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Lỗi kết nối: $e',
-        isLoading: false,
-      );
+      state = state.copyWith(errorMessage: 'Lỗi kết nối: $e', isLoading: false);
     }
   }
 
@@ -225,4 +243,3 @@ final coupleConnectionNotifierDisposerProvider = Provider<void>((ref) {
     socketService.onCoupleBrokenUp = null;
   });
 });
-

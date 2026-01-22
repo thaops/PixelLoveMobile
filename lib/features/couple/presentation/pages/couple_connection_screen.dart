@@ -14,30 +14,18 @@ class CoupleConnectionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Handle navigation when already connected
+    // Listen to user changes for navigation
     ref.listen<CoupleConnectionState>(coupleConnectionNotifierProvider, (
       previous,
       next,
     ) {
-      final storageService = ref.read(storageServiceProvider);
-      final authUser = storageService.getUser();
-      final hasCoupleRoom =
-          authUser?.coupleRoomId != null && authUser!.coupleRoomId!.isNotEmpty;
-      final hasPartner =
-          authUser?.partnerId != null && authUser!.partnerId!.isNotEmpty;
+      if (previous?.isLoading == true && !next.isLoading) {
+        // If operation finished successfully
+        final storageService = ref.read(storageServiceProvider);
+        final user = storageService.getUser();
 
-      if (hasCoupleRoom || hasPartner) {
-        context.go(AppRoutes.home);
-      }
-
-      // Handle couple paired event
-      if (previous?.isLoading == true &&
-          !next.isLoading &&
-          next.coupleCode != null) {
-        // Check if connection was successful
-        final newUser = storageService.getUser();
-        if (newUser?.coupleRoomId != null &&
-            newUser!.coupleRoomId!.isNotEmpty) {
-          Future.delayed(const Duration(seconds: 2), () {
+        if (user?.coupleRoomId != null && user!.coupleRoomId!.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted) {
               context.go(AppRoutes.home);
             }
@@ -384,9 +372,7 @@ class CoupleConnectionScreen extends ConsumerWidget {
           Builder(
             builder: (context) {
               final isLoading = coupleState.isLoading;
-              final canConnect =
-                  coupleState.canConnect &&
-                  coupleState.partnerPreview?.canPair == true;
+              final canConnect = coupleState.canConnect;
 
               return SizedBox(
                 width: double.infinity,

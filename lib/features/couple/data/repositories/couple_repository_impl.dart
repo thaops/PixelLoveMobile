@@ -63,5 +63,9 @@ class CoupleRepositoryImpl implements CoupleRepository {
   Future<ApiResult<Map<String, dynamic>>> getCoupleInfo() async {
     return await _remoteDataSource.getCoupleInfo();
   }
-}
 
+  @override
+  Future<ApiResult<void>> breakUp() async {
+    return await _remoteDataSource.breakUp();
+  }
+}
