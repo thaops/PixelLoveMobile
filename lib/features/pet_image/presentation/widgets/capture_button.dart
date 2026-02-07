@@ -90,22 +90,11 @@ class _CaptureButtonState extends State<CaptureButton>
                 ],
               ),
               child: widget.state.isFrozen
-                  ? widget.state.isSending
-                      ? const SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.backgroundLight,
-                            ),
-                          ),
-                        )
-                      : const Icon(
-                          Icons.send_rounded,
-                          color: AppColors.backgroundLight,
-                          size: 32,
-                        )
+                  ? const Icon(
+                      Icons.send_rounded,
+                      color: AppColors.backgroundLight,
+                      size: 32,
+                    )
                   : Container(
                       margin: const EdgeInsets.all(6),
                       decoration: const BoxDecoration(

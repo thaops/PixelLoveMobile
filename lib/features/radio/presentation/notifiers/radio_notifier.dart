@@ -1,5 +1,7 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_love/core/providers/core_providers.dart';
+import 'package:pixel_love/features/radio/data/models/voice_dto.dart';
 import 'package:pixel_love/features/radio/domain/entities/voice.dart';
 import 'package:pixel_love/features/radio/domain/usecases/get_voices_usecase.dart';
 import 'package:pixel_love/features/radio/providers/radio_providers.dart';
@@ -81,14 +83,54 @@ class RadioNotifier extends Notifier<RadioState> {
       _audioPlayer.dispose();
     });
 
-    Future.microtask(() {
-      _loadVoices();
-    });
-    return const RadioState(isLoading: true);
+    // Load from cache
+    final storageService = ref.read(storageServiceProvider);
+    final cachedData = storageService.getVoicesData();
+    VoiceList? cachedList;
+
+    if (cachedData != null) {
+      try {
+        final dto = VoiceListDto.fromJson(cachedData);
+        cachedList = dto.toEntity();
+      } catch (e) {
+        // Ignore cache error
+      }
+    }
+
+    if (cachedList != null) {
+      // Sort cached data
+      final sortedVoices = List<Voice>.from(cachedList.items);
+      sortedVoices.sort((a, b) {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return b.createdAt.compareTo(a.createdAt);
+      });
+
+      // Load silently in background
+      Future.microtask(() {
+        _loadVoices(silent: true);
+      });
+
+      return RadioState(
+        voices: sortedVoices,
+        total: cachedList.total,
+        isLoading: false,
+      );
+    } else {
+      // No cache, normal load
+      Future.microtask(() {
+        _loadVoices();
+      });
+      return const RadioState(isLoading: true);
+    }
   }
 
-  Future<void> _loadVoices() async {
-    state = state.copyWith(isLoading: true, clearError: true);
+  Future<void> _loadVoices({bool silent = false}) async {
+    if (!silent) {
+      state = state.copyWith(isLoading: true, clearError: true);
+    } else {
+      state = state.copyWith(clearError: true);
+    }
 
     final result = await _getVoicesUseCase(page: state.currentPage, limit: 20);
 
@@ -100,11 +142,43 @@ class RadioNotifier extends Notifier<RadioState> {
           if (!a.isPinned && b.isPinned) return 1;
           return b.createdAt.compareTo(a.createdAt);
         });
+
         state = state.copyWith(
           voices: sortedVoices,
           total: voiceList.total,
           isLoading: false,
         );
+
+        // Save to cache
+        try {
+          final storageService = ref.read(storageServiceProvider);
+          final voiceDtos = voiceList.items
+              .map(
+                (v) => VoiceDto(
+                  id: v.id,
+                  audioUrl: v.audioUrl,
+                  duration: v.duration,
+                  oderId: v.oderId,
+                  actionAt: v.actionAt,
+                  takenAt: v.takenAt,
+                  baseExp: v.baseExp,
+                  bonusExp: v.bonusExp,
+                  text: v.text,
+                  mood: v.mood,
+                  createdAt: v.createdAt,
+                  isPinned: v.isPinned,
+                ),
+              )
+              .toList();
+
+          final listDto = VoiceListDto(
+            items: voiceDtos,
+            total: voiceList.total,
+          );
+          storageService.saveVoicesData(listDto.toJson());
+        } catch (e) {
+          // Ignore save cache error
+        }
       },
       error: (error) {
         state = state.copyWith(isLoading: false, errorMessage: error.message);
@@ -114,7 +188,7 @@ class RadioNotifier extends Notifier<RadioState> {
 
   Future<void> refresh() async {
     state = state.copyWith(currentPage: 1);
-    await _loadVoices();
+    await _loadVoices(silent: true);
   }
 
   Future<void> playVoice(Voice voice) async {
@@ -174,6 +248,7 @@ class RadioNotifier extends Notifier<RadioState> {
             stopVoice();
           }
           state = state.copyWith(voices: updatedVoices, total: state.total - 1);
+          _loadVoices(silent: true);
           return true;
         }
         return false;
@@ -204,6 +279,7 @@ class RadioNotifier extends Notifier<RadioState> {
             return b.createdAt.compareTo(a.createdAt);
           });
           state = state.copyWith(voices: updatedVoices);
+          _loadVoices(silent: true);
           return true;
         }
         return false;

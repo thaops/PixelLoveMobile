@@ -18,7 +18,7 @@ import 'package:pixel_love/features/home/data/datasources/fake_home_remote_datas
 /// Home Remote DataSource provider
 final homeRemoteDataSourceProvider = Provider<HomeRemoteDataSource>((ref) {
   // Uncomment to use fake data
-  // return FakeHomeRemoteDataSource();
+   return FakeHomeRemoteDataSource();
 
   final dioApi = ref.watch(dioApiProvider);
   return HomeRemoteDataSourceImpl(dioApi);

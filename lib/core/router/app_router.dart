@@ -129,22 +129,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.petAlbum,
-        builder: (context, state) => const PetAlbumScreen(),
+        pageBuilder: (context, state) {
+          return CustomTransitionPage<void>(
+            key: state.pageKey,
+            child: const PetAlbumScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+            transitionDuration: const Duration(milliseconds: 200),
+            reverseTransitionDuration: const Duration(milliseconds: 150),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.petAlbumSwipe,
         pageBuilder: (context, state) {
-          // 🔥 Custom fade transition - ảnh review mờ dần, swipe screen hiện lên rõ dần
           return CustomTransitionPage<void>(
             key: state.pageKey,
             child: const PetAlbumSwipeScreen(),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
-                  // 🔥 Fade transition mượt mà - swipe screen hiện lên rõ dần
                   return FadeTransition(opacity: animation, child: child);
                 },
-            transitionDuration: const Duration(milliseconds: 400),
-            reverseTransitionDuration: const Duration(milliseconds: 300),
+            transitionDuration: const Duration(milliseconds: 200),
+            reverseTransitionDuration: const Duration(milliseconds: 150),
           );
         },
       ),

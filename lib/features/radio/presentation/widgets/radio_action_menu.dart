@@ -127,6 +127,8 @@ class _RadioActionMenuState extends ConsumerState<RadioActionMenu>
     });
   }
 
+  bool _isSending = false;
+
   Future<void> _stopAndSendRecording() async {
     _timer?.cancel();
     final path = await _recorder.stop();
@@ -137,7 +139,8 @@ class _RadioActionMenuState extends ConsumerState<RadioActionMenu>
 
     if (path == null) return;
 
-    _showSendingOverlay();
+    // Set sending state locally
+    setState(() => _isSending = true);
 
     try {
       final uploadService = ref.read(cloudinaryUploadServiceProvider);
@@ -160,7 +163,7 @@ class _RadioActionMenuState extends ConsumerState<RadioActionMenu>
               await dataSource.pinVoice(response.actionId);
 
               if (mounted) {
-                Navigator.of(context).pop();
+                setState(() => _isSending = false);
                 widget.onClose();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -178,7 +181,8 @@ class _RadioActionMenuState extends ConsumerState<RadioActionMenu>
             },
             error: (error) {
               if (mounted) {
-                Navigator.of(context).pop();
+                setState(() => _isSending = false);
+                // Removed pop since we don't have dialog anymore
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(error.message),
@@ -191,7 +195,8 @@ class _RadioActionMenuState extends ConsumerState<RadioActionMenu>
         },
         error: (error) {
           if (mounted) {
-            Navigator.of(context).pop();
+            setState(() => _isSending = false);
+            // Removed pop since we don't have dialog anymore
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(error.message),
@@ -202,32 +207,8 @@ class _RadioActionMenuState extends ConsumerState<RadioActionMenu>
         },
       );
     } catch (e) {
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) setState(() => _isSending = false);
     }
-  }
-
-  void _showSendingOverlay() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2D1B4E),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: AppColors.primaryPink),
-              SizedBox(height: 16),
-              Text('Đang gửi...', style: TextStyle(color: Colors.white)),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _togglePinnedPlayback() async {
@@ -317,19 +298,21 @@ class _RadioActionMenuState extends ConsumerState<RadioActionMenu>
 
   Widget _buildRecordButton() {
     return GestureDetector(
-      onTap: _isRecording ? _stopAndSendRecording : _startRecording,
+      onTap: (_isRecording)
+          ? _stopAndSendRecording
+          : (_isSending ? null : _startRecording),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: _isRecording ? 64 : 48, // Nhỏ hơn
-            height: _isRecording ? 64 : 48,
+            width: (_isRecording || _isSending) ? 64 : 48,
+            height: (_isRecording || _isSending) ? 64 : 48,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: _isRecording
+                colors: (_isRecording || _isSending)
                     ? [const Color(0xFFFF4757), const Color(0xFFFF6B7A)]
                     : [AppColors.primaryPink, const Color(0xFFFF8E53)],
               ),
@@ -337,12 +320,12 @@ class _RadioActionMenuState extends ConsumerState<RadioActionMenu>
               boxShadow: [
                 BoxShadow(
                   color:
-                      (_isRecording
+                      ((_isRecording || _isSending)
                               ? const Color(0xFFFF4757)
                               : AppColors.primaryPink)
                           .withOpacity(0.5),
-                  blurRadius: _isRecording ? 16 : 10, // Giảm blur
-                  spreadRadius: _isRecording ? 3 : 1,
+                  blurRadius: (_isRecording || _isSending) ? 16 : 10,
+                  spreadRadius: (_isRecording || _isSending) ? 3 : 1,
                 ),
               ],
             ),
@@ -359,23 +342,24 @@ class _RadioActionMenuState extends ConsumerState<RadioActionMenu>
                       color: Colors.white.withOpacity(0.3),
                     ),
                   ),
-                Icon(
-                  _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                  color: Colors.white,
-                  size: 24, // Nhỏ hơn
-                ),
+                if (_isSending)
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                else
+                  Icon(
+                    _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
               ],
             ),
           ),
-          // const SizedBox(height: 4),
-          // Text(
-          //   _isRecording ? _formatDuration(_recordDuration) : 'Ghi & Ghim',
-          //   style: TextStyle(
-          //     color: _isRecording ? const Color(0xFFFF6B7A) : Colors.white,
-          //     fontSize: 12,
-          //     fontWeight: FontWeight.w600,
-          //   ),
-          // ),
         ],
       ),
     );

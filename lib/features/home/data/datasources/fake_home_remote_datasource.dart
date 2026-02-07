@@ -8,7 +8,7 @@ class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
     final fakeData = {
       "background": {
         "imageUrl":
-            "https://res.cloudinary.com/dukoun1pb/image/upload/v1769094132/background_ch%C3%ADnh_t55903.png",
+            "https://res.cloudinary.com/dukoun1pb/image/upload/v1769238533/background_ch%C3%ADnh_1_ckajnj.png",
         "width": 4096,
         "height": 1920,
       },
@@ -47,6 +47,17 @@ class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
           "zIndex": 10,
         },
         {
+          "id": "kennel",
+          "type": "kennel",
+          "imageUrl":
+              "https://res.cloudinary.com/dukoun1pb/image/upload/v1769922743/chu%E1%BB%93ng_c%C3%BAn_1_ud7yws.png",
+          "x": 530,
+          "y": 880,
+          "width": 400,
+          "height": 400,
+          "zIndex": 10,
+        },
+        {
           "id": "radio",
           "type": "radio",
           "imageUrl":
@@ -61,11 +72,11 @@ class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
           "id": "fridge",
           "type": "fridge",
           "imageUrl":
-              "https://res.cloudinary.com/dukoun1pb/image/upload/v1767420371/874a8a25-e65a-45e8-a50d-85048bdf76b6_pa00lu.png",
-          "x": 2600,
-          "y": 410,
-          "width": 700,
-          "height": 1000,
+              "https://res.cloudinary.com/dukoun1pb/image/upload/v1769238640/t%E1%BB%A7_l%E1%BA%A1nh_vizsfo.png",
+          "x": 2520,
+          "y": 320,
+          "width": 800,
+          "height": 1100,
           "zIndex": 10,
         },
         {

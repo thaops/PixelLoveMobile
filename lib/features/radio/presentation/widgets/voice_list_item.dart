@@ -273,7 +273,7 @@ class VoiceListItem extends StatelessWidget {
                                 child: Text(
                                   '${voice.duration}s',
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.85),
+                                    color: AppColors.primaryPink,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -283,7 +283,7 @@ class VoiceListItem extends StatelessWidget {
                               Text(
                                 dateFormat.format(voice.takenAt),
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: AppColors.primaryPink,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w400,
                                 ),

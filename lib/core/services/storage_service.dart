@@ -48,6 +48,7 @@ class StorageService {
     final token = getToken();
     return token != null && token.isNotEmpty;
   }
+
   Future<void> saveHomeData(Map<String, dynamic> homeData) async {
     await _prefs.setString('home_data', jsonEncode(homeData));
     await _prefs.setString(
@@ -86,5 +87,20 @@ class StorageService {
   Future<void> clearHomeData() async {
     await _prefs.remove('home_data');
     await _prefs.remove('home_data_timestamp');
+  }
+
+  Future<void> saveVoicesData(Map<String, dynamic> voicesData) async {
+    await _prefs.setString('voices_data', jsonEncode(voicesData));
+  }
+
+  Map<String, dynamic>? getVoicesData() {
+    final voicesJson = _prefs.getString('voices_data');
+    if (voicesJson == null || voicesJson.isEmpty) return null;
+
+    try {
+      return jsonDecode(voicesJson) as Map<String, dynamic>;
+    } catch (e) {
+      return null;
+    }
   }
 }

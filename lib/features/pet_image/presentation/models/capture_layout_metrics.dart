@@ -16,9 +16,8 @@ class CaptureLayoutMetrics {
 
     final availableHeight = size.height - headerHeight - actionBarHeight;
 
-    previewTop = headerHeight +
-        (availableHeight - previewHeight - cameraPaddingBottom) / 2 -
-        20.0; // offsetUp = 20.0
+    // 🔥 Điều chỉnh vị trí khung camera xuống thấp hơn (gần giữa màn hình)
+    previewTop = (size.height - previewHeight) / 2 - 100.0;
   }
 
   late final double previewWidth;
@@ -31,13 +30,7 @@ class CaptureLayoutMetrics {
   late final double cameraPaddingBottom;
 
   RRect get previewRRect => RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          previewLeft,
-          previewTop,
-          previewWidth,
-          previewHeight,
-        ),
-        const Radius.circular(44),
-      );
+    Rect.fromLTWH(previewLeft, previewTop, previewWidth, previewHeight),
+    const Radius.circular(44),
+  );
 }
-

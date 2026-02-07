@@ -37,10 +37,6 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
   // ignore: unused_field
   int _currentIndex = 0;
   int _swipeCount = 0;
-  // 🔥 Track swiper index hiện tại để biết có thể undo không
-  // Swiper index 0 = card đầu tiên → không thể undo
-  // Swiper index > 0 → có thể undo
-  int _currentSwiperIndex = 0;
   bool _showPartnerSignal = false;
   String? _partnerSignalText;
   bool _isHolding = false;
@@ -365,9 +361,15 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
 
     // 🔥 Tính totalCards: temporary image (luôn 1 nếu có) + images từ API + ghost cards
     // QUAN TRỌNG: Temporary image LUÔN ở index 0, không bao giờ bị thay thế
+    // 🔥 FIX: Nếu có uploadedImage match → loại bỏ khỏi images để tránh duplicate
+    final filteredImages = (shouldShowTemporaryImage && uploadedImage != null)
+        ? images
+              .where((img) => img.imageUrl != uploadedImage!.imageUrl)
+              .toList()
+        : images;
     final totalCards =
         (shouldShowTemporaryImage ? 1 : 0) +
-        images.length +
+        filteredImages.length +
         (albumState.hasMore ? 2 : 0);
 
     // 🔥 Debug: Đảm bảo temporary image luôn hiển thị
@@ -380,80 +382,58 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     return Stack(
       children: [
         card_swiper.CardSwiper(
+          // 🔥 Không dùng key để tránh reset CardSwiper
           padding: EdgeInsetsGeometry.symmetric(horizontal: 8, vertical: 14),
           controller: _swiperController,
           cardsCount: totalCards,
           onSwipe: (previousIndex, currentIndex, direction) {
-            // 🔥 FIX: Validate previousIndex trước khi tính toán (tránh index âm)
-            // previousIndex có thể là -1 khi không có card nào (edge case)
+            // 🔥 Validate previousIndex
             if (previousIndex < 0 || previousIndex >= totalCards) {
               return true;
             }
 
-            // 🔥 ĐẢO NGƯỢC: Swipe trái → xem ảnh cũ hơn, Swipe phải → undo
-            // Swipe phải (right) → undo (quay lại ảnh mới hơn)
-            if (direction == card_swiper.CardSwiperDirection.right) {
-              // 🔥 Kiểm tra có thể undo không dựa trên swiper index thực tế
-              // previousIndex là card vừa bị swipe đi
-              // Nếu previousIndex == 0 → đang ở card đầu tiên → không thể undo
-              // Nếu previousIndex > 0 → có thể undo
-              final canUndo = previousIndex > 0;
+            // 🔥 Chặn swipe trái ở card cuối cùng (khi không còn ảnh để load)
+            final lastRealCardIndex =
+                (shouldShowTemporaryImage ? 1 : 0) + filteredImages.length - 1;
 
-              if (!canUndo) {
-                // Không có card để undo (đang ở card đầu tiên) → return false để không cho swipe
-                return false;
-              }
-
-              // Có thể undo → gọi undo() programmatically
-              // CardSwiper sẽ tự động gọi onUndo callback
-              _swiperController.undo();
-              // Return false để không xử lý swipe này như swipe thường
-              return false;
+            if (previousIndex >= lastRealCardIndex &&
+                direction == card_swiper.CardSwiperDirection.left &&
+                !albumState.hasMore) {
+              return false; // đã "chạm đáy ký ức", không cho swipe tiếp
             }
 
-            // 🔥 Swipe trái (left) → xem ảnh cũ hơn
-            // Dùng previousIndex (card vừa bị swipe đi) làm nguồn sự thật
-            // previousIndex = card vừa bị swipe → logic timeline chuẩn
-            // Tính imageIndex từ previousIndex (card vừa swipe đi)
+            // Tính imageIndex từ previousIndex
             final imageIndex = hasTemporaryImage
                 ? previousIndex - 1
                 : previousIndex;
 
-            // Chỉ cập nhật _currentIndex khi imageIndex hợp lệ
-            // imageIndex có thể < 0 khi swipe temporary image (index 0) → bỏ qua
-            if (imageIndex >= 0 && imageIndex < images.length) {
+            // Cập nhật _currentIndex và các logic khác khi imageIndex hợp lệ
+            if (imageIndex >= 0 && imageIndex < filteredImages.length) {
               setState(() {
                 _currentIndex = imageIndex;
-                // 🔥 Cập nhật swiper index hiện tại (card vừa swipe đi + 1)
-                _currentSwiperIndex = previousIndex + 1;
               });
               _swipeCount++;
 
-              // 3️⃣ VARIABLE REWARD: Pet state change (nhẹ, không random)
-              _checkPetStateChange(images, currentUserId, partnerId);
-
-              // images đã được sắp xếp mới nhất trước
-              // index 0 = ảnh mới nhất, index cao = ảnh cũ nhất
+              // 3️⃣ VARIABLE REWARD: Pet state change
+              _checkPetStateChange(filteredImages, currentUserId, partnerId);
 
               // 2️⃣ Memory highlight chỉ khi swipe sâu (ảnh cũ)
-              // Khi imageIndex gần bằng images.length - 1 (ảnh cũ nhất)
-              if (imageIndex >= images.length - 10 && images.length > 10) {
-                // Chỉ khi đang xem 10 ảnh cũ nhất
-                _checkMemoryHighlight(images, imageIndex);
+              if (imageIndex >= filteredImages.length - 10 &&
+                  filteredImages.length > 10) {
+                _checkMemoryHighlight(filteredImages, imageIndex);
               }
 
               // 7️⃣ SESSION ENDING: Khi đến ảnh cũ nhất
-              if (imageIndex >= images.length - 1 && images.isNotEmpty) {
+              if (imageIndex >= filteredImages.length - 1 &&
+                  filteredImages.isNotEmpty) {
                 _showSessionEnding();
               }
 
-              // 🔥 BƯỚC 4: Load more dựa trên previousIndex (swiper truth)
-              // Tính swiper index của ảnh cũ nhất
+              // 🔥 Load more khi gần cuối
               final lastImageSwiperIndex =
-                  (hasTemporaryImage ? 1 : 0) + images.length - 1;
+                  (hasTemporaryImage ? 1 : 0) + filteredImages.length - 1;
               final isNearEnd = previousIndex >= lastImageSwiperIndex - 2;
 
-              // 5️⃣ INFINITE ILLUSION: Load more khi gần cuối (ảnh cũ)
               if (isNearEnd &&
                   albumState.hasMore &&
                   !albumState.isLoadingMore) {
@@ -486,23 +466,29 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                 return const SizedBox.shrink();
               }
 
-              if (imageIndex >= images.length) {
+              if (imageIndex >= filteredImages.length) {
                 return _buildGhostCard(albumState.isLoadingMore);
               }
 
               // images đã được sắp xếp mới nhất trước
               // imageIndex 0 = ảnh mới nhất, imageIndex cuối = ảnh cũ nhất
-              final image = images[imageIndex];
+              final image = filteredImages[imageIndex];
 
               // 🔥 BƯỚC 3: Blur dựa vào swiper index, không phụ thuộc _currentIndex
               // Card index 0 = temporary/current, index 1 = current (nếu không temp), index 2 = preview (blur)
               final isNextCard = index == (hasTemporaryImage ? 2 : 1);
+
+              // 🔥 Kiểm tra có phải ảnh cuối không (để hiển thị badge "Hết ảnh")
+              final isLastImage =
+                  imageIndex == filteredImages.length - 1 &&
+                  !albumState.hasMore;
 
               return _buildImageCard(
                 image,
                 isNextCard: isNextCard,
                 currentUserId: currentUserId,
                 partnerId: partnerId,
+                isLastImage: isLastImage,
               );
             } catch (e) {
               // 🔥 FIX: Tránh crash khi có lỗi bất ngờ
@@ -510,44 +496,18 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               return const SizedBox.shrink();
             }
           },
-          allowedSwipeDirection: card_swiper.AllowedSwipeDirection.symmetric(
-            horizontal: true,
+          // 🔥 Chặn swipe right khi ở card đầu (không có gì để undo)
+          // 🔥 CHỈ cho phép swipe left (xem ảnh cũ hơn)
+          // Undo sẽ được xử lý bằng controller.undo() khi cần
+          allowedSwipeDirection: card_swiper.AllowedSwipeDirection.only(
+            left: true,
+            right: false,
           ),
           threshold: 50,
           maxAngle: 30,
           isLoop: false,
           backCardOffset: const Offset(0, 0),
           scale: 0.9,
-          // 🔥 BƯỚC 2: Bật UNDO đúng cách
-          // 🔥 ĐẢO NGƯỢC: undoDirection: right = swipe phải để undo (quay lại card trước)
-          // Khi swipe trái (xem ảnh cũ) → swipe phải để undo (quay lại ảnh mới)
-          showBackCardOnUndo: true,
-          undoDirection: card_swiper.UndoDirection.right,
-          undoSwipeThreshold:
-              40, // 🔥 Threshold vừa phải để dễ undo nhưng không quá nhạy
-          onUndo: (previousIndex, currentIndex, direction) {
-            // 🔥 FIX: Validate currentIndex trước khi tính toán
-            if (currentIndex < 0 || currentIndex >= totalCards) {
-              return true;
-            }
-
-            // Khi undo, currentIndex là card hiện tại (sau khi undo)
-            // Tính imageIndex từ currentIndex (card hiện tại sau undo)
-            final imageIndex = hasTemporaryImage
-                ? currentIndex - 1
-                : currentIndex;
-
-            // Chỉ cập nhật _currentIndex khi imageIndex hợp lệ
-            if (imageIndex >= 0 && imageIndex < images.length) {
-              setState(() {
-                _currentIndex = imageIndex;
-                // 🔥 Cập nhật swiper index hiện tại sau khi undo
-                // currentIndex là card hiện tại sau undo
-                _currentSwiperIndex = currentIndex;
-              });
-            }
-            return true;
-          },
         ),
         // 3️⃣ PARTNER SIGNAL: Partner đã xem/thích
         if (_showPartnerSignal && _partnerSignalText != null)
@@ -555,7 +515,83 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
         // 2️⃣ Memory highlight overlay
         if (_showMemoryHighlight && _memoryText != null)
           _buildMemoryHighlightOverlay(),
+        // 🔥 Reaction bar
+        Positioned(bottom: 158, left: 0, right: 0, child: _buildReactionBar()),
+        Positioned(bottom: 24, right: 24, child: _buildCameraButton(context)),
       ],
+    );
+  }
+
+  Widget _buildReactionBar() {
+    final reactions = ['❤️', '😍', '😂', '😢'];
+
+    return Center(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: reactions.asMap().entries.map((entry) {
+          final index = entry.key;
+          final emoji = entry.value;
+          return Padding(
+            padding: EdgeInsets.only(left: index == 0 ? 0 : 20),
+            child: _ReactionButton(
+              emoji: emoji,
+              onTap: () => _handleReaction(emoji),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _handleReaction(String emoji) {
+    HapticFeedback.lightImpact();
+  }
+
+  Widget _buildCameraButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push(AppRoutes.petCapture),
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primaryPink.withOpacity(0.9),
+              const Color(0xFFE91E63).withOpacity(0.6),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryPink.withOpacity(0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(-2, -2),
+            ),
+          ],
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+        ),
+        child: ClipOval(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              alignment: Alignment.center,
+              color: Colors.white.withOpacity(0.1),
+              child: const Icon(
+                Icons.camera_alt_rounded,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -565,43 +601,33 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     final cardWidth = _getCardWidth();
 
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(2, (index) {
-          return Container(
-            margin: EdgeInsets.only(bottom: index == 1 ? 0 : 20),
-            width: cardWidth,
-            height: cardHeight,
-            constraints: BoxConstraints(
-              maxWidth: cardWidth,
-              maxHeight: cardHeight,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(44),
-              color: Colors.white.withOpacity(0.1),
-            ),
-            child: AnimatedBuilder(
-              animation: _shimmerController,
-              builder: (context, child) {
-                return Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(44),
-                    gradient: LinearGradient(
-                      begin: Alignment(-1.0 + _shimmerController.value * 2, 0),
-                      end: Alignment(1.0 + _shimmerController.value * 2, 0),
-                      colors: [
-                        Colors.white.withOpacity(0.1),
-                        Colors.white.withOpacity(0.2),
-                        Colors.white.withOpacity(0.1),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          );
-        }),
+      child: Container(
+        width: cardWidth,
+        height: cardHeight,
+        constraints: BoxConstraints(maxWidth: cardWidth, maxHeight: cardHeight),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(44),
+          color: Colors.white.withOpacity(0.1),
+        ),
+        child: AnimatedBuilder(
+          animation: _shimmerController,
+          builder: (context, child) {
+            return Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(44),
+                gradient: LinearGradient(
+                  begin: Alignment(-1.0 + _shimmerController.value * 2, 0),
+                  end: Alignment(1.0 + _shimmerController.value * 2, 0),
+                  colors: [
+                    Colors.white.withOpacity(0.1),
+                    Colors.white.withOpacity(0.2),
+                    Colors.white.withOpacity(0.1),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -829,6 +855,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     bool isNextCard = false,
     required String currentUserId,
     String? partnerId,
+    bool isLastImage = false,
   }) {
     final isFromPartner =
         image.userId != currentUserId && image.userId == partnerId;
@@ -1117,6 +1144,49 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                   ),
                 ),
               ),
+              // 🔥 Badge "Hết ảnh" khi là ảnh cuối
+              if (isLastImage)
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primaryPink.withOpacity(0.9),
+                          AppColors.primaryPinkDark.withOpacity(0.9),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white, size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          'Hết ảnh rồi!',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -1453,5 +1523,103 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     } else {
       return DateFormat('dd/MM/yyyy').format(dateTime);
     }
+  }
+}
+
+class _ReactionButton extends StatefulWidget {
+  final String emoji;
+  final VoidCallback onTap;
+
+  const _ReactionButton({required this.emoji, required this.onTap});
+
+  @override
+  State<_ReactionButton> createState() => _ReactionButtonState();
+}
+
+class _ReactionButtonState extends State<_ReactionButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.4,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+    _controller.forward();
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+    _controller.reverse();
+    widget.onTap();
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+    _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(_isPressed ? 0.3 : 0.15),
+                    Colors.white.withOpacity(_isPressed ? 0.2 : 0.08),
+                  ],
+                ),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.25),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(widget.emoji, style: const TextStyle(fontSize: 32)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

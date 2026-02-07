@@ -31,7 +31,7 @@ class VoiceDto {
 
   factory VoiceDto.fromJson(Map<String, dynamic> json) {
     return VoiceDto(
-      id: json['_id'] as String? ?? '',
+      id: (json['_id'] ?? json['id']) as String? ?? '',
       audioUrl: json['audioUrl'] as String? ?? '',
       duration: json['duration'] as int? ?? 0,
       oderId: json['oderId'] as String? ?? '',
@@ -49,6 +49,23 @@ class VoiceDto {
           DateTime.now(),
       isPinned: json['isPinned'] as bool? ?? false,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'audioUrl': audioUrl,
+      'duration': duration,
+      'oderId': oderId,
+      'actionAt': actionAt.toIso8601String(),
+      'takenAt': takenAt.toIso8601String(),
+      'baseExp': baseExp,
+      'bonusExp': bonusExp,
+      'text': text,
+      'mood': mood,
+      'createdAt': createdAt.toIso8601String(),
+      'isPinned': isPinned,
+    };
   }
 
   Voice toEntity() {
@@ -83,6 +100,10 @@ class VoiceListDto {
           .toList(),
       total: json['total'] as int? ?? 0,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'items': items.map((e) => e.toJson()).toList(), 'total': total};
   }
 
   VoiceList toEntity() {

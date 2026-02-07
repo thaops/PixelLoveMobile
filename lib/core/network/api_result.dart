@@ -19,7 +19,7 @@ class ApiResult<T> {
     required R Function(T data) success,
     required R Function(Failure error) error,
   }) {
-    if (isSuccess && data != null) {
+    if (isSuccess) {
       return success(data as T);
     } else {
       return error(this.error!);

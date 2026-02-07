@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pixel_love/core/env/env.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
@@ -16,7 +17,8 @@ void main() async {
 
   await Env.load();
 
-  // Initialize image cache
+  MobileAds.instance.initialize();
+
   ImageCacheHelper.initialize();
 
   // Initialize SharedPreferences before ProviderScope

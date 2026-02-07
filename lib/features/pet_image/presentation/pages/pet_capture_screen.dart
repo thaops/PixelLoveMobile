@@ -77,6 +77,8 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _captureNotifier = ref.read(petCaptureNotifierProvider.notifier);
+        // 🔥 Force reset state khi vào màn hình để đảm bảo camera active
+        _captureNotifier?.resetPreview();
       }
     });
   }
@@ -163,7 +165,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
                       maxFramesPerSecond: 30,
                       androidOptions: AndroidAnalysisOptions.nv21(
                         width:
-                            320, // 🔥 320 là sweet spot - giảm khựng khi freeze
+                            720, // 🔥 320 là sweet spot - giảm khựng khi freeze
                       ),
                     ),
                     onImageForAnalysis: (image) async {
@@ -215,7 +217,7 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
                       }
                     },
                     previewFit: CameraPreviewFit.contain,
-                    previewAlignment: const Alignment(0, -0.49),
+                    previewAlignment: const Alignment(0, -0.75),
                     sensorConfig: SensorConfig.single(
                       sensor: Sensor.position(SensorPosition.back),
                       aspectRatio: CameraAspectRatios.ratio_1_1,
@@ -567,6 +569,25 @@ class _HeaderSection extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           GestureDetector(
+            onTap: () => context.go(AppRoutes.home),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primaryPink.withOpacity(0.05),
+                border: Border.all(
+                  color: AppColors.primaryPink.withOpacity(0.3),
+                  width: 1.5,
+                ),
+              ),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                color: AppColors.primaryPink,
+                size: 24,
+              ),
+            ),
+          ),
+          GestureDetector(
             onTap: notifier.toggleFlash,
             child: Container(
               padding: const EdgeInsets.all(8),
@@ -582,25 +603,6 @@ class _HeaderSection extends StatelessWidget {
                 _flashIcon(state.flashMode),
                 color: AppColors.primaryPink,
                 size: 24,
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primaryPink.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.primaryPink.withOpacity(0.3),
-                width: 1.5,
-              ),
-            ),
-            child: Text(
-              '${zoomLevel.toStringAsFixed(1)}x',
-              style: const TextStyle(
-                color: AppColors.primaryPink,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -638,7 +640,7 @@ class _ActionBarSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 128),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
