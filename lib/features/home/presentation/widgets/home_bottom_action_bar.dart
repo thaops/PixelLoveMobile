@@ -34,20 +34,20 @@ class HomeBottomActionBar extends StatelessWidget {
                 children: [
                   _ActionButton(
                     assetPath: 'assets/images/ic_tab_acsset.png',
-                    onTap: () => context.go(AppRoutes.petAlbumSwipe),
+                    onTap: () => context.push(AppRoutes.petAlbumSwipe),
                   ),
                   _ActionButton(
                     assetPath: 'assets/images/ic_tab_pet.png',
-                    onTap: () => context.go(AppRoutes.petScene),
+                    onTap: () => context.push(AppRoutes.petScene),
                   ),
                   _CenterShutterButton(),
                   _ActionButton(
                     assetPath: 'assets/images/ic_tab_fridge.png',
-                    onTap: () => context.go(AppRoutes.fridge),
+                    onTap: () => context.push(AppRoutes.fridge),
                   ),
                   _ActionButton(
                     assetPath: 'assets/images/ic_tab_radio.png',
-                    onTap: () => context.go(AppRoutes.radio),
+                    onTap: () => context.push(AppRoutes.radio),
                   ),
                 ],
               ),
@@ -89,7 +89,7 @@ class _CenterShutterButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.go(AppRoutes.petCapture),
+      onTap: () => context.push(AppRoutes.petCapture),
       child: SizedBox(
         width: 75,
         height: 75,

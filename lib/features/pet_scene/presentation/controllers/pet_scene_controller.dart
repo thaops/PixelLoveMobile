@@ -50,7 +50,14 @@ class PetSceneController {
     final finalHeight = screenSize.height;
     final finalWidth = finalHeight * bgAspectRatio;
 
-    final offsetX = (finalWidth - screenSize.width) / 2;
+    // Center horizontally then shift right by 150
+    double offsetX = (finalWidth - screenSize.width) / 2 + 100;
+
+    // Clamp to ensure we don't go past the right edge
+    final maxOffsetX = finalWidth - screenSize.width;
+    if (offsetX > maxOffsetX) offsetX = maxOffsetX;
+    if (offsetX < 0) offsetX = 0;
+
     final offsetY = (finalHeight - screenSize.height) / 2;
 
     transformationController.value = Matrix4.identity()

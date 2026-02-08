@@ -125,27 +125,25 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
           petSceneData: petSceneData,
           transformationController: _transformationController,
         ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                PetStatusCard(petStatus: petSceneData.petStatus),
-                const SizedBox(height: 16),
-                _buildSideButton(
-                  'assets/images/ic_tab_camera.png',
-                  () => context.push(AppRoutes.petCapture),
-                ),
-                const SizedBox(height: 12),
-                _buildSideButton(
-                  'assets/images/ic_tab_acsset.png',
-                  () => context.go(AppRoutes.petAlbumSwipe),
-                ),
-              ],
-            ),
+        Positioned(
+          top: 100,
+          right: 16,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              PetStatusCard(petStatus: petSceneData.petStatus),
+              const SizedBox(height: 16),
+              _buildSideButton(
+                'assets/images/ic_tab_camera.png',
+                () => context.push(AppRoutes.petCapture),
+              ),
+              const SizedBox(height: 12),
+              _buildSideButton(
+                'assets/images/ic_tab_acsset.png',
+                () => context.push(AppRoutes.petAlbumSwipe),
+              ),
+            ],
           ),
         ),
       ],

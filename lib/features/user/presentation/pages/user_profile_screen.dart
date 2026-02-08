@@ -7,6 +7,7 @@ import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/auth/providers/auth_providers.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 import 'package:pixel_love/features/user/providers/user_providers.dart';
+import 'package:pixel_love/core/widgets/pixel_love_app_bar.dart';
 
 class UserProfileScreen extends ConsumerWidget {
   const UserProfileScreen({super.key});
@@ -18,35 +19,9 @@ class UserProfileScreen extends ConsumerWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: AppColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-        leading: Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-            color: AppColors.textPrimary,
-            onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.home);
-              }
-            },
-          ),
-        ),
+      appBar: PixelLoveAppBar(
+        leadingPadding: const EdgeInsets.only(left: 20),
+        leadingWidth: 90,
         title: const Text(
           'Hồ sơ của bạn',
           style: TextStyle(
@@ -118,7 +93,7 @@ class UserProfileScreen extends ConsumerWidget {
                   ref.read(userNotifierProvider.notifier).fetchProfile(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 100, 20, 20),
+                padding: const EdgeInsets.fromLTRB(20, 140, 20, 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [

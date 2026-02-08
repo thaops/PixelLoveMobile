@@ -44,9 +44,9 @@ class PetAlbumHeader extends StatelessWidget {
           GestureDetector(
             onTap: () {
               if (isSwipeMode) {
-                context.go(AppRoutes.petAlbum);
+                context.pushReplacement(AppRoutes.petAlbum);
               } else {
-                context.go(AppRoutes.petAlbumSwipe);
+                context.pushReplacement(AppRoutes.petAlbumSwipe);
               }
             },
             child: Container(

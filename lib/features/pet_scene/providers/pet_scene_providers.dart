@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_love/core/providers/core_providers.dart';
 
 import 'package:pixel_love/features/pet_scene/data/datasources/fake_pet_scene_remote_datasource.dart';
 import 'package:pixel_love/features/pet_scene/data/datasources/pet_scene_remote_datasource.dart';
@@ -15,9 +16,9 @@ import 'package:pixel_love/features/pet_scene/presentation/notifiers/pet_scene_n
 final petSceneRemoteDataSourceProvider = Provider<PetSceneRemoteDataSource>((
   ref,
 ) {
-  // final dioApi = ref.watch(dioApiProvider);
-  // return PetSceneRemoteDataSourceImpl(dioApi);
-  return FakePetSceneRemoteDataSource();
+   final dioApi = ref.watch(dioApiProvider);
+   return PetSceneRemoteDataSourceImpl(dioApi);
+  //return FakePetSceneRemoteDataSource();
 });
 
 /// Pet Scene Repository provider

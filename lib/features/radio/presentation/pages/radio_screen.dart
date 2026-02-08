@@ -23,6 +23,8 @@ class RadioScreen extends ConsumerWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: PixelLoveAppBar(
+        leadingPadding: const EdgeInsets.only(left: 20),
+        leadingWidth: 90,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(

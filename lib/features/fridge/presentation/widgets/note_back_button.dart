@@ -20,14 +20,7 @@ class NoteBackButton extends StatelessWidget {
               context.go(AppRoutes.fridge);
             }
           },
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.35),
-              shape: BoxShape.circle,
-            ),
-            child: const AppBackIcon(),
-          ),
+          child: const AppBackIcon(),
         ),
       ),
     );

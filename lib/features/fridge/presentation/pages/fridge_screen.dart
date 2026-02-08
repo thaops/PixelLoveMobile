@@ -52,7 +52,10 @@ class _FridgeScreenState extends ConsumerState<FridgeScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return const PixelLoveAppBar();
+    return const PixelLoveAppBar(
+      leadingPadding: EdgeInsets.only(left: 20),
+      leadingWidth: 90,
+    );
   }
 
   Widget _buildBody(fridgeState) {
