@@ -117,25 +117,47 @@ class HomeInteractiveMap extends StatelessWidget {
         height: obj.height * scaleY,
         child: GestureDetector(
           onTap: () => _handleObjectTap(context, obj, scaleX, scaleY),
-          child: ClipRect(
-            child: CachedNetworkImage(
-              imageUrl: obj.imageUrl,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-              errorWidget: (context, url, error) {
-                return Container(
-                  color: Colors.red.withValues(alpha: 0.3),
-                  child: const Center(
-                    child: Icon(Icons.error, color: Colors.red),
-                  ),
-                );
-              },
-              placeholder: (context, url) => const SizedBox(),
-            ),
-          ),
+          child: ClipRect(child: _buildObjectContent(obj)),
         ),
       );
     }).toList();
+  }
+
+  Widget _buildObjectContent(HomeObject obj) {
+    final image = CachedNetworkImage(
+      imageUrl: obj.imageUrl,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      errorWidget: (context, url, error) {
+        return Container(
+          color: Colors.red.withOpacity(0.3),
+          child: const Center(child: Icon(Icons.error, color: Colors.red)),
+        );
+      },
+      placeholder: (context, url) => const SizedBox(),
+    );
+
+    if (obj.type == 'streakStatus') {
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          image,
+          const Padding(
+            padding: EdgeInsets.only(top: 27, left: 5),
+            child: Text(
+              "100",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return image;
   }
 
   void _handleObjectTap(

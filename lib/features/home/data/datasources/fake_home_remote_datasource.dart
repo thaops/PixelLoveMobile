@@ -13,6 +13,28 @@ class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
         "height": 1920,
       },
       "objects": [
+
+        {
+          "id": "streakImage",
+          "type": "streakImage",
+          "imageUrl":      "https://res.cloudinary.com/dukoun1pb/image/upload/v1770517706/khung_treo_%C4%91e%CC%82%CC%81m_nga%CC%80y__chuo%CC%82%CC%83i_sggk7c.png",
+          "x": 1850,
+          "y": 140,
+          "width": 400,
+          "height": 400,
+          "zIndex": 10,
+        },
+          {
+          "id": "streakStatus",
+          "type": "streakStatus",
+          "imageUrl":      "https://res.cloudinary.com/dukoun1pb/image/upload/v1770517747/chuo%CC%82%CC%83i_lo%CC%9B%CC%81n_kcjx3p.png",
+          "x": 1925,
+          "y": 290,
+          "width": 250,
+          "height": 250,
+          "zIndex": 10,
+        },
+    
         {
           "id": "boy",
           "type": "boy",
@@ -39,11 +61,11 @@ class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
           "id": "pet",
           "type": "pet",
           "imageUrl":
-              "https://res.cloudinary.com/dukoun1pb/image/upload/v1765289116/Gemini_Generated_Image_73r7az73r7az73r7-removebg-preview_cfh0qt.png",
-          "x": 850,
-          "y": 930,
-          "width": 500,
-          "height": 500,
+              "https://res.cloudinary.com/dukoun1pb/image/upload/v1770517831/pet_level_1_aav3jk.png",
+          "x": 970,
+          "y": 730,
+          "width": 600,
+          "height": 600,
           "zIndex": 10,
         },
         {
@@ -51,8 +73,8 @@ class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
           "type": "kennel",
           "imageUrl":
               "https://res.cloudinary.com/dukoun1pb/image/upload/v1769922743/chu%E1%BB%93ng_c%C3%BAn_1_ud7yws.png",
-          "x": 530,
-          "y": 880,
+          "x": 640,
+          "y": 830,
           "width": 400,
           "height": 400,
           "zIndex": 10,
@@ -62,8 +84,8 @@ class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
           "type": "radio",
           "imageUrl":
               "https://res.cloudinary.com/dukoun1pb/image/upload/v1767853620/image-removebg-preview_9_nnrmzi.png",
-          "x": 1300,
-          "y": 1360,
+          "x": 1280,
+          "y": 1320,
           "width": 300,
           "height": 300,
           "zIndex": 10,

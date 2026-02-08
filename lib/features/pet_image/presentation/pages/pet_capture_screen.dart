@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/pet_image/presentation/widgets/pet_preview_mask.dart';
 import 'package:pixel_love/routes/app_routes.dart';
+import 'package:pixel_love/core/widgets/app_back_icon.dart';
 import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_capture_state.dart';
 import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_capture_notifier.dart';
 import 'package:pixel_love/features/pet_image/providers/pet_image_providers.dart';
@@ -580,11 +581,7 @@ class _HeaderSection extends StatelessWidget {
                   width: 1.5,
                 ),
               ),
-              child: const Icon(
-                Icons.arrow_back_rounded,
-                color: AppColors.primaryPink,
-                size: 24,
-              ),
+              child: const AppBackIcon(),
             ),
           ),
           GestureDetector(

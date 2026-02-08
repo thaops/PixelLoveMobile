@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
 import 'package:pixel_love/features/radio/presentation/notifiers/radio_notifier.dart';
@@ -12,7 +11,7 @@ import 'package:pixel_love/features/radio/presentation/widgets/voice_fab.dart';
 import 'package:pixel_love/features/radio/presentation/widgets/voice_list_item.dart';
 import 'package:pixel_love/features/radio/presentation/widgets/voice_record_bottom_sheet.dart';
 import 'package:pixel_love/features/radio/providers/radio_providers.dart';
-import 'package:pixel_love/routes/app_routes.dart';
+import 'package:pixel_love/core/widgets/pixel_love_app_bar.dart';
 
 class RadioScreen extends ConsumerWidget {
   const RadioScreen({super.key});
@@ -23,42 +22,13 @@ class RadioScreen extends ConsumerWidget {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: PixelLoveAppBar(
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [Colors.black.withOpacity(0.2), Colors.transparent],
-            ),
-          ),
-        ),
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withOpacity(0.25),
-                width: 1,
-              ),
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.primaryPink,
-                size: 18,
-              ),
-              onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go(AppRoutes.home);
-                }
-              },
             ),
           ),
         ),
@@ -71,7 +41,6 @@ class RadioScreen extends ConsumerWidget {
             letterSpacing: 0.5,
           ),
         ),
-        centerTitle: true,
       ),
       floatingActionButton: VoiceFab(
         onPressed: () => _showVoiceRecordSheet(context),

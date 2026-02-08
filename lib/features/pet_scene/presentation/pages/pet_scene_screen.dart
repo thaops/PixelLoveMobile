@@ -6,7 +6,7 @@ import 'package:pixel_love/core/widgets/background_loading_screen.dart';
 import 'package:pixel_love/core/widgets/custom_loading_widget.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
 import 'package:pixel_love/features/pet_scene/presentation/controllers/pet_scene_controller.dart';
-import 'package:pixel_love/features/pet_scene/presentation/widgets/pet_scene_app_bar.dart';
+import 'package:pixel_love/core/widgets/pixel_love_app_bar.dart';
 import 'package:pixel_love/features/pet_scene/presentation/widgets/pet_scene_error_view.dart';
 import 'package:pixel_love/features/pet_scene/presentation/widgets/pet_scene_interactive_map.dart';
 import 'package:pixel_love/features/pet_scene/presentation/widgets/pet_status_card.dart';
@@ -97,7 +97,10 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
         backgroundColor: Colors.black,
         extendBodyBehindAppBar: true,
         extendBody: true,
-        appBar: const PetSceneAppBar(),
+        appBar: const PixelLoveAppBar(
+          leadingPadding: EdgeInsets.only(left: 20),
+          leadingWidth: 90,
+        ),
         body: AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle.light.copyWith(
             statusBarColor: Colors.transparent,
@@ -122,12 +125,27 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
           petSceneData: petSceneData,
           transformationController: _transformationController,
         ),
-        Positioned(
-          bottom: 16,
-          left: 16,
-          right: 16,
-          child: SafeArea(
-            child: PetStatusCard(petStatus: petSceneData.petStatus),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                PetStatusCard(petStatus: petSceneData.petStatus),
+                const SizedBox(height: 16),
+                _buildSideButton(
+                  'assets/images/ic_tab_camera.png',
+                  () => context.push(AppRoutes.petCapture),
+                ),
+                const SizedBox(height: 12),
+                _buildSideButton(
+                  'assets/images/ic_tab_acsset.png',
+                  () => context.go(AppRoutes.petAlbumSwipe),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -151,5 +169,28 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
         );
       }
     });
+  }
+
+  Widget _buildSideButton(String asset, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 66,
+        height: 66,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Image.asset(asset),
+      ),
+    );
   }
 }

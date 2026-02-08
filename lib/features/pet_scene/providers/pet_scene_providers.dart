@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pixel_love/core/providers/core_providers.dart';
+
+import 'package:pixel_love/features/pet_scene/data/datasources/fake_pet_scene_remote_datasource.dart';
 import 'package:pixel_love/features/pet_scene/data/datasources/pet_scene_remote_datasource.dart';
 import 'package:pixel_love/features/pet_scene/data/repositories/pet_scene_repository_impl.dart';
 import 'package:pixel_love/features/pet_scene/domain/repositories/pet_scene_repository.dart';
@@ -10,10 +11,13 @@ import 'package:pixel_love/features/pet_scene/presentation/notifiers/pet_scene_n
 // Pet Scene Feature Providers
 // ============================================
 
-/// Pet Scene Remote DataSource provider
-final petSceneRemoteDataSourceProvider = Provider<PetSceneRemoteDataSource>((ref) {
-  final dioApi = ref.watch(dioApiProvider);
-  return PetSceneRemoteDataSourceImpl(dioApi);
+// Pet Scene Remote DataSource provider
+final petSceneRemoteDataSourceProvider = Provider<PetSceneRemoteDataSource>((
+  ref,
+) {
+  // final dioApi = ref.watch(dioApiProvider);
+  // return PetSceneRemoteDataSourceImpl(dioApi);
+  return FakePetSceneRemoteDataSource();
 });
 
 /// Pet Scene Repository provider
@@ -29,7 +33,5 @@ final getPetSceneUseCaseProvider = Provider<GetPetSceneUseCase>((ref) {
 });
 
 /// Pet Scene Notifier provider (Riverpod v3)
-final petSceneNotifierProvider = NotifierProvider<PetSceneNotifier, PetSceneState>(
-  PetSceneNotifier.new,
-);
-
+final petSceneNotifierProvider =
+    NotifierProvider<PetSceneNotifier, PetSceneState>(PetSceneNotifier.new);

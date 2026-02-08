@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +12,7 @@ class HomeBottomActionBar extends StatelessWidget {
     return Positioned(
       left: 12,
       right: 12,
-      bottom: 30,
+      bottom: Platform.isIOS ? 10 : 30,
       child: SafeArea(
         child: ClipRRect(
           borderRadius: BorderRadius.circular(32),

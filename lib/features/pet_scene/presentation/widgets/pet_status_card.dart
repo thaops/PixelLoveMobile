@@ -8,72 +8,156 @@ class PetStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expProgress = petStatus.exp / petStatus.expToNextLevel;
+    double progress = 0.0;
+    if (petStatus.expToNextLevel > 0) {
+      progress = petStatus.exp / (petStatus.exp + petStatus.expToNextLevel);
+    }
+    // Camp progress between 0 and 1
+    if (progress > 1.0) progress = 1.0;
+    if (progress < 0.0) progress = 0.0;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: 70, // Fixed width for vertical pill
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
-          width: 1,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFEEF5), // Light pink
+            Color(0xFFFFC1E3), // Darker pink
+          ],
         ),
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: Colors.white.withOpacity(0.9), width: 3),
+        boxShadow: [
+          // 3D Shadow effect
+          BoxShadow(
+            color: const Color(0xFFE91E63).withOpacity(0.3),
+            offset: const Offset(4, 4),
+            blurRadius: 10,
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.8),
+            offset: const Offset(-2, -2),
+            blurRadius: 6,
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.pets, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Level ${petStatus.level}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+          // Avatar
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: const CircleAvatar(
+              radius: 22,
+              backgroundColor: Color(0xFFFFF0F5),
+              backgroundImage: AssetImage('assets/images/pet-level-1.png'),
+            ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'EXP: ${petStatus.exp} / ${petStatus.expToNextLevel}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: expProgress,
-                        minHeight: 6,
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ],
+
+          // Level Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF4081),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFF4081).withOpacity(0.4),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
+              ],
+            ),
+            child: Text(
+              'Lv.${petStatus.level}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
               ),
-            ],
+            ),
           ),
+
+          const SizedBox(height: 16),
+
+          // Vertical Progress Bar
+          SizedBox(
+            height: 200, // Height of the progress bar
+            width: 14, // Width of the progress bar
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                // Background track
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+                // Fill
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Container(
+                      height: constraints.maxHeight * progress,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Color(0xFFFF80AB), Color(0xFFFF4081)],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
           if (petStatus.todayFeedCount > 0) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Fed ${petStatus.todayFeedCount} time(s) today',
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.fastfood_rounded,
+                size: 18,
+                color: Color(0xFFFF4081),
+              ),
             ),
           ],
         ],

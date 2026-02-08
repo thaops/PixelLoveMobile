@@ -8,7 +8,7 @@ class RewardedAdService {
 
   static const String _androidAdUnitId =
       'ca-app-pub-2106909509131304/9980592799';
-  static const String _iosAdUnitId = 'ca-app-pub-2106909509131304/9980592799';
+  static const String _iosAdUnitId = 'ca-app-pub-2106909509131304/9252810388';
 
   static const String _testAndroidAdUnitId =
       'ca-app-pub-3940256099942544/5224354917';

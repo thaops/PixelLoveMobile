@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/pet_image/presentation/widgets/pet_mini_status_bar.dart';
 import 'package:pixel_love/routes/app_routes.dart';
+import 'package:pixel_love/core/widgets/app_back_icon.dart';
 
 class PetAlbumHeader extends StatelessWidget {
   final bool canPop;
@@ -20,21 +21,21 @@ class PetAlbumHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 16, 12),
       child: Row(
         children: [
-          IconButton(
-            padding: const EdgeInsets.all(8),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white.withOpacity(0.08),
-            ),
-            onPressed: () {
+          GestureDetector(
+            onTap: () {
               if (context.canPop()) {
                 context.pop();
               } else {
                 context.go(AppRoutes.home);
               }
             },
-            icon: const Icon(
-              Icons.arrow_back,
-              color: AppColors.primaryPinkDark,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const AppBackIcon(),
             ),
           ),
           const SizedBox(width: 12),

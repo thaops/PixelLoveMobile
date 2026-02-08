@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:pixel_love/core/widgets/background_loading_screen.dart';
 import 'package:pixel_love/features/fridge/domain/entities/fridge.dart';
 import 'package:pixel_love/features/fridge/presentation/controllers/fridge_controller.dart';
@@ -10,7 +9,7 @@ import 'package:pixel_love/features/fridge/presentation/widgets/fridge_create_no
 import 'package:pixel_love/features/fridge/presentation/widgets/fridge_note_item.dart';
 import 'package:pixel_love/features/fridge/presentation/widgets/fridge_note_preview_dialog.dart';
 import 'package:pixel_love/features/fridge/providers/fridge_providers.dart';
-import 'package:pixel_love/routes/app_routes.dart';
+import 'package:pixel_love/core/widgets/pixel_love_app_bar.dart';
 
 class FridgeScreen extends ConsumerStatefulWidget {
   const FridgeScreen({super.key});
@@ -53,20 +52,7 @@ class _FridgeScreenState extends ConsumerState<FridgeScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go(AppRoutes.home);
-          }
-        },
-      ),
-    );
+    return const PixelLoveAppBar();
   }
 
   Widget _buildBody(fridgeState) {
