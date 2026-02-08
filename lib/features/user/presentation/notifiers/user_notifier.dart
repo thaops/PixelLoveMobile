@@ -82,17 +82,11 @@ class UserNotifier extends Notifier<UserState> {
       result.when(
         success: (user) {
           print('✅ Profile completed: ${user.name}, zodiac=${user.zodiac}');
-          state = state.copyWith(
-            currentUser: user,
-            isLoading: false,
-          );
+          state = state.copyWith(currentUser: user, isLoading: false);
           // Navigation sẽ được handle ở UI layer
         },
         error: (error) {
-          state = state.copyWith(
-            errorMessage: error.message,
-            isLoading: false,
-          );
+          state = state.copyWith(errorMessage: error.message, isLoading: false);
         },
       );
     } catch (e) {
@@ -123,17 +117,36 @@ class UserNotifier extends Notifier<UserState> {
 
       result.when(
         success: (user) {
-          state = state.copyWith(
-            currentUser: user,
-            isLoading: false,
-          );
+          state = state.copyWith(currentUser: user, isLoading: false);
           // Navigation và snackbar sẽ được handle ở UI layer
         },
         error: (error) {
-          state = state.copyWith(
-            errorMessage: error.message,
-            isLoading: false,
-          );
+          state = state.copyWith(errorMessage: error.message, isLoading: false);
+        },
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Unexpected error: $e',
+        isLoading: false,
+      );
+    }
+  }
+
+  Future<void> leaveCouple() async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+
+      final leaveCoupleUseCase = ref.read(leaveCoupleUseCaseProvider);
+      final result = await leaveCoupleUseCase.call();
+
+      result.when(
+        success: (_) {
+          // Refresh user data from storage
+          _loadUserFromStorage();
+          state = state.copyWith(isLoading: false);
+        },
+        error: (error) {
+          state = state.copyWith(errorMessage: error.message, isLoading: false);
         },
       );
     } catch (e) {
@@ -144,4 +157,3 @@ class UserNotifier extends Notifier<UserState> {
     }
   }
 }
-

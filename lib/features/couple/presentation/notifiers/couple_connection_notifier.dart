@@ -13,6 +13,7 @@ class CoupleConnectionState {
   final String inputCode;
   final PartnerPreview? partnerPreview;
   final bool canConnect;
+  final bool isPaired;
 
   const CoupleConnectionState({
     this.isLoading = false,
@@ -21,6 +22,7 @@ class CoupleConnectionState {
     this.inputCode = '',
     this.partnerPreview,
     this.canConnect = false,
+    this.isPaired = false,
   });
 
   CoupleConnectionState copyWith({
@@ -30,6 +32,7 @@ class CoupleConnectionState {
     String? inputCode,
     PartnerPreview? partnerPreview,
     bool? canConnect,
+    bool? isPaired,
   }) {
     return CoupleConnectionState(
       isLoading: isLoading ?? this.isLoading,
@@ -38,6 +41,7 @@ class CoupleConnectionState {
       inputCode: inputCode ?? this.inputCode,
       partnerPreview: partnerPreview ?? this.partnerPreview,
       canConnect: canConnect ?? this.canConnect,
+      isPaired: isPaired ?? this.isPaired,
     );
   }
 }
@@ -83,10 +87,27 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
     };
   }
 
-  void _handleCouplePaired(Map<String, dynamic> data) {
+  void _handleCouplePaired(Map<String, dynamic> data) async {
+    print('💑 Socket Paired Event: $data');
+    final coupleRoomId = data['coupleRoomId'] as String?;
     final partner = data['partner'] as Map<String, dynamic>?;
-    if (partner != null) {
-      // Navigation sẽ được handle ở UI layer thông qua ref.listen
+    final partnerId = partner?['userId'] as String?;
+
+    if (coupleRoomId != null && partnerId != null) {
+      final storageService = ref.read(storageServiceProvider);
+      final currentUser = storageService.getUser();
+
+      if (currentUser != null) {
+        final updatedUser = currentUser.copyWith(
+          coupleRoomId: coupleRoomId,
+          partnerId: partnerId,
+          mode: 'couple',
+        );
+        await storageService.saveUser(updatedUser);
+      }
+
+      // Trigger navigation by reloading state
+      state = state.copyWith(isLoading: false, isPaired: true);
     }
   }
 
@@ -213,11 +234,12 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
             final updatedUser = currentUser.copyWith(
               coupleRoomId: response.coupleRoomId,
               partnerId: response.partnerId,
+              mode: 'couple',
             );
             await storageService.saveUser(updatedUser);
           }
 
-          state = state.copyWith(isLoading: false);
+          state = state.copyWith(isLoading: false, isPaired: true);
           // Navigation will be handled by UI layer listening to state/storage changes
         },
         error: (error) {

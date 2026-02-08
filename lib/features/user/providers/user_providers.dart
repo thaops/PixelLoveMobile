@@ -7,6 +7,7 @@ import 'package:pixel_love/features/user/domain/usecases/complete_profile_usecas
 import 'package:pixel_love/features/user/domain/usecases/delete_account_usecase.dart';
 import 'package:pixel_love/features/user/domain/usecases/onboard_usecase.dart';
 import 'package:pixel_love/features/user/domain/usecases/update_profile_usecase.dart';
+import 'package:pixel_love/features/user/domain/usecases/leave_couple_usecase.dart';
 import 'package:pixel_love/features/user/presentation/notifiers/onboard_notifier.dart';
 import 'package:pixel_love/features/user/presentation/notifiers/settings_notifier.dart';
 import 'package:pixel_love/features/user/presentation/notifiers/user_notifier.dart';
@@ -52,6 +53,12 @@ final deleteAccountUseCaseProvider = Provider<DeleteAccountUseCase>((ref) {
   return DeleteAccountUseCase(repository);
 });
 
+/// Leave Couple UseCase provider
+final leaveCoupleUseCaseProvider = Provider<LeaveCoupleUseCase>((ref) {
+  final repository = ref.watch(userRepositoryProvider);
+  return LeaveCoupleUseCase(repository);
+});
+
 /// User Notifier provider (Riverpod v3)
 final userNotifierProvider = NotifierProvider<UserNotifier, UserState>(
   UserNotifier.new,
@@ -63,7 +70,5 @@ final onboardNotifierProvider = NotifierProvider<OnboardNotifier, OnboardState>(
 );
 
 /// Settings Notifier provider (Riverpod v3)
-final settingsNotifierProvider = NotifierProvider<SettingsNotifier, SettingsState>(
-  SettingsNotifier.new,
-);
-
+final settingsNotifierProvider =
+    NotifierProvider<SettingsNotifier, SettingsState>(SettingsNotifier.new);

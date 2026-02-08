@@ -62,6 +62,7 @@ class LoginSection extends ConsumerWidget {
                   backgroundColor: AppColors.primaryPink,
                   textColor: Colors.white,
                 ),
+                SizedBox(height: 16,)
               ],
             ),
             const SizedBox(height: 24),

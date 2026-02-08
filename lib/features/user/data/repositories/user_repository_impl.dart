@@ -129,4 +129,17 @@ class UserRepositoryImpl implements UserRepository {
       error: (error) => ApiResult.error(error),
     );
   }
+
+  @override
+  Future<ApiResult<void>> leaveCouple() async {
+    final result = await _remoteDataSource.leaveCouple();
+    return result.when(
+      success: (_) {
+        // Clear all storage data after successful break up
+        _storageService.clearAll();
+        return ApiResult.success(null);
+      },
+      error: (error) => ApiResult.error(error),
+    );
+  }
 }

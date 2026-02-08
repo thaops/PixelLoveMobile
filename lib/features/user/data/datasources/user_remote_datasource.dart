@@ -14,6 +14,7 @@ abstract class UserRemoteDataSource {
     required String birthDate,
   });
   Future<ApiResult<void>> deleteAccount(String userId);
+  Future<ApiResult<void>> leaveCouple();
 }
 
 class UserRemoteDataSourceImpl implements UserRemoteDataSource {
@@ -63,8 +64,14 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
 
   @override
   Future<ApiResult<void>> deleteAccount(String userId) async {
-    return await _dioApi.delete(
-      '/users/$userId',
+    return await _dioApi.delete('/users/$userId', fromJson: (json) => null);
+  }
+
+  @override
+  Future<ApiResult<void>> leaveCouple() async {
+    return await _dioApi.post(
+      '/couple/break-up',
+      data: {},
       fromJson: (json) => null,
     );
   }

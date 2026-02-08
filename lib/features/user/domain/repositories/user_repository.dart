@@ -13,4 +13,5 @@ abstract class UserRepository {
     required String birthDate,
   });
   Future<ApiResult<void>> deleteAccount(String userId);
+  Future<ApiResult<void>> leaveCouple();
 }

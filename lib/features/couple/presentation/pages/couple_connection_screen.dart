@@ -21,7 +21,7 @@ class CoupleConnectionScreen extends ConsumerWidget {
       previous,
       next,
     ) {
-      if (previous?.isLoading == true && !next.isLoading) {
+      if ((previous?.isLoading == true && !next.isLoading) || next.isPaired) {
         final storageService = ref.read(storageServiceProvider);
         final user = storageService.getUser();
 

@@ -318,15 +318,33 @@ class UserProfileScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        child: _buildModernInfoTile(
-                          icon: Icons.favorite_rounded,
-                          label: 'Couple Room ID',
-                          value: user.coupleRoomId!,
-                          iconColor: Colors.redAccent,
-                          showArrow: true,
-                          onTap: () {
-                            // Navigate to couple room if needed
-                          },
+                        child: Column(
+                          children: [
+                            _buildModernInfoTile(
+                              icon: Icons.favorite_rounded,
+                              label: 'Couple Room ID',
+                              value: user.coupleRoomId!,
+                              iconColor: Colors.redAccent,
+                              showArrow: false,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              child: Divider(
+                                height: 1,
+                                color: Colors.grey.withOpacity(0.1),
+                              ),
+                            ),
+                            _buildModernInfoTile(
+                              icon: Icons.heart_broken_rounded,
+                              label: 'Hành động',
+                              value: 'Rời phòng',
+                              iconColor: Colors.grey,
+                              showArrow: true,
+                              onTap: () => _showLeaveCoupleDialog(context, ref),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -449,6 +467,43 @@ class UserProfileScreen extends ConsumerWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLeaveCoupleDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Rời phòng',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Bạn có chắc chắn muốn rời khỏi phòng đôi này không? Điều này sẽ huỷ kết nối với đối tác của bạn.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: Text('Hủy', style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(userNotifierProvider.notifier).leaveCouple();
+              context.pop();
+              context.go(AppRoutes.login);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Rời phòng'),
+          ),
+        ],
       ),
     );
   }
