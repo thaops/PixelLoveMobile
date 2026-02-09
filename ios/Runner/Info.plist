@@ -43,6 +43,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Ứng dụng cần quyền camera để chụp và gửi khoảnh khắc.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ứng dụng cần sử dụng micro để thực hiện cuộc gọi thoại và video trong app.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>App cần quyền vị trí để hiển thị thông tin phù hợp với khu vực của bạn.</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
