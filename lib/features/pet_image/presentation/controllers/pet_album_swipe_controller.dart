@@ -46,9 +46,6 @@ class PetAlbumSwipeController {
 
   TemporaryCapturedImage? temporaryImage;
 
-  DateTime? _lastTapTime;
-  int _tapCount = 0;
-
   void init() {
     partnerSignalController = AnimationController(
       vsync: vsync,
@@ -181,18 +178,12 @@ class PetAlbumSwipeController {
   }
 
   void handleDoubleTap() {
-    final now = DateTime.now();
-    if (_lastTapTime == null ||
-        now.difference(_lastTapTime!).inMilliseconds < 300) {
-      _tapCount++;
-      if (_tapCount == 2) {
-        _showLikeAnimation();
-        _tapCount = 0;
-      }
-    } else {
-      _tapCount = 1;
-    }
-    _lastTapTime = now;
+    _showLikeAnimation();
+  }
+
+  void nextByTap() {
+    // 🔥 Ép thẻ ảnh chuyển sang trái (Next) ngay lập tức khi chạm
+    swiperController.swipe(card_swiper.CardSwiperDirection.left);
   }
 
   void _showLikeAnimation() {}
@@ -216,6 +207,13 @@ class PetAlbumSwipeController {
 
   int realIndex = 0;
 
+  void syncIndex(int index) {
+    if (realIndex != index) {
+      realIndex = index;
+      onStateChanged();
+    }
+  }
+
   bool canNext(int totalCards) => realIndex < totalCards - 1;
 
   bool canPrev() => realIndex > 0;
@@ -227,40 +225,34 @@ class PetAlbumSwipeController {
     PetAlbumState albumState,
     PetAlbumNotifier albumNotifier,
   ) {
-    if (canNext(totalCards)) {
-      realIndex++;
-      onStateChanged();
-      swipeCount++;
+    // realIndex đã được sync từ onSwipe, ta chỉ xử lý logic trigger
+    swipeCount++;
 
-      final imageIndex = hasTemporaryImage ? realIndex - 1 : realIndex;
+    final imageIndex = hasTemporaryImage ? realIndex - 1 : realIndex;
 
-      if (imageIndex >= 0 && imageIndex < filteredImages.length) {
-        checkPetStateChange(filteredImages);
+    if (imageIndex >= 0 && imageIndex < filteredImages.length) {
+      checkPetStateChange(filteredImages);
 
-        if (imageIndex >= filteredImages.length - 10 &&
-            filteredImages.length > 10) {
-          checkMemoryHighlight(filteredImages, imageIndex);
-        }
+      if (imageIndex >= filteredImages.length - 10 &&
+          filteredImages.length > 10) {
+        checkMemoryHighlight(filteredImages, imageIndex);
+      }
 
-        if (imageIndex >= filteredImages.length - 1 &&
-            filteredImages.isNotEmpty) {
-          showSessionEnding();
-        }
+      if (imageIndex >= filteredImages.length - 1 &&
+          filteredImages.isNotEmpty) {
+        showSessionEnding();
+      }
 
-        if (realIndex >= totalCards - 3 &&
-            albumState.hasMore &&
-            !albumState.isLoadingMore) {
-          albumNotifier.loadMore();
-        }
+      if (realIndex >= totalCards - 3 &&
+          albumState.hasMore &&
+          !albumState.isLoadingMore) {
+        albumNotifier.loadMore();
       }
     }
   }
 
   void prev() {
-    if (canPrev()) {
-      realIndex--;
-      onStateChanged();
-    }
+    // Logic cho prev nếu cần ngoài việc sync index
   }
 
   void reset() {

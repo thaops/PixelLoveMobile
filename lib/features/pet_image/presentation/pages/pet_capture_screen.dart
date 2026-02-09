@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:camerawesome/camerawesome_plugin.dart';
@@ -95,31 +94,8 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
   Widget build(BuildContext context) {
     final captureState = ref.watch(petCaptureNotifierProvider);
 
-    // 🔥 Cập nhật notifier reference mỗi lần build để đảm bảo luôn có giá trị mới nhất
     _captureNotifier = ref.read(petCaptureNotifierProvider.notifier);
 
-    ref.listen<PetCaptureState?>(petCaptureNotifierProvider, (previous, next) {
-      // 🔥 Navigate sau khi send (không đợi upload xong)
-      // Kiểm tra: đã gọi send (isSending = true) và có temporary image
-      if (previous != null &&
-          next != null &&
-          next.isSending &&
-          !previous.isSending) {
-        // 🔥 Delay ngắn để ảnh review hiển thị một chút trước khi fade
-        // Sau đó navigate với fade transition mượt mà
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (mounted) {
-            context.push(AppRoutes.petAlbumSwipe).then((_) {
-              // 🔥 Reset preview sau khi navigate (khi quay lại)
-              if (mounted) {
-                ref.read(petCaptureNotifierProvider.notifier).resetPreview();
-              }
-            });
-          }
-        });
-      }
-    });
-    // Cho phép back khi chưa freeze
     final canPop = !captureState.isFrozen && context.canPop();
 
     return PopScope(
@@ -127,7 +103,6 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
       onPopInvoked: (didPop) {
         if (!didPop) {
           if (captureState.isFrozen) {
-            // Reset khi đã freeze
             ref.read(petCaptureNotifierProvider.notifier).resetPreview();
           } else if (!context.canPop()) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -157,35 +132,22 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
             child: SafeArea(
               child: Stack(
                 children: [
-                  // 🔥 CameraAwesome - LUÔN render (không phụ thuộc _isCameraReady)
-                  // onImageForAnalysis cần chạy để set _isCameraReady = true
                   CameraAwesomeBuilder.custom(
                     saveConfig: SaveConfig.photo(),
                     imageAnalysisConfig: AnalysisConfig(
                       autoStart: true,
                       maxFramesPerSecond: 30,
-                      androidOptions: AndroidAnalysisOptions.nv21(
-                        width:
-                            720, // 🔥 320 là sweet spot - giảm khựng khi freeze
-                      ),
+                      androidOptions: AndroidAnalysisOptions.nv21(width: 720),
                     ),
                     onImageForAnalysis: (image) async {
-                      // 🔥 Đếm số frame đã nhận
                       _frameCount++;
-
-                      // 🔥 Đánh dấu camera đã sẵn sàng khi:
-                      // 1. Nhận được ít nhất 5 frame (đảm bảo preview đã render)
-                      // 2. Đã trôi qua ít nhất 800ms (đảm bảo camera pipeline đã sẵn sàng)
-                      // (Từ log: camera tạo pipeline nhiều lần và cần thời gian để preview render)
                       if (!_isCameraReady && mounted && _frameCount >= 5) {
                         final elapsed = _screenEnterTime != null
                             ? DateTime.now()
                                   .difference(_screenEnterTime!)
                                   .inMilliseconds
                             : 0;
-                        // 🔥 Tăng minDelay lên 800ms để đảm bảo preview surface đã sẵn sàng
-                        // Tránh màn hình đen khi camera preview chưa render
-                        final minDelay = 800;
+                        const minDelay = 800;
                         final remainingDelay = elapsed < minDelay
                             ? minDelay - elapsed
                             : 0;
@@ -202,7 +164,6 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
                             },
                           );
                         } else {
-                          // 🔥 Thêm delay nhỏ (200ms) sau khi đủ điều kiện để đảm bảo preview đã render
                           Future.delayed(const Duration(milliseconds: 200), () {
                             if (mounted) {
                               setState(() {
@@ -212,13 +173,12 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
                           });
                         }
                       }
-                      // 🔥 Kiểm tra mounted và notifier trước khi sử dụng
                       if (mounted && _captureNotifier != null) {
                         _captureNotifier!.onLiveFrame(image);
                       }
                     },
                     previewFit: CameraPreviewFit.contain,
-                    previewAlignment: const Alignment(0, -0.75),
+                    previewAlignment: const Alignment(0, -0.5),
                     sensorConfig: SensorConfig.single(
                       sensor: Sensor.position(SensorPosition.back),
                       aspectRatio: CameraAspectRatios.ratio_1_1,
@@ -229,36 +189,19 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
                         petCaptureNotifierProvider.notifier,
                       );
                       captureNotifier.attachState(cameraState);
-
-                      // 🔥 KHÔNG đánh dấu camera ready ở đây
-                      // Chỉ đánh dấu khi nhận được frame đầu tiên trong onImageForAnalysis
-                      // Vì attachState chỉ cho biết camera đã attach, nhưng preview surface
-                      // có thể chưa sẵn sàng (gây lỗi SurfaceClosedException)
-
-                      // 🔥 Tính metrics một lần duy nhất
                       final metrics = CaptureLayoutMetrics(context);
 
                       return Stack(
                         children: [
-                          // 🔥 1. Camera preview (LUÔN CÓ) - preview đã được render bởi CameraAwesome
-                          // CameraAwesome tự render preview, không cần thêm vào Stack
-                          // Background gradient ở Container decoration sẽ hiển thị phía sau preview
-
-                          // 🔥 2. Mask overlay (LUÔN CÓ) - dùng metrics chung
                           PetPreviewMask(metrics: metrics),
-
-                          // 🔥 3. Frozen mask painter (CHỈ KHI FROZEN) - CHE CAMERA TRONG LỖ
                           if (captureState.isFrozen &&
-                              captureState.bytes != null)
+                              captureState.frozenImage != null)
                             _FrozenPreviewOverlay(
-                              bytes: captureState.bytes!,
+                              image: captureState.frozenImage!,
                               metrics: metrics,
+                              state: captureState,
                             ),
-
-                          // 🔥 4. Decorative hearts
                           const DecorativeHearts(),
-
-                          // 🔥 5. Overlay UI (LUÔN CÓ - chỉ đổi opacity/enabled)
                           _UnifiedOverlayUI(
                             state: captureState,
                             notifier: captureNotifier,
@@ -270,26 +213,15 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
                               await captureNotifier.freezeFromLiveFrame();
                             },
                           ),
-
-                          // // // 🔥 6. Capture animation
                           CaptureAnimationOverlay(
                             isActive: _captureAnimationActive,
                           ),
-
-                          // 🔥 7. Input blocker khi đang capture
-                          // if (captureState.isCapturing)
-                          //   Positioned.fill(
-                          //     child: IgnorePointer(
-                          //       child: Container(color: Colors.transparent),
-                          //     ),
-                          //   ),
                         ],
                       );
                     },
                   ),
 
-                  // 🔥 Loading overlay - CHỈ DÙNG CustomLoadingWidget
-                  // Fade out khi camera sẵn sàng (không chặn camera render)
+                  // 🔥 Khôi phục màn hình Splash loading (che camera khi đang khởi tạo)
                   Positioned.fill(
                     child: AnimatedOpacity(
                       duration: const Duration(milliseconds: 400),
@@ -325,53 +257,26 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
 }
 
 /// Widget frozen preview overlay - dùng CustomPaint để che camera trong lỗ mask
-class _FrozenPreviewOverlay extends StatefulWidget {
-  const _FrozenPreviewOverlay({required this.bytes, required this.metrics});
+class _FrozenPreviewOverlay extends StatelessWidget {
+  const _FrozenPreviewOverlay({
+    required this.image,
+    required this.metrics,
+    required this.state,
+  });
 
-  final Uint8List bytes;
+  final ui.Image image;
   final CaptureLayoutMetrics metrics;
-
-  @override
-  State<_FrozenPreviewOverlay> createState() => _FrozenPreviewOverlayState();
-}
-
-class _FrozenPreviewOverlayState extends State<_FrozenPreviewOverlay> {
-  ui.Image? _decodedImage;
-
-  @override
-  void initState() {
-    super.initState();
-    _decodeImage();
-  }
-
-  Future<void> _decodeImage() async {
-    final codec = await ui.instantiateImageCodec(widget.bytes);
-    final frame = await codec.getNextFrame();
-    if (mounted) {
-      setState(() {
-        _decodedImage = frame.image;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _decodedImage?.dispose();
-    super.dispose();
-  }
+  final PetCaptureState state;
 
   @override
   Widget build(BuildContext context) {
-    if (_decodedImage == null) {
-      return const SizedBox.shrink();
-    }
-
-    // 🔥 Dùng metrics chung - không tính lại
     return Positioned.fill(
       child: CustomPaint(
         painter: FrozenMaskPainter(
-          containerRect: widget.metrics.previewRRect,
-          image: _decodedImage!,
+          containerRect: metrics.previewRRect,
+          image: image,
+          rotation: state.sensorRotation,
+          position: state.sensorPosition,
         ),
       ),
     );
@@ -380,14 +285,21 @@ class _FrozenPreviewOverlayState extends State<_FrozenPreviewOverlay> {
 
 /// CustomPainter để vẽ frozen frame che camera trong lỗ mask
 class FrozenMaskPainter extends CustomPainter {
-  FrozenMaskPainter({required this.containerRect, required this.image});
+  FrozenMaskPainter({
+    required this.containerRect,
+    required this.image,
+    required this.rotation,
+    required this.position,
+  });
 
   final RRect containerRect;
   final ui.Image image;
+  final int rotation;
+  final SensorPosition position;
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1️⃣ Vẽ background gradient (giữ nguyên UI)
+    // 1️⃣ Vẽ background gradient
     final gradient = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -396,41 +308,60 @@ class FrozenMaskPainter extends CustomPainter {
     final bgPaint = Paint()
       ..shader = gradient.createShader(Offset.zero & size)
       ..style = PaintingStyle.fill;
-
     canvas.drawRect(Offset.zero & size, bgPaint);
 
-    // 2️⃣ Clip đúng khung (rounded rectangle)
+    // 2️⃣ Clip & Draw image (Tối ưu GPU)
     canvas.save();
     canvas.clipRRect(containerRect);
 
-    // 3️⃣ Vẽ frozen frame → CHE camera preview trong lỗ
     final dst = containerRect.outerRect;
+    final center = dst.center;
 
-    // 🔥 Crop đúng aspect ratio như preview (CỰC QUAN TRỌNG)
-    final previewAspect = dst.width / dst.height;
-    final imageAspect = image.width / image.height;
-
-    late Rect src;
-
-    if (imageAspect > previewAspect) {
-      // Image rộng hơn preview → crop 2 bên
-      final newWidth = image.height * previewAspect;
-      final x = (image.width - newWidth) / 2;
-      src = Rect.fromLTWH(x, 0, newWidth, image.height.toDouble());
-    } else {
-      // Image cao hơn preview → crop trên dưới
-      final newHeight = image.width / previewAspect;
-      final y = (image.height - newHeight) / 2;
-      src = Rect.fromLTWH(0, y, image.width.toDouble(), newHeight);
+    // 🔥 Xoay canvas
+    if (rotation != 0) {
+      canvas.translate(center.dx, center.dy);
+      canvas.rotate(rotation * 3.1415926535897932 / 180);
+      canvas.translate(-center.dx, -center.dy);
     }
 
+    // 🔥 Mirror nếu là camera trước
+    if (position == SensorPosition.front) {
+      canvas.translate(center.dx, center.dy);
+      canvas.scale(-1, 1);
+      canvas.translate(-center.dx, -center.dy);
+    }
+
+    final double imgW = image.width.toDouble();
+    final double imgH = image.height.toDouble();
+
+    // Luôn tính Src Rect dựa trên 1:1 ratio
     canvas.drawImageRect(
       image,
-      src,
+      _calculateSrcRect(imgW, imgH, 1.0),
       dst,
       Paint()..filterQuality = FilterQuality.high,
     );
+
     canvas.restore();
+  }
+
+  Rect _calculateSrcRect(double w, double h, double aspect) {
+    // 🔥 Zoom rất nhẹ (1.06x) để cân đối bố cục
+    const double zoom = 1.06;
+
+    if (w / h > aspect) {
+      final newH = h / zoom;
+      final newW = newH * aspect;
+      // Khớp với previewAlignment -0.5: dùng 0.22 (22%) để dịch chuyển vùng cắt lên trên
+      final double offset = (w - newW) * 0.22;
+      return Rect.fromLTWH((w - newW) / 2 - offset, (h - newH) / 2, newW, newH);
+    } else {
+      final newW = w / zoom;
+      final newH = newW / aspect;
+      // Khớp với previewAlignment -0.5: dịch vùng cắt lên trên
+      final double offset = (h - newH) * 0.22;
+      return Rect.fromLTWH((w - newW) / 2, (h - newH) / 2 - offset, newW, newH);
+    }
   }
 
   @override
@@ -459,14 +390,10 @@ class _UnifiedOverlayUI extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-
-    // 🔥 Tính vị trí absolute cho action bar (từ bottom)
-    final actionBarBottom = keyboardHeight > 0 ? keyboardHeight : 0.0;
+    const double actionBarBottom = 0.0;
 
     return Stack(
       children: [
-        // 🔥 Header (luôn có, chỉ đổi opacity khi frozen)
         Positioned(
           top: 0,
           left: 0,
@@ -571,18 +498,7 @@ class _HeaderSection extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () => context.go(AppRoutes.home),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primaryPink.withOpacity(0.05),
-                border: Border.all(
-                  color: AppColors.primaryPink.withOpacity(0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: const AppBackIcon(),
-            ),
+            child: const AppBackIcon(),
           ),
           GestureDetector(
             onTap: notifier.toggleFlash,
@@ -673,11 +589,19 @@ class _ActionBarSection extends StatelessWidget {
           // Capture button (tự đổi icon bên trong)
           CaptureButton(
             state: state,
-            onTap: state.isFrozen
-                ? notifier.send
-                : () async {
-                    await onCapture();
-                  },
+            onTap: () async {
+              if (state.isFrozen) {
+                // 🔥 Điểu hướng NGAY LẬP TỨC
+                notifier.send();
+                context.push(AppRoutes.petAlbumSwipe).then((_) {
+                  if (context.mounted) {
+                    notifier.resetPreview();
+                  }
+                });
+              } else {
+                onCapture();
+              }
+            },
           ),
 
           // Switch camera button (ẩn khi frozen)

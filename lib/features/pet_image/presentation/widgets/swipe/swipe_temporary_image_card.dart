@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 
@@ -9,6 +10,9 @@ class SwipeTemporaryImageCard extends StatelessWidget {
   final String? caption;
   final DateTime capturedAt;
   final String Function(DateTime) formatDateTime;
+  final bool isUploading;
+  final int sensorRotation;
+  final SensorPosition sensorPosition;
 
   const SwipeTemporaryImageCard({
     super.key,
@@ -18,6 +22,9 @@ class SwipeTemporaryImageCard extends StatelessWidget {
     this.caption,
     required this.capturedAt,
     required this.formatDateTime,
+    this.isUploading = false,
+    this.sensorRotation = 0,
+    this.sensorPosition = SensorPosition.back,
   });
 
   @override
@@ -43,10 +50,25 @@ class SwipeTemporaryImageCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.memory(
-              imageBytes,
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
+            // 🔥 Tự động xoay và lật ảnh dựa trên metadata để hiển thị đúng hướng ngay lập tức
+            Center(
+              child: RotatedBox(
+                quarterTurns: sensorRotation ~/ 90,
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()
+                    ..scale(
+                      sensorPosition == SensorPosition.front ? -1.0 : 1.0,
+                      1.0,
+                    ),
+                  child: Image.memory(
+                    imageBytes,
+                    width: cardWidth,
+                    height: cardHeight,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
             ),
             Positioned(
               bottom: 0,
@@ -97,17 +119,25 @@ class SwipeTemporaryImageCard extends StatelessWidget {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryPink,
+                            color: isUploading
+                                ? Colors.white.withOpacity(0.3)
+                                : AppColors.primaryPink,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.star, color: Colors.white, size: 16),
-                              SizedBox(width: 4),
+                              Icon(
+                                isUploading
+                                    ? Icons.access_time_rounded
+                                    : Icons.star,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
                               Text(
-                                '+20 EXP',
-                                style: TextStyle(
+                                isUploading ? 'Đang gửi...' : '+20 EXP',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,

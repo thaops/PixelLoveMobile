@@ -1,11 +1,13 @@
+import 'dart:typed_data';
 import 'dart:ui';
+import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/pet_image/domain/entities/pet_image.dart';
 
 class SwipeImageCard extends StatelessWidget {
-  final PetImage image;
+  final PetImage? image; // 🔥 Cho phép null cho trạng thái chưa lên server
   final double cardWidth;
   final double cardHeight;
   final bool isNextCard;
@@ -17,10 +19,15 @@ class SwipeImageCard extends StatelessWidget {
   final String formattedDate;
   final VoidCallback onLongPressStart;
   final VoidCallback onLongPressEnd;
+  final Uint8List? localImageBytes;
+  final int? localRotation;
+  final SensorPosition? localPosition;
+  final bool isUploading; // 🔥 Thêm trạng thái đang gửi
+  final String? localCaption; // 🔥 Thêm caption local
 
   const SwipeImageCard({
     super.key,
-    required this.image,
+    this.image,
     required this.cardWidth,
     required this.cardHeight,
     required this.isNextCard,
@@ -32,6 +39,11 @@ class SwipeImageCard extends StatelessWidget {
     required this.formattedDate,
     required this.onLongPressStart,
     required this.onLongPressEnd,
+    this.localImageBytes,
+    this.localRotation,
+    this.localPosition,
+    this.isUploading = false,
+    this.localCaption,
   });
 
   @override
@@ -46,7 +58,7 @@ class SwipeImageCard extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: cardWidth, maxHeight: cardHeight),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(44),
-          color: Colors.black,
+          color: localImageBytes != null ? Colors.transparent : Colors.black,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.2),
@@ -60,42 +72,69 @@ class SwipeImageCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              CachedNetworkImage(
-                imageUrl: image.imageUrl,
-                fit: BoxFit.cover,
-                color: isNextCard ? Colors.black.withOpacity(0.3) : null,
-                colorBlendMode: isNextCard ? BlendMode.darken : null,
-                imageBuilder: (context, imageProvider) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: imageProvider,
+              // 🔥 1. Lớp nền: Hiển thị ngay ảnh local nếu có, xoay đúng hướng
+              if (localImageBytes != null)
+                Center(
+                  child: RotatedBox(
+                    quarterTurns: (localRotation ?? 0) ~/ 90,
+                    child: Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()
+                        ..scale(
+                          localPosition == SensorPosition.front ? -1.0 : 1.0,
+                          1.0,
+                        ),
+                      child: Image.memory(
+                        localImageBytes!,
+                        width: cardWidth,
+                        height: cardHeight,
                         fit: BoxFit.cover,
-                        alignment: Alignment.center,
                       ),
-                    ),
-                    child: isNextCard
-                        ? BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                            child: Container(
-                              color: Colors.black.withOpacity(0.2),
-                            ),
-                          )
-                        : null,
-                  );
-                },
-                placeholder: (context, url) => _buildSkeletonPlaceholder(),
-                errorWidget: (context, url, error) => Container(
-                  color: AppColors.backgroundLight,
-                  child: Center(
-                    child: Icon(
-                      Icons.error_outline,
-                      color: AppColors.errorIcon,
-                      size: 48,
                     ),
                   ),
                 ),
-              ),
+
+              // 🔥 2. Lớp trên: Ảnh từ API (chỉ hiện đè lên khi đã tải xong)
+              if (image != null)
+                CachedNetworkImage(
+                  imageUrl: image!.imageUrl,
+                  fit: BoxFit.cover,
+                  color: isNextCard ? Colors.black.withOpacity(0.3) : null,
+                  colorBlendMode: isNextCard ? BlendMode.darken : null,
+                  imageBuilder: (context, imageProvider) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: imageProvider,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                        ),
+                      ),
+                      child: isNextCard
+                          ? BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                              child: Container(
+                                color: Colors.black.withOpacity(0.2),
+                              ),
+                            )
+                          : null,
+                    );
+                  },
+                  placeholder: (context, url) => localImageBytes != null
+                      ? const SizedBox.shrink()
+                      : _buildSkeletonPlaceholder(),
+                  fadeOutDuration: Duration.zero,
+                  fadeInDuration: localImageBytes != null
+                      ? Duration.zero
+                      : const Duration(milliseconds: 100),
+                  errorWidget: (context, url, error) =>
+                      (localImageBytes != null)
+                      ? const SizedBox.shrink()
+                      : Container(
+                          color: AppColors.backgroundLight,
+                          child: const Center(child: Icon(Icons.error_outline)),
+                        ),
+                ),
               _buildGradientOverlay(),
               if (isLastImage) _buildLastImageBadge(),
             ],
@@ -130,6 +169,9 @@ class SwipeImageCard extends StatelessWidget {
   }
 
   Widget _buildGradientOverlay() {
+    final displayCaption = image?.text ?? localCaption;
+    final displayExp = image?.totalExp ?? 20;
+
     return Positioned(
       bottom: 0,
       left: 0,
@@ -147,7 +189,7 @@ class SwipeImageCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (image.text != null && image.text!.isNotEmpty)
+            if (displayCaption != null && displayCaption.isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.symmetric(
@@ -163,7 +205,7 @@ class SwipeImageCard extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  image.text!,
+                  displayCaption,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -172,8 +214,9 @@ class SwipeImageCard extends StatelessWidget {
                 ),
               ),
             if (isFromPartner) _buildPartnerBadge(),
-            _buildInfoRow(),
-            if (image.mood != null && image.mood!.isNotEmpty) _buildMoodBadge(),
+            _buildInfoRow(displayExp),
+            if (image?.mood != null && image!.mood!.isNotEmpty)
+              _buildMoodBadge(),
           ],
         ),
       ),
@@ -210,29 +253,35 @@ class SwipeImageCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow() {
+  Widget _buildInfoRow(int totalExp) {
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.primaryPink,
+            color: isUploading
+                ? Colors.white.withOpacity(0.3)
+                : AppColors.primaryPink,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.star, color: Colors.white, size: 16),
+              Icon(
+                isUploading ? Icons.access_time_rounded : Icons.star,
+                color: Colors.white,
+                size: 16,
+              ),
               const SizedBox(width: 4),
               Text(
-                '+${image.totalExp} EXP',
+                isUploading ? 'Đang gửi...' : '+$totalExp EXP',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (image.hasBonus) ...[
+              if (image?.hasBonus ?? false) ...[
                 const SizedBox(width: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -295,7 +344,7 @@ class SwipeImageCard extends StatelessWidget {
           const Icon(Icons.mood, color: Colors.white, size: 16),
           const SizedBox(width: 4),
           Text(
-            image.mood!,
+            image?.mood ?? '',
             style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
         ],

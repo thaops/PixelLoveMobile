@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -39,7 +40,10 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
         _photoState = photoState;
         final newFlash = photoState.sensorConfig.flashMode;
         if (state.flashMode != newFlash) {
-          state = state.copyWith(flashMode: newFlash);
+          state = state.copyWith(
+            flashMode: newFlash,
+            sensorPosition: photoState.sensorConfig.sensors.first.position,
+          );
         }
 
         // 🔥 LẤY ZOOM TỪ CAMERA (QUAN TRỌNG - Preview có zoom nội bộ)
@@ -105,24 +109,25 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
     state = state.copyWith(isCapturing: true);
 
     try {
-      // 🔥 CẬP NHẬT ZOOM TỪ CAMERA STATE (đảm bảo luôn đúng)
       _updateZoomFromCamera();
-
-      // 🔥 Convert AnalysisImage → ui.Image
       final uiImage = await _convertAnalysisImage(_latestFrame!);
 
-      // 🔥 Vẽ ui.Image → bytes (PNG, không crop)
-      final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
-      final bytes = byteData!.buffer.asUint8List();
-
-      // 🔥 Freeze ngay lập tức - không I/O, không delay
+      // 🔥 Freeze LẬP TỨC: Không encode PNG/JPG, dùng luôn ui.Image
       state = state.copyWith(
         isFrozen: true,
-        bytes: bytes,
+        frozenImage: uiImage,
         isCapturing: false,
         capturedAt: DateTime.now(),
-        // ❌ KHÔNG set previewFile ở đây - sẽ tạo khi send
+        sensorRotation: _sensorRotation,
+        sensorPosition: _sensorPosition,
       );
+
+      // Lưu bytes ngầm (PNG để hiển thị được trong MemoryImage) cho swipe screen
+      uiImage.toByteData(format: ui.ImageByteFormat.png).then((data) {
+        if (data != null) {
+          state = state.copyWith(bytes: data.buffer.asUint8List());
+        }
+      });
     } catch (e) {
       state = state.copyWith(isCapturing: false);
     }
@@ -184,6 +189,14 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
       final originalBytes = await originalFile.readAsBytes();
       var image = img.decodeImage(originalBytes);
       if (image == null) return null;
+
+      // 🔥 Áp dụng rotation và mirror từ cảm biến
+      if (state.sensorRotation != 0) {
+        image = img.copyRotate(image, angle: state.sensorRotation);
+      }
+      if (state.sensorPosition == SensorPosition.front) {
+        image = img.flipHorizontal(image);
+      }
 
       // 🔥 Crop ảnh
       var processed = _cropCenter(image, _previewAspectRatio);
@@ -299,14 +312,18 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
   }
 
   // ===== Send =====
-  Future<void> send() async {
+  void send() {
     if (state.isSending) return;
-    if (state.bytes == null) return; // 🔥 Cần có bytes để send
 
-    // 🔥 Set isSending = true để trigger listener và navigate
+    // 🔥 1. Tắt bàn phím ngay lập tức để giải phóng UI thread
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    if (state.bytes == null) return;
+
+    // 🔥 2. Kích hoạt chuyển trang NGAY LẬP TỨC qua listener
     state = state.copyWith(isSending: true);
 
-    // 🔥 Lưu temporary image vào provider để swipe screen hiển thị ngay
+    // 🔥 3. Set temporary image để màn hình album có data ngay
     ref
         .read(temporaryCapturedImageProvider.notifier)
         .setImage(
@@ -316,14 +333,36 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
                 ? null
                 : captionController.text.trim(),
             capturedAt: state.capturedAt ?? DateTime.now(),
+            sensorRotation: state.sensorRotation,
+            sensorPosition: state.sensorPosition,
           ),
         );
 
-    // 🔥 Upload ngầm (fire and forget) - không đợi kết quả
-    _uploadInBackground();
+    // 🔥 4. Chạy các tác vụ nặng ngầm (Xoay ảnh + Upload) - sau khi đã ra lệnh chuyển trang
+    _uploadWithOrientedUpdate();
+  }
 
-    // 🔥 KHÔNG reset preview ở đây - sẽ reset sau khi navigate
-    // Reset preview sẽ được gọi từ capture screen sau khi navigate
+  // Chạy background xử lý orient và upload
+  Future<void> _uploadWithOrientedUpdate() async {
+    // Xoay ảnh local chuẩn hóa lại (ngầm)
+    final oriented = await _generateOrientedBytes();
+    if (oriented != null) {
+      // Cập nhật lại temporary image với bản đã xoay đẹp hơn
+      final currentTemp = ref.read(temporaryCapturedImageProvider);
+      if (currentTemp != null) {
+        ref
+            .read(temporaryCapturedImageProvider.notifier)
+            .setImage(
+              TemporaryCapturedImage(
+                bytes: oriented,
+                caption: currentTemp.caption,
+                capturedAt: currentTemp.capturedAt,
+              ),
+            );
+      }
+    }
+    // Tiến hành upload như cũ
+    await _uploadInBackground();
   }
 
   // ===== Upload ngầm (background) =====
@@ -337,11 +376,20 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
         final processedFile = await _processFileForUpload(originalFile);
         fileToUpload = processedFile ?? originalFile;
       } else {
-        // 🔥 Case: freeze từ live frame - tạo file từ bytes
+        // 🔥 Case: freeze từ live frame - tạo file từ bytes hoặc frozenImage
         final tempDir = await getTemporaryDirectory();
         final timestamp = DateTime.now().microsecondsSinceEpoch;
         final tempFile = File('${tempDir.path}/pet_live_$timestamp.png');
-        await tempFile.writeAsBytes(state.bytes!);
+
+        if (state.bytes != null) {
+          await tempFile.writeAsBytes(state.bytes!);
+        } else if (state.frozenImage != null) {
+          final png = await state.frozenImage!.toByteData(
+            format: ui.ImageByteFormat.png,
+          );
+          if (png != null)
+            await tempFile.writeAsBytes(png.buffer.asUint8List());
+        }
 
         // Process file (crop + encode to JPG)
         final processedFile = await _processFileForUpload(tempFile);
@@ -415,6 +463,41 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
   }
 
   // ===== Helpers =====
+  Future<Uint8List?> _generateOrientedBytes() async {
+    final uiImage = state.frozenImage;
+    if (uiImage == null) return state.bytes;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    final bool isRotated =
+        state.sensorRotation == 90 || state.sensorRotation == 270;
+    final outW = isRotated ? uiImage.height : uiImage.width;
+    final outH = isRotated ? uiImage.width : uiImage.height;
+
+    final center = Offset(outW / 2, outH / 2);
+    canvas.translate(center.dx, center.dy);
+
+    if (state.sensorRotation != 0) {
+      canvas.rotate(state.sensorRotation * 3.1415926535897932 / 180);
+    }
+
+    if (state.sensorPosition == SensorPosition.front) {
+      canvas.scale(-1, 1);
+    }
+
+    canvas.drawImage(
+      uiImage,
+      Offset(-uiImage.width / 2, -uiImage.height / 2),
+      Paint()..filterQuality = ui.FilterQuality.high,
+    );
+
+    final picture = recorder.endRecording();
+    final orientedImage = await picture.toImage(outW, outH);
+    final data = await orientedImage.toByteData(format: ui.ImageByteFormat.png);
+    return data?.buffer.asUint8List();
+  }
+
   String? _extractPath(CaptureRequest request) {
     return request.when(
       single: (s) => s.file?.path,
@@ -446,187 +529,80 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
         final width = nv21.width;
         final height = nv21.height;
 
-        // 🔥 Debug log
-        debugPrint(
-          'NV21 frame: ${width}x${height}, bytes=${nv21.bytes.length}',
+        // 1️⃣ Convert NV21 → RGBA bytes ngay lập tức (hiếm khi khựng vì là loop đơn giản)
+        final rgbaBytes = Uint8List(width * height * 4);
+        _convertNV21ToRGBA(nv21.bytes, width, height, rgbaBytes);
+
+        // 2️⃣ Dùng decodeImageFromPixels cho tốc độ (gần như 0ms)
+        final completer = Completer<ui.Image>();
+        ui.decodeImageFromPixels(
+          rgbaBytes,
+          width,
+          height,
+          ui.PixelFormat.rgba8888,
+          (ui.Image image) => completer.complete(image),
         );
-
-        // 1️⃣ Convert NV21 → RGB image (image package)
-        var rgbImage = img.Image(width: width, height: height);
-
-        // 🔥 BƯỚC SỐNG CÒN: Manual NV21 → RGB conversion
-        _convertNV21ToRGB(nv21.bytes, width, height, rgbImage);
-
-        // 🔥 FIX ORIENTATION - Rotate + flip để khớp preview
-        rgbImage = _applyOrientation(
-          rgbImage,
-          _sensorRotation,
-          _sensorPosition,
-        );
-
-        // 🔥 BÙ ZOOM CHO GIỐNG PREVIEW (SAU rotate)
-        rgbImage = _applyZoom(rgbImage, _currentZoom);
-
-        // 2️⃣ Encode RGB → PNG
-        final pngBytes = img.encodePng(rgbImage);
-
-        // 3️⃣ Decode PNG → ui.Image
-        final codec = await ui.instantiateImageCodec(pngBytes);
-        final frame = await codec.getNextFrame();
-
-        return frame.image;
+        return completer.future;
       },
       bgra8888: (bgra) async {
-        // 🔥 Decode BGRA → RGB image để apply orientation
-        var rgbImage = img.Image(width: bgra.width, height: bgra.height);
-
-        // Convert BGRA → RGB
-        for (int y = 0; y < bgra.height; y++) {
-          for (int x = 0; x < bgra.width; x++) {
-            final index = (y * bgra.width + x) * 4;
-            if (index + 3 >= bgra.bytes.length) continue;
-
-            final b = bgra.bytes[index];
-            final g = bgra.bytes[index + 1];
-            final r = bgra.bytes[index + 2];
-            // index + 3 là alpha, bỏ qua
-
-            rgbImage.setPixelRgb(x, y, r, g, b);
-          }
+        // BGRA → RGBA chỉ là đổi vị trí R và B
+        final rgbaBytes = Uint8List(bgra.bytes.length);
+        for (int i = 0; i < bgra.bytes.length; i += 4) {
+          rgbaBytes[i] = bgra.bytes[i + 2]; // R
+          rgbaBytes[i + 1] = bgra.bytes[i + 1]; // G
+          rgbaBytes[i + 2] = bgra.bytes[i]; // B
+          rgbaBytes[i + 3] = bgra.bytes[i + 3]; // A
         }
 
-        // 🔥 FIX ORIENTATION - Rotate + flip để khớp preview
-        rgbImage = _applyOrientation(
-          rgbImage,
-          _rotationToDegrees(
-            bgra.rotation,
-          ), // ✅ Dùng rotation từ bgra (convert sang int)
-          _sensorPosition,
+        final completer = Completer<ui.Image>();
+        ui.decodeImageFromPixels(
+          rgbaBytes,
+          bgra.width,
+          bgra.height,
+          ui.PixelFormat.rgba8888,
+          (ui.Image image) => completer.complete(image),
         );
-
-        // 🔥 BÙ ZOOM CHO GIỐNG PREVIEW (SAU rotate)
-        rgbImage = _applyZoom(rgbImage, _currentZoom);
-
-        // Encode RGB → PNG
-        final pngBytes = img.encodePng(rgbImage);
-
-        // Decode PNG → ui.Image
-        final codec = await ui.instantiateImageCodec(pngBytes);
-        final frame = await codec.getNextFrame();
-        return frame.image;
+        return completer.future;
       },
     );
 
     return result ?? (throw Exception('Failed to convert AnalysisImage'));
   }
 
-  // ===== Manual NV21 → RGB conversion =====
-  void _convertNV21ToRGB(
+  // ===== Manual NV21 → RGBA conversion (SIÊU NHANH) =====
+  void _convertNV21ToRGBA(
     Uint8List nv21Bytes,
     int width,
     int height,
-    img.Image rgbImage,
+    Uint8List rgbaBytes,
   ) {
-    // NV21 format: Y plane (width * height) + interleaved VU plane (width * height / 2)
     final ySize = width * height;
+    int rgbaIndex = 0;
 
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
-        // Get Y (luminance)
         final yIndex = y * width + x;
-        if (yIndex >= nv21Bytes.length) continue;
         final yValue = nv21Bytes[yIndex];
 
-        // Get UV (chrominance) - NV21 is interleaved VU
         final uvIndex = ySize + ((y ~/ 2) * width) + (x ~/ 2) * 2;
         final vValue = uvIndex < nv21Bytes.length ? nv21Bytes[uvIndex] : 128;
         final uValue = uvIndex + 1 < nv21Bytes.length
             ? nv21Bytes[uvIndex + 1]
             : 128;
 
-        // Convert YUV to RGB
-        final r = _yuvToR(yValue, uValue, vValue);
-        final g = _yuvToG(yValue, uValue, vValue);
-        final b = _yuvToB(yValue, uValue, vValue);
+        final r = (yValue + 1.402 * (vValue - 128)).round().clamp(0, 255);
+        final g = (yValue - 0.344 * (uValue - 128) - 0.714 * (vValue - 128))
+            .round()
+            .clamp(0, 255);
+        final b = (yValue + 1.772 * (uValue - 128)).round().clamp(0, 255);
 
-        rgbImage.setPixelRgb(x, y, r, g, b);
+        rgbaBytes[rgbaIndex++] = r;
+        rgbaBytes[rgbaIndex++] = g;
+        rgbaBytes[rgbaIndex++] = b;
+        rgbaBytes[rgbaIndex++] = 255; // Alpha
       }
     }
   }
 
-  int _yuvToR(int y, int u, int v) {
-    final r = (y + 1.402 * (v - 128)).round();
-    return r.clamp(0, 255);
-  }
-
-  int _yuvToG(int y, int u, int v) {
-    final g = (y - 0.344 * (u - 128) - 0.714 * (v - 128)).round();
-    return g.clamp(0, 255);
-  }
-
-  int _yuvToB(int y, int u, int v) {
-    final b = (y + 1.772 * (u - 128)).round();
-    return b.clamp(0, 255);
-  }
-
-  // ===== Apply orientation - Rotate + flip để khớp preview =====
-  img.Image _applyOrientation(
-    img.Image src,
-    int rotation,
-    SensorPosition position,
-  ) {
-    img.Image out = src;
-
-    // ✅ Rotate theo rotation THỰC từ camera (KHÔNG xoay ngược)
-    switch (rotation) {
-      case 90:
-        out = img.copyRotate(out, angle: 90);
-        break;
-      case 180:
-        out = img.copyRotate(out, angle: 180);
-        break;
-      case 270:
-        out = img.copyRotate(out, angle: 270);
-        break;
-      // case 0: không cần rotate
-    }
-
-    // ✅ Mirror chỉ khi camera trước
-    if (position == SensorPosition.front) {
-      out = img.flipHorizontal(out);
-    }
-
-    return out;
-  }
-
-  // ===== Apply zoom - Crop center để khớp preview zoom =====
-  img.Image _applyZoom(img.Image src, double zoom) {
-    // 🔥 (A) Bù nhẹ khi zoom = 1.0 (CameraAwesome có internal scale ~1.03-1.08x)
-    // Preview thực tế có thể là 1.05x nhưng _currentZoom = 1.0
-    // Empiric value, test trên Pixel (Instagram cũng làm kiểu "empiric fudge factor" này)
-    final effectiveZoom = zoom <= 1.01 ? 1.05 : zoom;
-
-    // 🔥 Crop center: giảm kích thước theo zoom
-    final newWidth = (src.width / effectiveZoom).round();
-    final newHeight = (src.height / effectiveZoom).round();
-
-    final x = (src.width - newWidth) ~/ 2;
-
-    // 🔥 (B) Dịch crop Y lên nhẹ theo previewAlignment (0, -0.37)
-    // Preview bị dịch lên trên → cảm giác zoom hơn → dịch crop Y lên để khớp cảm giác thị giác
-    final yOffset = (src.height * 0.05)
-        .round(); // ~5% height, tương ứng với -0.37 alignment
-    final y = ((src.height - newHeight) ~/ 2) - yOffset;
-
-    // 🔥 Clamp Y để không vượt quá bounds
-    final clampedY = y.clamp(0, src.height - newHeight);
-
-    return img.copyCrop(
-      src,
-      x: x,
-      y: clampedY,
-      width: newWidth,
-      height: newHeight,
-    );
-  }
+  // orientation and zoom calculations are now handled in the CustomPainter for maximum speed
 }

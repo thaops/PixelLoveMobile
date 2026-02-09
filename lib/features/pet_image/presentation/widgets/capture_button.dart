@@ -46,6 +46,9 @@ class _CaptureButtonState extends State<CaptureButton>
   }
 
   void _handleTap() {
+    // 🔥 Defocus ngay lập tức: Khắc phục lỗi phải click 2 lần do bàn phím
+    FocusManager.instance.primaryFocus?.unfocus();
+
     // Disable khi đang capture hoặc đang sending
     if (widget.state.isCapturing ||
         (widget.state.isFrozen && widget.state.isSending)) {
@@ -63,8 +66,9 @@ class _CaptureButtonState extends State<CaptureButton>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _handleTap,
+    return Listener(
+      onPointerDown: (_) => _handleTap(),
+      behavior: HitTestBehavior.opaque,
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) {

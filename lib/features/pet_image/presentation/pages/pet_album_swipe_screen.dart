@@ -8,6 +8,7 @@ import 'package:pixel_love/features/pet_image/presentation/controllers/pet_album
 import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_album_notifier.dart';
 import 'package:pixel_love/features/pet_image/presentation/widgets/pet_album_header.dart';
 import 'package:pixel_love/features/pet_image/presentation/widgets/swipe/swipe_widgets.dart';
+import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_capture_state.dart';
 import 'package:pixel_love/features/pet_image/providers/pet_image_providers.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart' as card_swiper;
@@ -48,6 +49,13 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
   Widget build(BuildContext context) {
     final albumState = ref.watch(petAlbumNotifierProvider);
     final albumNotifier = ref.read(petAlbumNotifierProvider.notifier);
+    final tempCaptured = ref.watch(temporaryCapturedImageProvider);
+
+    // Sync temp image to controller immediately
+    if (_controller.temporaryImage != tempCaptured) {
+      _controller.temporaryImage = tempCaptured;
+    }
+
     final images = _controller.getSortedImages(albumState);
 
     ref.listen<TemporaryCapturedImage?>(temporaryCapturedImageProvider, (
@@ -61,6 +69,8 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     _controller.checkEntryMessage(images);
 
     final canPop = context.canPop();
+
+    final captureState = ref.watch(petCaptureNotifierProvider);
 
     return PopScope(
       canPop: canPop,
@@ -92,7 +102,9 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                       () => context.pop(),
                       () => context.go(AppRoutes.home),
                     ),
-                onTapDown: (_) => _controller.handleDoubleTap(),
+                onTap: _controller.nextByTap, // Chạm 1 lần là qua liền
+                onDoubleTap:
+                    _controller.handleDoubleTap, // Chạm 2 lần là thả tim
                 child: Transform.translate(
                   offset: Offset(0, _controller.verticalDragOffset * 0.3),
                   child: Opacity(
@@ -114,6 +126,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                                   albumState,
                                   albumNotifier,
                                   images,
+                                  captureState,
                                 ),
                               ),
                             ],
@@ -141,6 +154,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     PetAlbumState albumState,
     PetAlbumNotifier albumNotifier,
     List<PetImage> images,
+    PetCaptureState captureState,
   ) {
     final cardWidth = _controller.getCardWidth(context);
     final cardHeight = _controller.getCardHeight(context);
@@ -155,7 +169,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
       );
     }
 
-    if (albumState.isEmpty) {
+    if (albumState.isEmpty && _controller.temporaryImage == null) {
       return const SwipeEmptyState();
     }
 
@@ -185,11 +199,13 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     return Stack(
       children: [
         card_swiper.CardSwiper(
-          key: const PageStorageKey("album_swiper"),
+          // 🔥 Dùng Key cố định để Swiper không bị reset khi dữ liệu thay đổi nhẹ
+          key: const ValueKey("stable_pet_album_swiper"),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
           controller: _controller.swiperController,
 
           cardsCount: totalCards,
+          numberOfCardsDisplayed: totalCards < 2 ? totalCards : 2,
           isLoop: false,
 
           // ⭐ BẬT UNDO STACK CỦA LIB: TRUE + Config Hướng
@@ -214,6 +230,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
 
             /// NEXT
             if (direction == card_swiper.CardSwiperDirection.left) {
+              _controller.syncIndex(currentIndex ?? 0);
               _controller.next(
                 totalCards,
                 hasTemporaryImage,
@@ -226,6 +243,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
 
             /// PREVIOUS / UNDO
             if (direction == card_swiper.CardSwiperDirection.right) {
+              _controller.syncIndex(currentIndex ?? 0);
               debugPrint("SWIPE RIGHT (Undo) -> Triggering Load Previous");
               _controller.swiperController.undo();
               return false; // Prevent "Swipe Away", trigger Undo instead
@@ -248,13 +266,32 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               }
 
               if (shouldShowTemporaryImage && real == 0) {
-                return SwipeTemporaryImageCard(
+                final temp = _controller.temporaryImage!;
+                final uploadedImage = _controller.findUploadedImage(images);
+
+                return SwipeImageCard(
+                  image: uploadedImage,
                   cardWidth: cardWidth,
                   cardHeight: cardHeight,
-                  imageBytes: _controller.temporaryImage!.bytes,
-                  caption: _controller.temporaryImage!.caption,
-                  capturedAt: _controller.temporaryImage!.capturedAt,
-                  formatDateTime: _controller.formatDateTime,
+                  isNextCard: percentThresholdX != 0,
+                  isFromPartner: false,
+                  isLastImage: images.length == 1 && !albumState.hasMore,
+                  showMemoryHighlight: false,
+                  shimmerAnimation: _controller.shimmerController,
+                  memoryIcon: (uploadedImage != null)
+                      ? _controller.getMemoryIcon(uploadedImage.actionAt)
+                      : Icons.today,
+                  formattedDate: (uploadedImage != null)
+                      ? _controller.formatDateTime(uploadedImage.actionAt)
+                      : 'Hôm nay',
+                  onLongPressStart: () {},
+                  onLongPressEnd: () {},
+                  localImageBytes: temp.bytes,
+                  localRotation: temp.sensorRotation,
+                  localPosition: temp.sensorPosition,
+                  isUploading:
+                      (uploadedImage == null) && captureState.isSending,
+                  localCaption: temp.caption,
                 );
               }
 

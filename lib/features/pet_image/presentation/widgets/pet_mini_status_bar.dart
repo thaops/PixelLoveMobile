@@ -24,16 +24,16 @@ class PetMiniStatusBar extends ConsumerWidget {
     final feedInfo = petStatus.todayFeedCount > 0
         ? '❤️ ${petStatus.todayFeedCount} khoảnh khắc hôm nay'
         : petStatus.lastFeedTime != null
-            ? '⏰ Lần cuối: ${DateFormat('HH:mm').format(petStatus.lastFeedTime!)}'
-            : '❤️ Chưa có khoảnh khắc hôm nay';
+        ? '⏰ Lần cuối: ${DateFormat('HH:mm').format(petStatus.lastFeedTime!)}'
+        : '❤️ Chưa có khoảnh khắc hôm nay';
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
-          height: 72,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.9),
             borderRadius: BorderRadius.circular(16),
@@ -62,14 +62,17 @@ class PetMiniStatusBar extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
                         Text(
                           'Lv ${petStatus.level}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: AppColors.primaryPink,
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -107,19 +110,23 @@ class PetMiniStatusBar extends ConsumerWidget {
                         const SizedBox(width: 8),
                         Text(
                           '${petStatus.exp}/${petStatus.expToNextLevel}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black.withOpacity(0.7),
-                            fontSize: 11,
+                            fontSize: 10,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 2),
                     Text(
                       feedInfo,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.black.withOpacity(0.7),
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -135,7 +142,7 @@ class PetMiniStatusBar extends ConsumerWidget {
 
   Widget _buildSkeleton() {
     return Container(
-      height: 72,
+      height: 64,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.04),
         borderRadius: BorderRadius.circular(16),
@@ -144,4 +151,3 @@ class PetMiniStatusBar extends ConsumerWidget {
     );
   }
 }
-

@@ -6,8 +6,8 @@ class CaptureLayoutMetrics {
   CaptureLayoutMetrics(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    previewWidth = size.width * 0.95;
-    previewHeight = previewWidth * 4 / 3.9;
+    previewWidth = size.width * 0.94;
+    previewHeight = previewWidth; // 🔥 1:1 để khớp hoàn toàn với Sensor ratio
     previewLeft = (size.width - previewWidth) / 2;
 
     headerHeight = 0.0; // 🔥 Luôn 0, không đổi khi freeze
@@ -16,8 +16,9 @@ class CaptureLayoutMetrics {
 
     final availableHeight = size.height - headerHeight - actionBarHeight;
 
-    // 🔥 Điều chỉnh vị trí khung camera xuống thấp hơn (gần giữa màn hình)
-    previewTop = (size.height - previewHeight) / 2 - 100.0;
+    // 🔥 Khớp hoàn toàn với previewAlignment: Alignment(0, -0.5) và previewFit: contain
+    const double alignmentY = -0.5;
+    previewTop = (1 + alignmentY) / 2 * (size.height - size.width);
   }
 
   late final double previewWidth;

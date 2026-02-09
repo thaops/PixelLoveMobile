@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/pet_image/data/datasources/pet_image_remote_datasource.dart';
@@ -55,11 +56,15 @@ class TemporaryCapturedImage {
   final Uint8List bytes;
   final String? caption;
   final DateTime capturedAt;
+  final int sensorRotation;
+  final SensorPosition sensorPosition;
 
   TemporaryCapturedImage({
     required this.bytes,
     this.caption,
     required this.capturedAt,
+    this.sensorRotation = 0,
+    this.sensorPosition = SensorPosition.back,
   });
 }
 
