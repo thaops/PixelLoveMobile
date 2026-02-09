@@ -173,9 +173,9 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 66,
-        height: 66,
-        padding: const EdgeInsets.all(10),
+        width: 54,
+        height: 54,
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,

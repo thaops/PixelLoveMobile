@@ -17,8 +17,8 @@ class PetStatusCard extends StatelessWidget {
     if (progress < 0.0) progress = 0.0;
 
     return Container(
-      width: 70, // Fixed width for vertical pill
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      width: 60, // Fixed width for vertical pill
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -64,7 +64,7 @@ class PetStatusCard extends StatelessWidget {
               ],
             ),
             child: const CircleAvatar(
-              radius: 22,
+              radius: 18,
               backgroundColor: Color(0xFFFFF0F5),
               backgroundImage: AssetImage('assets/images/pet-level-1.png'),
             ),
@@ -73,10 +73,10 @@ class PetStatusCard extends StatelessWidget {
 
           // Level Badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: const Color(0xFFFF4081),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFFFF4081).withOpacity(0.4),
@@ -87,54 +87,56 @@ class PetStatusCard extends StatelessWidget {
             ),
             child: Text(
               'Lv.${petStatus.level}',
+              maxLines: 1,
+              softWrap: false,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 12,
+                fontSize: 10,
               ),
             ),
           ),
 
           const SizedBox(height: 16),
 
-          // Vertical Progress Bar
-          SizedBox(
-            height: 200, // Height of the progress bar
-            width: 14, // Width of the progress bar
-            child: Stack(
-              alignment: Alignment.bottomCenter,
-              children: [
-                // Background track
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 2,
-                      ),
-                    ],
-                  ),
-                ),
-                // Fill
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    return Container(
-                      height: constraints.maxHeight * progress,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Color(0xFFFF80AB), Color(0xFFFF4081)],
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              height: 140,
+              width: 12,
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  // Background track
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 2,
                         ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    );
-                  },
-                ),
-              ],
+                      ],
+                    ),
+                  ),
+                  // Fill
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Container(
+                        height: constraints.maxHeight * progress,
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [Color(0xFFFF80AB), Color(0xFFFF4081)],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
 
