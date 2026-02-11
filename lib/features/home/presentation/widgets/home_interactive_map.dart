@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pixel_love/features/home/domain/entities/home.dart';
+import 'package:pixel_love/features/home/providers/home_providers.dart';
 import 'package:pixel_love/features/radio/presentation/widgets/radio_action_menu.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 
-class HomeInteractiveMap extends StatelessWidget {
+class HomeInteractiveMap extends ConsumerWidget {
   final Home homeData;
   final TransformationController transformationController;
   final bool showRadioMenu;
@@ -24,7 +26,7 @@ class HomeInteractiveMap extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final screenSize = MediaQuery.of(context).size;
     final bgWidth = homeData.background.width;
     final bgHeight = homeData.background.height;
@@ -32,6 +34,8 @@ class HomeInteractiveMap extends StatelessWidget {
 
     final finalHeight = screenSize.height;
     final finalWidth = finalHeight * bgAspectRatio;
+
+    final streakState = ref.watch(streakNotifierProvider);
 
     return InteractiveViewer(
       transformationController: transformationController,
@@ -50,10 +54,12 @@ class HomeInteractiveMap extends StatelessWidget {
             _buildBackground(finalWidth, finalHeight),
             ..._buildObjects(
               context,
+              ref,
               finalWidth,
               finalHeight,
               bgWidth,
               bgHeight,
+              streakState.streak?.days ?? 0,
             ),
             if (showRadioMenu && radioRect != null)
               Positioned(
@@ -81,30 +87,38 @@ class HomeInteractiveMap extends StatelessWidget {
       );
     }
 
-    return Image.network(
-      homeData.background.imageUrl,
+    return CachedNetworkImage(
+      imageUrl: homeData.background.imageUrl,
       width: width,
       height: height,
       fit: BoxFit.cover,
       alignment: Alignment.center,
-      errorBuilder: (context, error, stackTrace) {
-        return Image.asset(
-          'assets/images/background.jpg',
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-          alignment: Alignment.center,
-        );
-      },
+      placeholder: (context, url) => Container(
+        width: width,
+        height: height,
+        color: const Color(0xFF1A1A2E), // Dark theme primary color
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.pink),
+        ),
+      ),
+      errorWidget: (context, url, error) => Image.asset(
+        'assets/images/background.jpg',
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        alignment: Alignment.center,
+      ),
     );
   }
 
   List<Widget> _buildObjects(
     BuildContext context,
+    WidgetRef ref,
     double finalWidth,
     double finalHeight,
     double bgWidth,
     double bgHeight,
+    int streakDays,
   ) {
     final scaleX = finalWidth / bgWidth;
     final scaleY = finalHeight / bgHeight;
@@ -117,13 +131,13 @@ class HomeInteractiveMap extends StatelessWidget {
         height: obj.height * scaleY,
         child: GestureDetector(
           onTap: () => _handleObjectTap(context, obj, scaleX, scaleY),
-          child: ClipRect(child: _buildObjectContent(obj)),
+          child: ClipRect(child: _buildObjectContent(obj, streakDays)),
         ),
       );
     }).toList();
   }
 
-  Widget _buildObjectContent(HomeObject obj) {
+  Widget _buildObjectContent(HomeObject obj, int streakDays) {
     final image = CachedNetworkImage(
       imageUrl: obj.imageUrl,
       fit: BoxFit.contain,
@@ -142,11 +156,11 @@ class HomeInteractiveMap extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           image,
-          const Padding(
-            padding: EdgeInsets.only(top: 27, left: 5),
+          Padding(
+            padding: const EdgeInsets.only(top: 27, left: 5),
             child: Text(
-              "100",
-              style: TextStyle(
+              streakDays.toString(),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
@@ -168,10 +182,10 @@ class HomeInteractiveMap extends StatelessWidget {
   ) {
     if (obj.type == 'pet') {
       if (showRadioMenu) onCloseRadioMenu();
-      context.go(AppRoutes.petScene);
+      context.push(AppRoutes.petScene);
     } else if (obj.type == 'fridge') {
       if (showRadioMenu) onCloseRadioMenu();
-      context.go(AppRoutes.fridge);
+      context.push(AppRoutes.fridge);
     } else if (obj.type == 'radio') {
       if (showRadioMenu) {
         onCloseRadioMenu();

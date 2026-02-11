@@ -85,12 +85,16 @@ class _PetSceneScreenState extends ConsumerState<PetSceneScreen> {
     return PopScope(
       canPop: context.canPop(),
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && !context.canPop()) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && context.mounted) {
-              context.go(AppRoutes.home);
-            }
-          });
+        if (!didPop) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && context.mounted) {
+                context.go(AppRoutes.home);
+              }
+            });
+          }
         }
       },
       child: Scaffold(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
+import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/home/presentation/controllers/home_controller.dart';
 import 'package:pixel_love/features/home/presentation/widgets/home_bottom_action_bar.dart';
 import 'package:pixel_love/features/home/presentation/widgets/home_error_view.dart';
@@ -18,7 +19,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   final _transformationController = TransformationController();
   late HomeController _controller;
 
@@ -28,6 +29,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = HomeController(
       ref: ref,
       transformationController: _transformationController,
@@ -36,13 +38,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       },
     );
     _controller.init();
+
+    // Initial fetch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(streakNotifierProvider.notifier).fetchStreak();
+    });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     _transformationController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(streakNotifierProvider.notifier).fetchStreak();
+    }
   }
 
   @override
@@ -74,7 +89,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           onRetry: _controller.retry,
         );
       }
-      return Container(color: Colors.black);
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: AppColors.backgroundGradient,
+          ),
+        ),
+      );
     }
 
     _schedulePositionInit(homeData);

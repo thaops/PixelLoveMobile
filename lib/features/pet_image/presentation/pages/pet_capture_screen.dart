@@ -121,132 +121,140 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
         ),
         child: Scaffold(
           resizeToAvoidBottomInset: false,
-          body: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: AppColors.backgroundGradient,
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.translucent,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: AppColors.backgroundGradient,
+                ),
               ),
-            ),
-            child: SafeArea(
-              child: Stack(
-                children: [
-                  CameraAwesomeBuilder.custom(
-                    saveConfig: SaveConfig.photo(),
-                    imageAnalysisConfig: AnalysisConfig(
-                      autoStart: true,
-                      maxFramesPerSecond: 30,
-                      androidOptions: AndroidAnalysisOptions.nv21(width: 720),
-                    ),
-                    onImageForAnalysis: (image) async {
-                      _frameCount++;
-                      if (!_isCameraReady && mounted && _frameCount >= 5) {
-                        final elapsed = _screenEnterTime != null
-                            ? DateTime.now()
-                                  .difference(_screenEnterTime!)
-                                  .inMilliseconds
-                            : 0;
-                        const minDelay = 800;
-                        final remainingDelay = elapsed < minDelay
-                            ? minDelay - elapsed
-                            : 0;
+              child: SafeArea(
+                bottom: false,
+                child: Stack(
+                  children: [
+                    CameraAwesomeBuilder.custom(
+                      saveConfig: SaveConfig.photo(),
+                      imageAnalysisConfig: AnalysisConfig(
+                        autoStart: true,
+                        maxFramesPerSecond: 30,
+                        androidOptions: AndroidAnalysisOptions.nv21(width: 720),
+                      ),
+                      onImageForAnalysis: (image) async {
+                        _frameCount++;
+                        if (!_isCameraReady && mounted && _frameCount >= 5) {
+                          final elapsed = _screenEnterTime != null
+                              ? DateTime.now()
+                                    .difference(_screenEnterTime!)
+                                    .inMilliseconds
+                              : 0;
+                          const minDelay = 800;
+                          final remainingDelay = elapsed < minDelay
+                              ? minDelay - elapsed
+                              : 0;
 
-                        if (remainingDelay > 0) {
-                          Future.delayed(
-                            Duration(milliseconds: remainingDelay),
-                            () {
-                              if (mounted) {
-                                setState(() {
-                                  _isCameraReady = true;
-                                });
-                              }
-                            },
-                          );
-                        } else {
-                          Future.delayed(const Duration(milliseconds: 200), () {
-                            if (mounted) {
-                              setState(() {
-                                _isCameraReady = true;
-                              });
-                            }
-                          });
+                          if (remainingDelay > 0) {
+                            Future.delayed(
+                              Duration(milliseconds: remainingDelay),
+                              () {
+                                if (mounted) {
+                                  setState(() {
+                                    _isCameraReady = true;
+                                  });
+                                }
+                              },
+                            );
+                          } else {
+                            Future.delayed(
+                              const Duration(milliseconds: 200),
+                              () {
+                                if (mounted) {
+                                  setState(() {
+                                    _isCameraReady = true;
+                                  });
+                                }
+                              },
+                            );
+                          }
                         }
-                      }
-                      if (mounted && _captureNotifier != null) {
-                        _captureNotifier!.onLiveFrame(image);
-                      }
-                    },
-                    previewFit: CameraPreviewFit.contain,
-                    previewAlignment: const Alignment(0, -0.5),
-                    sensorConfig: SensorConfig.single(
-                      sensor: Sensor.position(SensorPosition.back),
-                      aspectRatio: CameraAspectRatios.ratio_1_1,
-                      flashMode: FlashMode.none,
-                    ),
-                    builder: (cameraState, preview) {
-                      final captureNotifier = ref.read(
-                        petCaptureNotifierProvider.notifier,
-                      );
-                      captureNotifier.attachState(cameraState);
-                      final metrics = CaptureLayoutMetrics(context);
+                        if (mounted && _captureNotifier != null) {
+                          _captureNotifier!.onLiveFrame(image);
+                        }
+                      },
+                      previewFit: CameraPreviewFit.contain,
+                      previewAlignment: const Alignment(0, -0.5),
+                      sensorConfig: SensorConfig.single(
+                        sensor: Sensor.position(SensorPosition.back),
+                        aspectRatio: CameraAspectRatios.ratio_1_1,
+                        flashMode: FlashMode.none,
+                      ),
+                      builder: (cameraState, preview) {
+                        final captureNotifier = ref.read(
+                          petCaptureNotifierProvider.notifier,
+                        );
+                        captureNotifier.attachState(cameraState);
+                        final metrics = CaptureLayoutMetrics(context);
 
-                      return Stack(
-                        children: [
-                          PetPreviewMask(metrics: metrics),
-                          if (captureState.isFrozen &&
-                              captureState.frozenImage != null)
-                            _FrozenPreviewOverlay(
-                              image: captureState.frozenImage!,
-                              metrics: metrics,
+                        return Stack(
+                          children: [
+                            PetPreviewMask(metrics: metrics),
+                            if (captureState.isFrozen &&
+                                captureState.frozenImage != null)
+                              _FrozenPreviewOverlay(
+                                image: captureState.frozenImage!,
+                                metrics: metrics,
+                                state: captureState,
+                              ),
+                            const DecorativeHearts(),
+                            _UnifiedOverlayUI(
                               state: captureState,
+                              notifier: captureNotifier,
+                              zoomLevel: _zoomLevel,
+                              metrics: metrics,
+                              onPickFromGallery: _pickFromGallery,
+                              onCapture: () async {
+                                _triggerCaptureAnimation();
+                                await captureNotifier.freezeFromLiveFrame();
+                              },
                             ),
-                          const DecorativeHearts(),
-                          _UnifiedOverlayUI(
-                            state: captureState,
-                            notifier: captureNotifier,
-                            zoomLevel: _zoomLevel,
-                            metrics: metrics,
-                            onPickFromGallery: _pickFromGallery,
-                            onCapture: () async {
-                              _triggerCaptureAnimation();
-                              await captureNotifier.freezeFromLiveFrame();
-                            },
-                          ),
-                          CaptureAnimationOverlay(
-                            isActive: _captureAnimationActive,
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                            CaptureAnimationOverlay(
+                              isActive: _captureAnimationActive,
+                            ),
+                          ],
+                        );
+                      },
+                    ),
 
-                  // 🔥 Khôi phục màn hình Splash loading (che camera khi đang khởi tạo)
-                  Positioned.fill(
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 400),
-                      opacity: _isCameraReady ? 0.0 : 1.0,
-                      child: IgnorePointer(
-                        ignoring: _isCameraReady,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: AppColors.backgroundGradient,
+                    // 🔥 Khôi phục màn hình Splash loading (che camera khi đang khởi tạo)
+                    Positioned.fill(
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 400),
+                        opacity: _isCameraReady ? 0.0 : 1.0,
+                        child: IgnorePointer(
+                          ignoring: _isCameraReady,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: AppColors.backgroundGradient,
+                              ),
                             ),
-                          ),
-                          child: const Center(
-                            child: CustomLoadingWidget(
-                              size: 120,
-                              color: AppColors.primaryPink,
+                            child: const Center(
+                              child: CustomLoadingWidget(
+                                size: 120,
+                                color: AppColors.primaryPink,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

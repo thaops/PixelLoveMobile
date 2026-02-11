@@ -214,7 +214,13 @@ class PetAlbumSwipeController {
     }
   }
 
-  bool canNext(int totalCards) => realIndex < totalCards - 1;
+  bool canNext(int totalCards) {
+    final result = realIndex < totalCards - 1;
+    debugPrint(
+      'SWIPE_DEBUG: realIndex=$realIndex totalCards=$totalCards -> canNext=$result',
+    );
+    return result;
+  }
 
   bool canPrev() => realIndex > 0;
 

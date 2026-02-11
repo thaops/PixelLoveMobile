@@ -1,10 +1,12 @@
 import 'package:pixel_love/core/network/api_result.dart';
 import 'package:pixel_love/features/home/data/datasources/home_remote_datasource.dart';
 import 'package:pixel_love/features/home/data/models/home_dto.dart';
+import 'package:pixel_love/features/home/domain/entities/streak.dart';
 
 class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
   @override
   Future<ApiResult<HomeDto>> getHomeData() async {
+    // ... existing home data ...
     final fakeData = {
       "background": {
         "imageUrl":
@@ -13,28 +15,28 @@ class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
         "height": 1920,
       },
       "objects": [
-
         {
           "id": "streakImage",
           "type": "streakImage",
-          "imageUrl":      "https://res.cloudinary.com/dukoun1pb/image/upload/v1770517706/khung_treo_%C4%91e%CC%82%CC%81m_nga%CC%80y__chuo%CC%82%CC%83i_sggk7c.png",
+          "imageUrl":
+              "https://res.cloudinary.com/dukoun1pb/image/upload/v1770517706/khung_treo_%C4%91e%CC%82%CC%81m_nga%CC%80y__chuo%CC%82%CC%83i_sggk7c.png",
           "x": 1800,
           "y": 130,
           "width": 500,
           "height": 500,
           "zIndex": 10,
         },
-          {
+        {
           "id": "streakStatus",
           "type": "streakStatus",
-          "imageUrl":      "https://res.cloudinary.com/dukoun1pb/image/upload/v1770517747/chuo%CC%82%CC%83i_lo%CC%9B%CC%81n_kcjx3p.png",
+          "imageUrl":
+              "https://res.cloudinary.com/dukoun1pb/image/upload/v1770517747/chuo%CC%82%CC%83i_lo%CC%9B%CC%81n_kcjx3p.png",
           "x": 1925,
           "y": 350,
           "width": 250,
           "height": 250,
           "zIndex": 10,
         },
-    
         {
           "id": "boy",
           "type": "boy",
@@ -125,5 +127,18 @@ class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
     await Future.delayed(const Duration(milliseconds: 500));
 
     return ApiResult.success(HomeDto.fromJson(fakeData));
+  }
+
+  @override
+  Future<ApiResult<Streak>> getStreak() async {
+    final fakeStreak = {
+      "days": 6,
+      "level": "strong",
+      "missingSide": "B",
+      "hoursToBreak": 10,
+    };
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    return ApiResult.success(Streak.fromJson(fakeStreak));
   }
 }

@@ -75,12 +75,16 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     return PopScope(
       canPop: canPop,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && !canPop) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              context.go(AppRoutes.home);
-            }
-          });
+        if (!didPop) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && context.mounted) {
+                context.go(AppRoutes.home);
+              }
+            });
+          }
         }
       },
       child: Scaffold(
@@ -199,8 +203,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     return Stack(
       children: [
         card_swiper.CardSwiper(
-          // 🔥 Dùng Key cố định để Swiper không bị reset khi dữ liệu thay đổi nhẹ
-          key: const ValueKey("stable_pet_album_swiper"),
+          key: ValueKey("swiper_${totalCards}_${shouldShowTemporaryImage}"),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
           controller: _controller.swiperController,
 

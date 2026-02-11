@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/home/data/models/home_dto.dart';
 import 'package:pixel_love/features/home/providers/home_providers.dart';
@@ -80,6 +81,7 @@ class SplashController {
         } catch (_) {}
       }
 
+      // Nếu không có cache hoặc URL rỗng, fetch từ API và lưu lại
       if (imageUrl == null || imageUrl.isEmpty) {
         final getHomeDataUseCase = ref.read(getHomeDataUseCaseProvider);
         final result = await getHomeDataUseCase.call();
@@ -87,15 +89,38 @@ class SplashController {
         result.when(
           success: (home) {
             imageUrl = home.background.imageUrl;
+
+            // 🔥 Lưu lại vào cache để HomeNotifier lấy được ngay lập tức
+            final homeDto = HomeDto(
+              background: BackgroundDto(
+                imageUrl: home.background.imageUrl,
+                width: home.background.width,
+                height: home.background.height,
+              ),
+              objects: home.objects
+                  .map(
+                    (obj) => HomeObjectDto(
+                      id: obj.id,
+                      type: obj.type,
+                      imageUrl: obj.imageUrl,
+                      x: obj.x,
+                      y: obj.y,
+                      width: obj.width,
+                      height: obj.height,
+                      zIndex: obj.zIndex,
+                    ),
+                  )
+                  .toList(),
+            );
+            storageService.saveHomeData(homeDto.toJson());
           },
-          error: (error) {
-            return;
-          },
+          error: (_) {},
         );
       }
 
       if (imageUrl != null && imageUrl!.isNotEmpty && context.mounted) {
-        final imageProvider = NetworkImage(imageUrl!);
+        // 🔥 Dùng CachedNetworkImageProvider để khớp với HomeScreen
+        final imageProvider = CachedNetworkImageProvider(imageUrl!);
         await precacheImage(imageProvider, context);
         await waitForImageToRender(imageProvider, context);
       }

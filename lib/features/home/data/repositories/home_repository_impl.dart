@@ -1,6 +1,7 @@
 import 'package:pixel_love/core/network/api_result.dart';
 import 'package:pixel_love/features/home/data/datasources/home_remote_datasource.dart';
 import 'package:pixel_love/features/home/domain/entities/home.dart';
+import 'package:pixel_love/features/home/domain/entities/streak.dart';
 import 'package:pixel_love/features/home/domain/repositories/home_repository.dart';
 
 class HomeRepositoryImpl implements HomeRepository {
@@ -17,5 +18,9 @@ class HomeRepositoryImpl implements HomeRepository {
       error: (error) => ApiResult.error(error),
     );
   }
-}
 
+  @override
+  Future<ApiResult<Streak>> getStreak() async {
+    return await _remoteDataSource.getStreak();
+  }
+}

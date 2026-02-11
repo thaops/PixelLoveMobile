@@ -6,19 +6,19 @@ import 'package:pixel_love/features/home/data/repositories/home_repository_impl.
 import 'package:pixel_love/features/home/domain/repositories/home_repository.dart';
 import 'package:pixel_love/features/home/domain/usecases/get_home_data_usecase.dart';
 import 'package:pixel_love/features/home/presentation/notifiers/home_notifier.dart';
+import 'package:pixel_love/features/home/presentation/notifiers/streak_notifier.dart';
+import 'package:pixel_love/features/home/domain/usecases/get_streak_usecase.dart';
 
 // ============================================
 // Home Feature Providers
 // ============================================
-
-import 'package:pixel_love/features/home/data/datasources/fake_home_remote_datasource.dart';
 
 // ... other imports
 
 /// Home Remote DataSource provider
 final homeRemoteDataSourceProvider = Provider<HomeRemoteDataSource>((ref) {
   // Uncomment to use fake data
- //  return FakeHomeRemoteDataSource();
+  //  return FakeHomeRemoteDataSource();
 
   final dioApi = ref.watch(dioApiProvider);
   return HomeRemoteDataSourceImpl(dioApi);
@@ -36,9 +36,20 @@ final getHomeDataUseCaseProvider = Provider<GetHomeDataUseCase>((ref) {
   return GetHomeDataUseCase(repository);
 });
 
+/// Get Streak UseCase provider
+final getStreakUseCaseProvider = Provider<GetStreakUseCase>((ref) {
+  final repository = ref.watch(homeRepositoryProvider);
+  return GetStreakUseCase(repository);
+});
+
 /// Home Notifier provider (Riverpod v3)
 final homeNotifierProvider = NotifierProvider<HomeNotifier, HomeState>(
   HomeNotifier.new,
+);
+
+/// Streak Notifier provider
+final streakNotifierProvider = NotifierProvider<StreakNotifier, StreakState>(
+  StreakNotifier.new,
 );
 
 /// Home Transformation State Provider - Lưu vị trí scroll/pan của home screen

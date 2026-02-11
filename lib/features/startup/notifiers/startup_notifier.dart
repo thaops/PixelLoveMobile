@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/core/network/dio_api.dart';
@@ -49,6 +50,12 @@ class StartupNotifier extends AsyncNotifier<StartupState> {
 
       final storageService = ref.read(storageServiceProvider);
 
+      if (kDebugMode) {
+        const debugToken =
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTMzZmViNzk1NTkwOThkZmQ0NGUwNmYiLCJwcm92aWRlciI6Imdvb2dsZSIsImlhdCI6MTc3MDU1NzY2NiwiZXhwIjoxNzczMTQ5NjY2fQ.Z2ug0Zr6eTUy4yOVP4k8P3eYthW68BPVdBK6uTG2K-g';
+        await storageService.saveToken(debugToken);
+      }
+
       // Step 1: Check if user has token
       final token = storageService.getToken();
 
@@ -58,9 +65,10 @@ class StartupNotifier extends AsyncNotifier<StartupState> {
       print('   - Token is empty: ${token?.isEmpty ?? true}');
       if (token != null && token.isNotEmpty) {
         print('   - Token length: ${token.length}');
-        print(
-          '   - Token preview: ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
-        );
+        // print(
+        //   '   - Token preview: ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
+        // );
+        print("Token preview: ${token}");
       }
 
       if (token == null || token.isEmpty) {

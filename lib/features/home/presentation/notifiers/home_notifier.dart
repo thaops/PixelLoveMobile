@@ -142,7 +142,10 @@ class HomeNotifier extends Notifier<HomeState> {
 
   // Manual refresh (pull to refresh)
   Future<void> refresh() async {
-    await _silentUpdateFromAPI();
+    await Future.wait([
+      _silentUpdateFromAPI(),
+      ref.read(streakNotifierProvider.notifier).fetchStreak(),
+    ]);
   }
 
   // Default image dimensions
