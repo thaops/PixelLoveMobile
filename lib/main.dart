@@ -8,6 +8,7 @@ import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/core/router/app_router.dart';
 import 'package:pixel_love/core/utils/image_cache_helper.dart';
 import 'package:pixel_love/core/widgets/app_loader_overlay.dart';
+import 'package:pixel_love/core/services/notification_service.dart';
 import 'package:pixel_love/firebase_options.dart';
 
 void main() async {
@@ -20,6 +21,8 @@ void main() async {
   MobileAds.instance.initialize();
 
   ImageCacheHelper.initialize();
+
+  await NotificationService.initialize();
 
   // Initialize SharedPreferences before ProviderScope
   final sharedPreferences = await SharedPreferences.getInstance();

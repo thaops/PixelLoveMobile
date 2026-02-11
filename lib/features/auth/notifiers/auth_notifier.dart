@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
 import 'package:pixel_love/features/auth/notifiers/auth_state.dart';
 import 'package:pixel_love/features/auth/providers/auth_providers.dart';
+import 'package:pixel_love/core/services/notification_service.dart';
 
 /// Auth Notifier - Handles authentication logic
 class AuthNotifier extends Notifier<AuthState> {
@@ -68,6 +69,7 @@ class AuthNotifier extends Notifier<AuthState> {
             );
 
             await socketService.connectEvents();
+            await NotificationService.login(fullUser.id);
           },
           error: (error) async {
             state = state.copyWith(
@@ -146,6 +148,7 @@ class AuthNotifier extends Notifier<AuthState> {
     await logoutUseCase.call();
     await googleSignIn.signOut();
     socketService.disconnectEvents();
+    NotificationService.logout();
 
     state = const AuthState(currentUser: null, needProfile: false);
   }
