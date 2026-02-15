@@ -10,6 +10,7 @@ import 'package:pixel_love/features/home/presentation/widgets/home_interactive_m
 import 'package:pixel_love/features/home/presentation/widgets/home_loading_indicator.dart';
 import 'package:pixel_love/features/home/presentation/widgets/home_profile_button.dart';
 import 'package:pixel_love/features/home/providers/home_providers.dart';
+import 'package:pixel_love/core/services/notification_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -40,8 +41,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _controller.init();
 
     // Initial fetch
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(streakNotifierProvider.notifier).fetchStreak();
+
+      // Check OneSignal status
+      final isSubscribed = NotificationService.isSubscribed;
+      final subscriptionId = NotificationService.subscriptionId;
+
+      debugPrint('OneSignal Subscribed: $isSubscribed');
+      debugPrint('OneSignal ID: $subscriptionId');
+
+      if (mounted) {
+        if (subscriptionId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đang đăng ký nhận thông báo...'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else if (!isSubscribed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Thông báo chưa được bật. Vui lòng kiểm tra cài đặt.',
+              ),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     });
   }
 

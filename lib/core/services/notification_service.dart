@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:pixel_love/core/env/env.dart';
 
@@ -7,10 +8,16 @@ class NotificationService {
     // OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
 
     // Initialize with App ID
-    OneSignal.initialize("60defdbb-19b7-43bb-9447-183d69b855d6");
-
-    // Request permissions
+    debugPrint('Initializing OneSignal with ID: ${Env.oneSignalKey}');
+    OneSignal.initialize(Env.oneSignalKey);
     await OneSignal.Notifications.requestPermission(true);
+
+    // Observer for subscription changes
+    OneSignal.User.pushSubscription.addObserver((event) {
+      debugPrint('OneSignal Subscription Changed:');
+      debugPrint(' - ID: ${event.current.id}');
+      debugPrint(' - Opted In: ${event.current.optedIn}');
+    });
 
     // Listeners example
     OneSignal.Notifications.addClickListener((event) {
@@ -25,4 +32,8 @@ class NotificationService {
   static Future<void> logout() async {
     OneSignal.logout();
   }
+
+  static bool get isSubscribed =>
+      OneSignal.User.pushSubscription.optedIn ?? false;
+  static String? get subscriptionId => OneSignal.User.pushSubscription.id;
 }
