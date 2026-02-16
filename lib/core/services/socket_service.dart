@@ -28,6 +28,11 @@ class SocketService {
   // Callback cho pet image events (album realtime)
   void Function(Map<String, dynamic>)? onPetImageConsumed;
 
+  // Callbacks cho Tarot
+  void Function(Map<String, dynamic>)? onTarotSelected;
+  void Function(Map<String, dynamic>)? onTarotReady;
+  void Function(Map<String, dynamic>)? onTarotReveal;
+
   // Connect socket với namespace /events để listen couple events
   Future<void> connectEvents() async {
     if (_eventsSocket != null && _eventsSocket!.connected) {
@@ -186,6 +191,22 @@ class SocketService {
     _socket!.on('messageReceived', (data) {
       print('💬 Message received: $data');
       _messages.add(data as Map<String, dynamic>);
+    });
+
+    // Tarot events
+    _socket!.on('tarotSelected', (data) {
+      print('🔮 Tarot selected: $data');
+      onTarotSelected?.call(data as Map<String, dynamic>);
+    });
+
+    _socket!.on('tarotReady', (data) {
+      print('🔮 Tarot ready: $data');
+      onTarotReady?.call(data as Map<String, dynamic>);
+    });
+
+    _socket!.on('tarotReveal', (data) {
+      print('🔮 Tarot reveal: $data');
+      onTarotReveal?.call(data as Map<String, dynamic>);
     });
   }
 

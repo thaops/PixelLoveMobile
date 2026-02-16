@@ -9,6 +9,7 @@ import 'package:pixel_love/features/home/presentation/widgets/home_error_view.da
 import 'package:pixel_love/features/home/presentation/widgets/home_interactive_map.dart';
 import 'package:pixel_love/features/home/presentation/widgets/home_loading_indicator.dart';
 import 'package:pixel_love/features/home/presentation/widgets/home_profile_button.dart';
+import 'package:pixel_love/features/home/presentation/widgets/home_tarot_button.dart';
 import 'package:pixel_love/features/home/providers/home_providers.dart';
 import 'package:pixel_love/core/services/notification_service.dart';
 
@@ -148,6 +149,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
         if (homeState.isUpdating) const HomeLoadingIndicator(),
         HomeProfileButton(avatarUrl: avatarUrl),
+        const HomeTarotButton(),
         const HomeBottomActionBar(),
       ],
     );
