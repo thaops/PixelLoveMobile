@@ -70,6 +70,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
             await socketService.connectEvents();
             await NotificationService.login(fullUser.id);
+            await ref.read(notificationServiceProvider).syncDevice();
           },
           error: (error) async {
             state = state.copyWith(
@@ -79,6 +80,8 @@ class AuthNotifier extends Notifier<AuthState> {
             );
             await storageService.saveUser(response.user);
             await socketService.connectEvents();
+            await NotificationService.login(response.user.id);
+            await ref.read(notificationServiceProvider).syncDevice();
           },
         );
       } else if (result.error != null) {
@@ -144,11 +147,12 @@ class AuthNotifier extends Notifier<AuthState> {
     await ref.read(googleSignInInitProvider.future);
     final googleSignIn = ref.read(googleSignInProvider);
     final socketService = ref.read(socketServiceProvider);
+    final notificationService = ref.read(notificationServiceProvider);
 
     await logoutUseCase.call();
     await googleSignIn.signOut();
     socketService.disconnectEvents();
-    NotificationService.logout();
+    await notificationService.logoutDevice();
 
     state = const AuthState(currentUser: null, needProfile: false);
   }

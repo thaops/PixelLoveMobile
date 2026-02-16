@@ -103,4 +103,12 @@ class StorageService {
       return null;
     }
   }
+
+  Future<void> saveDeviceId(String deviceId) async {
+    await _prefs.setString('device_id', deviceId);
+  }
+
+  String? getDeviceId() {
+    return _prefs.getString('device_id');
+  }
 }

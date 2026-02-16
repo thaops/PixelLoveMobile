@@ -4,6 +4,7 @@ import 'package:pixel_love/core/network/dio_api.dart';
 import 'package:pixel_love/core/services/cloudinary_upload_service.dart';
 import 'package:pixel_love/core/services/storage_service.dart';
 import 'package:pixel_love/core/services/socket_service.dart';
+import 'package:pixel_love/core/services/notification_service.dart';
 
 // ============================================
 // Core Providers (Global, Permanent)
@@ -39,6 +40,13 @@ final cloudinaryUploadServiceProvider = Provider<CloudinaryUploadService>((
 ) {
   final storageService = ref.watch(storageServiceProvider);
   return CloudinaryUploadService(storageService);
+});
+
+/// NotificationService provider (singleton)
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  final dioApi = ref.watch(dioApiProvider);
+  final storageService = ref.watch(storageServiceProvider);
+  return NotificationService(dioApi, storageService);
 });
 
 /// Background Loading Progress Provider (0.0 - 100.0)

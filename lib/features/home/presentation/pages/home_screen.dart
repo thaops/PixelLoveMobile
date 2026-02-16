@@ -51,6 +51,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       debugPrint('OneSignal Subscribed: $isSubscribed');
       debugPrint('OneSignal ID: $subscriptionId');
 
+      // Sync device with server
+      ref.read(notificationServiceProvider).syncDevice();
+
       if (mounted) {
         if (subscriptionId == null) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -85,6 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(streakNotifierProvider.notifier).fetchStreak();
+      ref.read(notificationServiceProvider).ping();
     }
   }
 
