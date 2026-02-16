@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pixel_love/core/theme/app_colors.dart';
+import 'package:pixel_love/features/auth/providers/auth_providers.dart';
 import 'package:pixel_love/features/tarot/data/models/tarot_response.dart';
 import 'package:pixel_love/features/tarot/providers/tarot_providers.dart';
+import 'package:pixel_love/features/tarot/presentation/widgets/tarot_card_widget.dart';
+import 'package:pixel_love/features/tarot/presentation/widgets/tarot_background_effects.dart';
+import 'package:pixel_love/features/tarot/presentation/widgets/tarot_connection_widget.dart';
+import 'package:pixel_love/features/tarot/presentation/widgets/tarot_countdown_widget.dart';
 
 class TarotScreen extends ConsumerStatefulWidget {
   const TarotScreen({super.key});
@@ -13,6 +18,8 @@ class TarotScreen extends ConsumerStatefulWidget {
 
 class _TarotScreenState extends ConsumerState<TarotScreen>
     with WidgetsBindingObserver {
+  int? _localSelectedId;
+
   @override
   void initState() {
     super.initState();
@@ -38,39 +45,70 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(tarotNotifierProvider);
+    final authState = ref.watch(authNotifierProvider);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Tarot Sync'),
-        backgroundColor: Colors.transparent,
-      ),
-      extendBodyBehindAppBar: true,
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.purple.shade900, Colors.black],
+        title: const Text(
+          'Tarot Ritual',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.5,
+            color: Color(0xFF2B2D42),
+            shadows: [Shadow(color: Colors.white70, blurRadius: 10)],
           ),
         ),
-        child: SafeArea(child: _buildContent(state)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF2B2D42)),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/backgroud_tarot.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          const Positioned.fill(child: TarotBackgroundShimmer()),
+          const Positioned.fill(child: TarotParticles()),
+          if (state.status == TarotStatus.READY)
+            Positioned.fill(
+              child: Container(color: Colors.black.withOpacity(0.2)),
+            ),
+          SafeArea(child: _buildContent(state, authState)),
+        ],
       ),
     );
   }
 
-  Widget _buildContent(state) {
+  Widget _buildContent(state, authState) {
     if (state.isLoading && state.status == TarotStatus.IDLE) {
       return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+        child: CircularProgressIndicator(
+          color: Color(0xFFFF6FAE),
+          strokeWidth: 2,
+        ),
       );
     }
 
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 800),
+      child: _buildStateUI(state, authState),
+    );
+  }
+
+  Widget _buildStateUI(state, authState) {
     switch (state.status) {
       case TarotStatus.IDLE:
-        return _buildIdleState();
+        return _buildIdleState(state);
       case TarotStatus.WAITING:
-        return _buildWaitingState(state);
+        return _buildWaitingState(state, authState);
       case TarotStatus.READY:
         return _buildReadyState(state);
       case TarotStatus.REVEALED:
@@ -80,88 +118,159 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
     }
   }
 
-  Widget _buildIdleState() {
+  Widget _buildIdleState(state) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      key: const ValueKey('idle'),
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
+        const SizedBox(height: 40),
         const Text(
-          'Chọn một lá cho hôm nay',
+          'Chạm vào một lá bài',
           style: TextStyle(
-            color: Colors.white,
+            color: Color(0xFF5C5470),
             fontSize: 24,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1,
+            shadows: [Shadow(color: Colors.white, blurRadius: 12)],
           ),
         ),
-        const SizedBox(height: 48),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            3,
-            (index) => _buildTarotCard(index + 1, false),
+        const SizedBox(height: 12),
+        const Text(
+          'Lắng nghe trái tim bạn',
+          style: TextStyle(
+            color: Color(0xFF5C5470),
+            fontSize: 15,
+            letterSpacing: 0.5,
+            // opacity: 0.8, // TextStyle does not have an opacity property
+          ),
+        ),
+        const SizedBox(height: 80),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(3, (index) {
+              final id = index + 1;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: TarotCardWidget(
+                  id: id,
+                  isSelected: _localSelectedId == id,
+                  onTap: () async {
+                    HapticFeedback.mediumImpact();
+                    setState(() => _localSelectedId = id);
+                    await Future.delayed(const Duration(milliseconds: 400));
+                    ref.read(tarotNotifierProvider.notifier).selectCard(id);
+                  },
+                ),
+              );
+            }),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildWaitingState(state) {
+  Widget _buildWaitingState(state, authState) {
     final mySelected = state.myCard != null;
+    final user = authState.currentUser;
+
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      key: const ValueKey('waiting'),
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        Text(
-          mySelected
-              ? 'Đợi người ấy...'
-              : 'Người ấy đã chọn\nBạn hãy chọn để mở cùng nhau',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-          ),
+        const SizedBox(height: 20),
+        TarotConnectionWidget(
+          myAvatar: user?.avatar,
+          partnerAvatar: null, // Placeholder or fetch from couple state
+          isReady: mySelected && state.partnerSelected,
         ),
         const SizedBox(height: 48),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildTarotCard(state.myCard ?? 0, true, glow: mySelected),
-            const SizedBox(width: 20),
-            _buildTarotCard(0, false, glow: state.partnerSelected),
-          ],
-        ),
-        if (!mySelected) ...[
-          const SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              3,
-              (index) => _buildTarotCard(index + 1, false),
+        if (mySelected) ...[
+          const Text(
+            'Bạn đã rút bài',
+            style: TextStyle(
+              color: Color(0xFF5C5470),
+              fontSize: 16,
+              letterSpacing: 0.5,
+              shadows: [Shadow(color: Colors.white, blurRadius: 8)],
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Đợi người ấy...',
+            style: TextStyle(
+              color: Color(0xFF2B2D42),
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+              shadows: [Shadow(color: Colors.white, blurRadius: 10)],
+            ),
+          ),
+        ] else ...[
+          const Text(
+            'Người ấy đã chờ bạn',
+            style: TextStyle(
+              color: Color(0xFFFF6FAE),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1,
+              shadows: [Shadow(color: Colors.white, blurRadius: 8)],
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Hãy chọn một lá bài',
+            style: TextStyle(
+              color: Color(0xFF2B2D42),
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+              shadows: [Shadow(color: Colors.white, blurRadius: 10)],
             ),
           ),
         ],
+        const SizedBox(height: 64),
+        if (mySelected)
+          Center(
+            child: TarotCardWidget(
+              id: state.myCard ?? 0,
+              isGlow: true,
+              scale: 1.2,
+            ),
+          )
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(3, (index) {
+                final id = index + 1;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: TarotCardWidget(
+                    id: id,
+                    isSelected: _localSelectedId == id,
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      setState(() => _localSelectedId = id);
+                      ref.read(tarotNotifierProvider.notifier).selectCard(id);
+                    },
+                  ),
+                );
+              }),
+            ),
+          ),
       ],
     );
   }
 
   Widget _buildReadyState(state) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '${state.countdown}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 120,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Text(
-            'Chuẩn bị reveal!',
-            style: TextStyle(color: Colors.white, fontSize: 24),
-          ),
-        ],
-      ),
+      key: const ValueKey('ready'),
+      child: TarotCountdownWidget(countdown: state.countdown),
     );
   }
 
@@ -169,146 +278,140 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
     final result = state.result;
     if (result == null) return const SizedBox();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return Stack(
+      key: const ValueKey('revealed'),
+      children: [
+        const Positioned.fill(child: TarotBackgroundShimmer()),
+        SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 100),
+          child: Column(
             children: [
-              _buildTarotCard(result.cardA, true),
-              const SizedBox(width: 20),
-              _buildTarotCard(result.cardB, true),
-            ],
-          ),
-          const SizedBox(height: 32),
-          if (result.streak != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.orange.shade300),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('🔥 ', style: TextStyle(fontSize: 20)),
-                  Text(
-                    'Streak giữ vững: ${result.streak} ngày',
-                    style: const TextStyle(
-                      color: Colors.orange,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  TarotCardWidget(
+                    id: result.cardA,
+                    isRevealed: true,
+                    scale: 0.9,
+                  ),
+                  const SizedBox(width: 20),
+                  TarotCardWidget(
+                    id: result.cardB,
+                    isRevealed: true,
+                    scale: 0.9,
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-          ],
-          Text(
-            result.text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: Column(
-              children: [
-                const Text(
-                  'Câu hỏi dành cho hai bạn:',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontStyle: FontStyle.italic,
+              const SizedBox(height: 40),
+              if (result.streak != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6FAE).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFFFF6FAE).withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('✨', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Kết nối thứ ${result.streak} liên tiếp',
+                        style: const TextStyle(
+                          color: Color(0xFFFF6FAE),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  result.question,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                const SizedBox(height: 24),
               ],
-            ),
-          ),
-          const SizedBox(height: 48),
-          ElevatedButton(
-            onPressed: () {
-              // Action to message partner
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryPink,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 56),
-            ),
-            child: const Text('Nhắn cho người ấy'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTarotCard(int id, bool isRevealed, {bool glow = false}) {
-    final state = ref.watch(tarotNotifierProvider);
-
-    return GestureDetector(
-      onTap: () {
-        if (state.isLoading ||
-            state.myCard != null ||
-            state.status == TarotStatus.REVEALED) {
-          return;
-        }
-        if (!isRevealed && id != 0) {
-          ref.read(tarotNotifierProvider.notifier).selectCard(id);
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        width: 80,
-        height: 120,
-        decoration: BoxDecoration(
-          color: isRevealed ? Colors.white : Colors.indigo.shade800,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: glow ? Colors.yellow : Colors.white24,
-            width: glow ? 3 : 1,
-          ),
-          boxShadow: glow
-              ? [
-                  BoxShadow(
-                    color: Colors.yellow.withOpacity(0.5),
-                    blurRadius: 15,
-                    spreadRadius: 5,
+              Text(
+                result.text,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF5C5470),
+                  fontSize: 17,
+                  height: 1.6,
+                  fontWeight: FontWeight.w500,
+                  shadows: [Shadow(color: Colors.white54, blurRadius: 4)],
+                ),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white.withOpacity(0.5)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.1),
+                      blurRadius: 20,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.favorite,
+                      color: Color(0xFFFF6FAE),
+                      size: 24,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Hỏi người ấy:',
+                      style: TextStyle(
+                        color: Color(0xFF5C5470),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      result.question,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFFFF6FAE),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        shadows: [Shadow(color: Colors.white, blurRadius: 8)],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 60),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6FAE),
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  shadowColor: const Color(0xFFFF6FAE).withOpacity(0.4),
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ]
-              : null,
+                ),
+                child: const Text(
+                  'Lưu giữ kỷ niệm này',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
-        child: Center(
-          child: isRevealed
-              ? Text(
-                  '$id',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
-              : const Icon(Icons.star, color: Colors.white54, size: 32),
-        ),
-      ),
+      ],
     );
   }
 }
