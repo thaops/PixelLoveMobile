@@ -9,6 +9,7 @@ import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_album_n
 import 'package:pixel_love/features/pet_image/providers/pet_image_providers.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart' as card_swiper;
 import 'package:intl/intl.dart';
+import 'package:pixel_love/features/pet_image/presentation/widgets/swipe_reaction_particle_overlay.dart';
 
 class PetAlbumSwipeController {
   final TickerProvider vsync;
@@ -25,6 +26,8 @@ class PetAlbumSwipeController {
 
   final card_swiper.CardSwiperController swiperController =
       card_swiper.CardSwiperController();
+  final ReactionParticleController reactionParticleController =
+      ReactionParticleController();
   final Random random = Random();
 
   double verticalDragOffset = 0.0;
@@ -59,7 +62,7 @@ class PetAlbumSwipeController {
   AnimationController get entryMessageController =>
       _entryMessageController ??= AnimationController(
         vsync: vsync,
-        duration: const Duration(milliseconds: 600),
+        duration: const Duration(milliseconds: 500),
       );
 
   late AnimationController shimmerController;
@@ -207,8 +210,9 @@ class PetAlbumSwipeController {
     return true;
   }
 
-  void handleReaction(String emoji) {
+  void handleReaction(String emoji, Offset position) {
     HapticFeedback.lightImpact();
+    reactionParticleController.emit(emoji, position: position);
   }
 
   void handleTap() {

@@ -13,6 +13,7 @@ import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_capture
 import 'package:pixel_love/features/pet_image/providers/pet_image_providers.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart' as card_swiper;
+import 'package:pixel_love/features/pet_image/presentation/widgets/swipe_reaction_particle_overlay.dart';
 
 class PetAlbumSwipeScreen extends ConsumerStatefulWidget {
   const PetAlbumSwipeScreen({super.key});
@@ -422,6 +423,9 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               ),
             ),
           ),
+        ),
+        SwipeReactionParticleOverlay(
+          controller: _controller.reactionParticleController,
         ),
       ],
     );

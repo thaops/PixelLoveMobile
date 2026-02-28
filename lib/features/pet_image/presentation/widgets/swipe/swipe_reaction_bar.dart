@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SwipeReactionBar extends StatelessWidget {
-  final void Function(String emoji) onReaction;
+  final void Function(String emoji, Offset position) onReaction;
 
   const SwipeReactionBar({super.key, required this.onReaction});
 
@@ -19,7 +19,7 @@ class SwipeReactionBar extends StatelessWidget {
             padding: EdgeInsets.only(left: index == 0 ? 0 : 20),
             child: SwipeReactionButton(
               emoji: emoji,
-              onTap: () => onReaction(emoji),
+              onTap: (pos) => onReaction(emoji, pos),
             ),
           );
         }).toList(),
@@ -30,7 +30,7 @@ class SwipeReactionBar extends StatelessWidget {
 
 class SwipeReactionButton extends StatefulWidget {
   final String emoji;
-  final VoidCallback onTap;
+  final void Function(Offset position) onTap;
 
   const SwipeReactionButton({
     super.key,
@@ -75,7 +75,7 @@ class _SwipeReactionButtonState extends State<SwipeReactionButton>
   void _handleTapUp(TapUpDetails details) {
     setState(() => _isPressed = false);
     _controller.reverse();
-    widget.onTap();
+    widget.onTap(details.globalPosition);
   }
 
   void _handleTapCancel() {
