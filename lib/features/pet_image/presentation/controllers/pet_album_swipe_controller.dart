@@ -372,7 +372,7 @@ class PetAlbumSwipeController {
     if (temporaryImage == null || images.isEmpty) return null;
 
     try {
-      return images.firstWhere((image) {
+      final found = images.firstWhere((image) {
         final timeDiff = image.actionAt
             .difference(temporaryImage!.capturedAt)
             .abs()
@@ -381,8 +381,19 @@ class PetAlbumSwipeController {
         final sameCaption =
             (image.text == null && temporaryImage!.caption == null) ||
             (image.text == temporaryImage!.caption);
-        return sameUser && sameCaption && timeDiff < 5;
+        // Nới lỏng so sánh thời gian lên 60 giây vì upload API/Bắt mạng chậm có thể làm lệch actionAt
+        return sameUser && sameCaption && timeDiff < 60;
       });
+
+      // Nếu đã tìm thấy ảnh từ Server khớp với ảnh Temporary, lập tức xoá luôn Temporary cache đi
+      // Tránh việc UI bị render 2 card trùng lặp nhau hoặc card trắng.
+      if (found.imageUrl.isNotEmpty && temporaryImage != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          temporaryImage = null;
+          onStateChanged();
+        });
+      }
+      return found;
     } catch (_) {
       return null;
     }

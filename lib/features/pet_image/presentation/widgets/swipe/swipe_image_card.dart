@@ -86,8 +86,12 @@ class SwipeImageCard extends StatelessWidget {
                         ),
                       child: Image.memory(
                         localImageBytes!,
-                        width: cardWidth,
-                        height: cardHeight,
+                        width: ((localRotation ?? 0) ~/ 90) % 2 != 0
+                            ? cardHeight
+                            : cardWidth,
+                        height: ((localRotation ?? 0) ~/ 90) % 2 != 0
+                            ? cardWidth
+                            : cardHeight,
                         fit: BoxFit.cover,
                       ),
                     ),

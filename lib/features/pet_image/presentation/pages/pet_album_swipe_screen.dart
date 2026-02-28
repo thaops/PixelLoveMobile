@@ -393,7 +393,13 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
           bottom: 24,
           right: 24,
           child: SwipeCameraButton(
-            onTap: () => context.push(AppRoutes.petCapture),
+            onTap: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.pushReplacement(AppRoutes.petCapture);
+              }
+            },
           ),
         ),
         Positioned(
