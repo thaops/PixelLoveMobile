@@ -88,7 +88,12 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
             Positioned.fill(
               child: Container(color: Colors.black.withOpacity(0.2)),
             ),
-          SafeArea(child: _buildContent(state, authState)),
+          SafeArea(
+            child: SizedBox(
+              width: double.infinity,
+              child: _buildContent(state, authState),
+            ),
+          ),
         ],
       ),
     );
