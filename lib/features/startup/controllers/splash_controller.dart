@@ -154,6 +154,11 @@ class SplashController {
           user.coupleRoomId != null && user.coupleRoomId!.isNotEmpty;
 
       if (hasCoupleRoom || hasPartner) {
+        // Tự động gọi ping và sync device khi vào App
+        final notificationService = ref.read(notificationServiceProvider);
+        notificationService.ping();
+        notificationService.syncDevice();
+
         await preloadHomeBackground();
         if (context.mounted) {
           context.go(AppRoutes.home);

@@ -387,7 +387,10 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
           bottom: 158,
           left: 0,
           right: 0,
-          child: SwipeReactionBar(onReaction: _controller.handleReaction),
+          child: SwipeReactionBar(
+            onReaction: (emoji, pos) =>
+                _controller.handleReaction(emoji, pos, filteredImages),
+          ),
         ),
         Positioned(
           bottom: 24,

@@ -28,12 +28,8 @@ class PetImageRepositoryImpl implements PetImageRepository {
   }
 
   @override
-  Future<ApiResult<({
-    int expAdded,
-    int bonus,
-    bool levelUp,
-    String actionId,
-  })>> sendImageToPet({
+  Future<ApiResult<({int expAdded, int bonus, bool levelUp, String actionId})>>
+  sendImageToPet({
     required String imageUrl,
     DateTime? takenAt,
     String? text,
@@ -54,5 +50,26 @@ class PetImageRepositoryImpl implements PetImageRepository {
       error: (failure) => ApiResult.error(failure),
     );
   }
-}
 
+  @override
+  Future<ApiResult<bool>> sendReaction({
+    required String imageId,
+    required String emoji,
+    required int count,
+  }) async {
+    return await _remoteDataSource.sendReaction(
+      imageId: imageId,
+      emoji: emoji,
+      count: count,
+    );
+  }
+
+  @override
+  Future<ApiResult<PetImage>> getPetImageDetails(String imageId) async {
+    final result = await _remoteDataSource.getPetImageDetails(imageId);
+    return result.when(
+      success: (dto) => ApiResult.success(dto.toEntity()),
+      error: (failure) => ApiResult.error(failure),
+    );
+  }
+}

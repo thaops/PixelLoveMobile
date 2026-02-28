@@ -44,6 +44,10 @@ class PetAlbumSwipeController {
   bool _hasCheckedEntry = false;
   int _lastMemorySwipeCount = -10;
 
+  // Logic Debounce Reaction
+  final Map<String, Timer> _reactionDebounceTimers = {};
+  final Map<String, int> _reactionPendingCounts = {};
+
   AnimationController? _partnerSignalController;
   AnimationController get partnerSignalController =>
       _partnerSignalController ??= AnimationController(
@@ -107,6 +111,10 @@ class PetAlbumSwipeController {
     shimmerController.dispose();
     _entryMessageController?.dispose();
     fadeController.dispose();
+    for (final timer in _reactionDebounceTimers.values) {
+      timer.cancel();
+    }
+    _reactionDebounceTimers.clear();
   }
 
   String get currentUserId {
@@ -210,9 +218,57 @@ class PetAlbumSwipeController {
     return true;
   }
 
-  void handleReaction(String emoji, Offset position) {
+  void handleReaction(String emoji, Offset position, List<PetImage> images) {
+    if (realIndex < 0 || realIndex >= images.length) return;
+
+    final image = images[realIndex];
+    final imageId = image.id;
+    if (imageId.isEmpty) return;
+
+    // 1. Hiệu ứng UI tức thì (Không chờ API)
     HapticFeedback.lightImpact();
     reactionParticleController.emit(emoji, position: position);
+
+    // 2. Logic gom nhóm (Debounce) gửi API
+    final key = "${imageId}_$emoji";
+    _reactionPendingCounts[key] = (_reactionPendingCounts[key] ?? 0) + 1;
+
+    _reactionDebounceTimers[key]?.cancel();
+    _reactionDebounceTimers[key] = Timer(
+      const Duration(milliseconds: 1000),
+      () async {
+        final count = _reactionPendingCounts[key] ?? 0;
+        _reactionPendingCounts.remove(key);
+        _reactionDebounceTimers.remove(key);
+
+        if (count > 0) {
+          final repository = ref.read(petImageRepositoryProvider);
+          await repository.sendReaction(
+            imageId: imageId,
+            emoji: emoji,
+            count: count,
+          );
+        }
+      },
+    );
+
+    // 3. Cập nhật UI ngay lập tức cho chính entity ảnh (Local update)
+    final updatedGroups = List<PetReactionGroup>.from(image.reactionGroups);
+    final groupIdx = updatedGroups.indexWhere((g) => g.emoji == emoji);
+    if (groupIdx != -1) {
+      updatedGroups[groupIdx] = PetReactionGroup(
+        emoji: emoji,
+        count: updatedGroups[groupIdx].count + 1,
+      );
+    } else {
+      updatedGroups.add(PetReactionGroup(emoji: emoji, count: 1));
+    }
+
+    images[realIndex] = image.copyWith(
+      reactionTotalCount: image.reactionTotalCount + 1,
+      reactionGroups: updatedGroups,
+    );
+    onStateChanged();
   }
 
   void handleTap() {

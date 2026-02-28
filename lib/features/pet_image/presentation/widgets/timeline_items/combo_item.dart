@@ -4,6 +4,7 @@ import 'package:pixel_love/features/pet_image/domain/entities/pet_image.dart';
 import 'package:pixel_love/features/pet_image/presentation/models/timeline_item.dart';
 import 'package:pixel_love/features/pet_image/presentation/utils/pet_album_formatters.dart';
 import 'package:pixel_love/features/pet_image/presentation/widgets/pet_image_detail_dialog.dart';
+import 'package:pixel_love/features/pet_image/presentation/widgets/reaction_history_bottom_sheet.dart';
 
 class ComboItemWidget extends StatelessWidget {
   final ComboItem combo;
@@ -228,6 +229,40 @@ class _ComboImage extends StatelessWidget {
             ),
           ),
         ),
+        if (image.reactionTotalCount > 0)
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: () => showReactionHistoryBottomSheet(context, image),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (image.reactionGroups.isNotEmpty)
+                      Text(
+                        image.reactionGroups.first.emoji,
+                        style: const TextStyle(fontSize: 8),
+                      ),
+                    const SizedBox(width: 2),
+                    Text(
+                      image.reactionTotalCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

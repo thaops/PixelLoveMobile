@@ -4,6 +4,7 @@ import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/pet_image/presentation/models/timeline_item.dart';
 import 'package:pixel_love/features/pet_image/presentation/utils/pet_album_formatters.dart';
 import 'package:pixel_love/features/pet_image/presentation/widgets/pet_image_detail_dialog.dart';
+import 'package:pixel_love/features/pet_image/presentation/widgets/reaction_history_bottom_sheet.dart';
 
 class ImageBubble extends StatelessWidget {
   final ImageItem item;
@@ -183,6 +184,49 @@ class _ImageCard extends StatelessWidget {
             ),
           ),
         ),
+        if (imageItem.image.reactionTotalCount > 0)
+          Positioned(
+            right: 8,
+            bottom: 8,
+            child: GestureDetector(
+              onTap: () =>
+                  showReactionHistoryBottomSheet(context, imageItem.image),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ...imageItem.image.reactionGroups
+                        .take(2)
+                        .map(
+                          (g) => Padding(
+                            padding: const EdgeInsets.only(right: 1),
+                            child: Text(
+                              g.emoji,
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        ),
+                    if (imageItem.image.reactionTotalCount > 0) ...[
+                      const SizedBox(width: 2),
+                      Text(
+                        imageItem.image.reactionTotalCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

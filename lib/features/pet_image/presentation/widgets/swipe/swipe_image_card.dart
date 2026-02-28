@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/pet_image/domain/entities/pet_image.dart';
+import 'package:pixel_love/features/pet_image/presentation/widgets/reaction_history_bottom_sheet.dart';
 
 class SwipeImageCard extends StatelessWidget {
   final PetImage? image; // 🔥 Cho phép null cho trạng thái chưa lên server
@@ -139,7 +140,7 @@ class SwipeImageCard extends StatelessWidget {
                           child: const Center(child: Icon(Icons.error_outline)),
                         ),
                 ),
-              _buildGradientOverlay(),
+              _buildGradientOverlay(context),
               if (isLastImage) _buildLastImageBadge(),
             ],
           ),
@@ -172,9 +173,9 @@ class SwipeImageCard extends StatelessWidget {
     );
   }
 
-  Widget _buildGradientOverlay() {
+  Widget _buildGradientOverlay(BuildContext context) {
     final displayCaption = image?.text ?? localCaption;
-    final displayExp = image?.totalExp ?? 20;
+    final int displayExp = image?.totalExp ?? 20;
 
     return Positioned(
       bottom: 0,
@@ -218,7 +219,7 @@ class SwipeImageCard extends StatelessWidget {
                 ),
               ),
             if (isFromPartner) _buildPartnerBadge(),
-            _buildInfoRow(displayExp),
+            _buildInfoRow(context, displayExp),
             if (image?.mood != null && image!.mood!.isNotEmpty)
               _buildMoodBadge(),
           ],
@@ -257,7 +258,7 @@ class SwipeImageCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(int totalExp) {
+  Widget _buildInfoRow(BuildContext context, int totalExp) {
     return Row(
       children: [
         Container(
@@ -309,6 +310,49 @@ class SwipeImageCard extends StatelessWidget {
             ],
           ),
         ),
+        if (image != null && image!.reactionTotalCount > 0) ...[
+          const SizedBox(width: 8),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => showReactionHistoryBottomSheet(context, image!),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.35),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.15),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ...image!.reactionGroups
+                      .take(3)
+                      .map(
+                        (g) => Padding(
+                          padding: const EdgeInsets.only(right: 2),
+                          child: Text(
+                            g.emoji,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                  const SizedBox(width: 4),
+                  Text(
+                    image!.reactionTotalCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const Spacer(),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

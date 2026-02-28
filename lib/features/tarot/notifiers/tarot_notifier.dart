@@ -29,7 +29,7 @@ class TarotNotifier extends Notifier<TarotState> {
     };
 
     socketService.onTarotReady = (data) {
-      _startCountdown();
+      _updateToReady();
     };
 
     socketService.onTarotReveal = (data) {
@@ -38,19 +38,8 @@ class TarotNotifier extends Notifier<TarotState> {
     };
   }
 
-  void _startCountdown() {
-    _countdownTimer?.cancel();
-    state = state.copyWith(status: TarotStatus.READY, countdown: 3);
-
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (state.countdown > 1) {
-        state = state.copyWith(countdown: state.countdown - 1);
-      } else {
-        timer.cancel();
-        state = state.copyWith(countdown: 0);
-        revealTarot();
-      }
-    });
+  void _updateToReady() {
+    state = state.copyWith(status: TarotStatus.READY);
   }
 
   Future<void> syncStatus() async {
@@ -96,12 +85,12 @@ class TarotNotifier extends Notifier<TarotState> {
           state = state.copyWith(
             isLoading: false,
             status: response.status,
-            myCard: response.myCard,
+            myCard: response.myCard ?? cardId,
             partnerSelected: response.partnerSelected,
           );
 
           if (response.status == TarotStatus.READY) {
-            _startCountdown();
+            _updateToReady();
           }
         },
         error: (failure) {

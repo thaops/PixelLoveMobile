@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/pet_image/domain/entities/pet_image.dart';
 import 'package:pixel_love/features/pet_image/presentation/utils/pet_album_formatters.dart';
+import 'package:pixel_love/features/pet_image/presentation/widgets/reaction_history_bottom_sheet.dart';
 
 Future<void> showPetImageDetailDialog(BuildContext context, PetImage image) {
   return showDialog(
@@ -127,6 +128,92 @@ Future<void> showPetImageDetailDialog(BuildContext context, PetImage image) {
                     Text(
                       image.text!,
                       style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
+                  // Hiển thị Lịch sử Reaction
+                  if (image.reactionTotalCount > 0) ...[
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () =>
+                          showReactionHistoryBottomSheet(context, image),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.auto_awesome,
+                                  color: Colors.amber,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Đã nhận được ${image.reactionTotalCount} cảm xúc",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Spacer(),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.white24,
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: image.reactionGroups
+                                  .map(
+                                    (g) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.4),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            g.emoji,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            "${g.count}",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ],

@@ -55,13 +55,13 @@ class PetAlbumNotifier extends Notifier<PetAlbumState> {
   PetAlbumState build() {
     // Setup socket listener
     _listenSocketEvents();
-    
+
     // Load initial images after build completes
     // Use Future.microtask to avoid reading state before initialization
     Future.microtask(() {
       loadImages();
     });
-    
+
     return const PetAlbumState();
   }
 
@@ -256,6 +256,7 @@ class PetAlbumNotifier extends Notifier<PetAlbumState> {
       final bonusExp = (data['bonusExp'] as num?)?.toInt() ?? 0;
 
       final newImage = PetImage(
+        id: data['id'] as String? ?? '',
         imageUrl: imageUrl,
         userId: fromUserId,
         actionAt: actionAt,
@@ -269,13 +270,9 @@ class PetAlbumNotifier extends Notifier<PetAlbumState> {
 
       // Thêm ảnh mới vào danh sách hiện tại
       final newImages = [newImage, ...state.images];
-      state = state.copyWith(
-        images: newImages,
-        total: state.total + 1,
-      );
+      state = state.copyWith(images: newImages, total: state.total + 1);
     } catch (e) {
       print('Error handling pet:image_consumed event: $e');
     }
   }
 }
-

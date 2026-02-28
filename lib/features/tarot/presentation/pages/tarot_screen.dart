@@ -7,7 +7,6 @@ import 'package:pixel_love/features/tarot/providers/tarot_providers.dart';
 import 'package:pixel_love/features/tarot/presentation/widgets/tarot_card_widget.dart';
 import 'package:pixel_love/features/tarot/presentation/widgets/tarot_background_effects.dart';
 import 'package:pixel_love/features/tarot/presentation/widgets/tarot_connection_widget.dart';
-import 'package:pixel_love/features/tarot/presentation/widgets/tarot_countdown_widget.dart';
 
 class TarotScreen extends ConsumerStatefulWidget {
   const TarotScreen({super.key});
@@ -40,6 +39,14 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
     if (state == AppLifecycleState.resumed) {
       ref.read(tarotNotifierProvider.notifier).syncStatus();
     }
+  }
+
+  Future<void> _handleCardSelection(int id) async {
+    if (_localSelectedId != null) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _localSelectedId = id);
+    await Future.delayed(const Duration(milliseconds: 400));
+    ref.read(tarotNotifierProvider.notifier).selectCard(id);
   }
 
   @override
@@ -145,27 +152,46 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
           ),
         ),
         const SizedBox(height: 80),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(3, (index) {
-              final id = index + 1;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: TarotCardWidget(
-                  id: id,
-                  isSelected: _localSelectedId == id,
-                  onTap: () async {
-                    HapticFeedback.mediumImpact();
-                    setState(() => _localSelectedId = id);
-                    await Future.delayed(const Duration(milliseconds: 400));
-                    ref.read(tarotNotifierProvider.notifier).selectCard(id);
-                  },
+        SizedBox(
+          height: 260,
+          width: 320,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned(
+                left: 0,
+                top: 30,
+                child: Transform.rotate(
+                  angle: -0.2,
+                  child: TarotCardWidget(
+                    id: 1,
+                    isSelected: _localSelectedId == 1,
+                    onTap: () => _handleCardSelection(1),
+                  ),
                 ),
-              );
-            }),
+              ),
+              Positioned(
+                left: 90,
+                top: 0,
+                child: TarotCardWidget(
+                  id: 2,
+                  isSelected: _localSelectedId == 2,
+                  onTap: () => _handleCardSelection(2),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 30,
+                child: Transform.rotate(
+                  angle: 0.2,
+                  child: TarotCardWidget(
+                    id: 3,
+                    isSelected: _localSelectedId == 3,
+                    onTap: () => _handleCardSelection(3),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -241,26 +267,46 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
             ),
           )
         else
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(3, (index) {
-                final id = index + 1;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: TarotCardWidget(
-                    id: id,
-                    isSelected: _localSelectedId == id,
-                    onTap: () {
-                      HapticFeedback.mediumImpact();
-                      setState(() => _localSelectedId = id);
-                      ref.read(tarotNotifierProvider.notifier).selectCard(id);
-                    },
+          SizedBox(
+            height: 260,
+            width: 320,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned(
+                  left: 0,
+                  top: 30,
+                  child: Transform.rotate(
+                    angle: -0.2,
+                    child: TarotCardWidget(
+                      id: 1,
+                      isSelected: _localSelectedId == 1,
+                      onTap: () => _handleCardSelection(1),
+                    ),
                   ),
-                );
-              }),
+                ),
+                Positioned(
+                  left: 90,
+                  top: 0,
+                  child: TarotCardWidget(
+                    id: 2,
+                    isSelected: _localSelectedId == 2,
+                    onTap: () => _handleCardSelection(2),
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  top: 30,
+                  child: Transform.rotate(
+                    angle: 0.2,
+                    child: TarotCardWidget(
+                      id: 3,
+                      isSelected: _localSelectedId == 3,
+                      onTap: () => _handleCardSelection(3),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
       ],
@@ -270,7 +316,27 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
   Widget _buildReadyState(state) {
     return Center(
       key: const ValueKey('ready'),
-      child: TarotCountdownWidget(countdown: state.countdown),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Đã sẵn sàng!',
+            style: TextStyle(
+              color: Color(0xFF2B2D42),
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+              shadows: [Shadow(color: Colors.white, blurRadius: 10)],
+            ),
+          ),
+          const SizedBox(height: 48),
+          TarotRevealButton(
+            onPressed: () {
+              ref.read(tarotNotifierProvider.notifier).revealTarot();
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -412,6 +478,72 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
           ),
         ),
       ],
+    );
+  }
+}
+
+class TarotRevealButton extends StatefulWidget {
+  final VoidCallback onPressed;
+  const TarotRevealButton({super.key, required this.onPressed});
+
+  @override
+  State<TarotRevealButton> createState() => _TarotRevealButtonState();
+}
+
+class _TarotRevealButtonState extends State<TarotRevealButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(
+                  0xFFFF6FAE,
+                ).withOpacity(0.3 + 0.4 * _controller.value),
+                blurRadius: 15 + 10 * _controller.value,
+                spreadRadius: 2 + 3 * _controller.value,
+              ),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: widget.onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6FAE),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+            child: const Text(
+              'Lật kết quả của chúng ta',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+      },
     );
   }
 }
