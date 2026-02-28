@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/core/widgets/love_background.dart';
 import 'package:pixel_love/features/pet_image/domain/entities/pet_image.dart';
 import 'package:pixel_love/features/pet_image/presentation/controllers/pet_album_swipe_controller.dart';
@@ -37,6 +38,16 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
       },
     );
     _controller.init();
+    _controller.onSessionEnding = _showSessionEndingDialog;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final albumState = ref.read(petAlbumNotifierProvider);
+      final albumNotifier = ref.read(petAlbumNotifierProvider.notifier);
+      _controller.loadImagesIfNeeded(albumState, albumNotifier);
+      final images = _controller.getSortedImages(albumState);
+      _controller.checkEntryMessage(images);
+    });
   }
 
   @override
@@ -45,17 +56,61 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     super.dispose();
   }
 
+  void _showSessionEndingDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('😴', style: TextStyle(fontSize: 64)),
+              const SizedBox(height: 16),
+              const Text(
+                'Kỷ niệm cũ rồi',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pet nằm ngủ trong ký ức 💭',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryPink,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Quay lại hiện tại'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final albumState = ref.watch(petAlbumNotifierProvider);
     final albumNotifier = ref.read(petAlbumNotifierProvider.notifier);
-    final tempCaptured = ref.watch(temporaryCapturedImageProvider);
-
-    // Sync temp image to controller immediately
-    if (_controller.temporaryImage != tempCaptured) {
-      _controller.temporaryImage = tempCaptured;
-    }
-
     final images = _controller.getSortedImages(albumState);
 
     ref.listen<TemporaryCapturedImage?>(temporaryCapturedImageProvider, (
@@ -65,11 +120,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
       _controller.updateTemporaryImage(next);
     });
 
-    _controller.loadImagesIfNeeded(albumState, albumNotifier);
-    _controller.checkEntryMessage(images);
-
     final canPop = context.canPop();
-
     final captureState = ref.watch(petCaptureNotifierProvider);
 
     return PopScope(
@@ -106,9 +157,6 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                       () => context.pop(),
                       () => context.go(AppRoutes.home),
                     ),
-                onTap: _controller.nextByTap, // Chạm 1 lần là qua liền
-                onDoubleTap:
-                    _controller.handleDoubleTap, // Chạm 2 lần là thả tim
                 child: Transform.translate(
                   offset: Offset(0, _controller.verticalDragOffset * 0.3),
                   child: Opacity(
@@ -203,36 +251,25 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     return Stack(
       children: [
         card_swiper.CardSwiper(
-          key: ValueKey("swiper_${totalCards}_${shouldShowTemporaryImage}"),
+          key: ValueKey("swiper_$shouldShowTemporaryImage"),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
           controller: _controller.swiperController,
-
           cardsCount: totalCards,
           numberOfCardsDisplayed: totalCards < 2 ? totalCards : 2,
           isLoop: false,
-
-          // ⭐ BẬT UNDO STACK CỦA LIB: TRUE + Config Hướng
+          allowedSwipeDirection:
+              const card_swiper.AllowedSwipeDirection.symmetric(
+                horizontal: true,
+              ),
           showBackCardOnUndo: true,
           undoDirection: card_swiper.UndoDirection.right,
-
-          allowedSwipeDirection: card_swiper.AllowedSwipeDirection.only(
-            left: _controller.canNext(totalCards),
-            right: _controller.canPrev(),
-          ),
-
           onUndo: (previousIndex, currentIndex, direction) {
-            debugPrint(
-              "SWIPE UNDO (Back) - Syncing state destId:$currentIndex",
-            );
-            _controller.prev();
+            _controller.syncIndex(currentIndex);
             return true;
           },
-
           onSwipe: (previousIndex, currentIndex, direction) {
-            debugPrint("onSwipe detected: $direction");
-
-            /// NEXT
             if (direction == card_swiper.CardSwiperDirection.left) {
+              if (!_controller.canNext(totalCards)) return false;
               _controller.syncIndex(currentIndex ?? 0);
               _controller.next(
                 totalCards,
@@ -243,25 +280,19 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               );
               return true;
             }
-
-            /// PREVIOUS / UNDO
             if (direction == card_swiper.CardSwiperDirection.right) {
-              _controller.syncIndex(currentIndex ?? 0);
-              debugPrint("SWIPE RIGHT (Undo) -> Triggering Load Previous");
-              _controller.swiperController.undo();
-              return false; // Prevent "Swipe Away", trigger Undo instead
+              // Custom haptic for when bounce back happens, since native code prevents swipe completion
+              HapticFeedback.heavyImpact();
+              return false;
             }
-
             return false;
           },
-
           threshold: 40,
           maxAngle: 20,
           backCardOffset: Offset.zero,
           scale: 0.95,
           cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
             try {
-              // STEP 4 - dùng index từ lib
               final real = index;
 
               if (real < 0 || real >= totalCards) {
@@ -270,7 +301,6 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
 
               if (shouldShowTemporaryImage && real == 0) {
                 final temp = _controller.temporaryImage!;
-                final uploadedImage = _controller.findUploadedImage(images);
 
                 return SwipeImageCard(
                   image: uploadedImage,
@@ -337,7 +367,6 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                 onLongPressEnd: () => _controller.handleLongPressEnd(),
               );
             } catch (e) {
-              debugPrint('⚠️ CardBuilder error at index $index: $e');
               return const SizedBox.shrink();
             }
           },
@@ -364,6 +393,34 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
           right: 24,
           child: SwipeCameraButton(
             onTap: () => context.push(AppRoutes.petCapture),
+          ),
+        ),
+        Positioned(
+          bottom: 24,
+          left: 24,
+          child: Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerUp: (_) => _controller.prevByTap(),
+            child: Opacity(
+              opacity: _controller.canPrev() ? 1.0 : 0.3,
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.15),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.25),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.chevron_left_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+            ),
           ),
         ),
       ],

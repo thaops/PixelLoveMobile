@@ -1,9 +1,9 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_love/core/providers/core_providers.dart';
-import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/pet_image/domain/entities/pet_image.dart';
 import 'package:pixel_love/features/pet_image/presentation/notifiers/pet_album_notifier.dart';
 import 'package:pixel_love/features/pet_image/providers/pet_image_providers.dart';
@@ -28,6 +28,7 @@ class PetAlbumSwipeController {
   final Random random = Random();
 
   double verticalDragOffset = 0.0;
+  bool _isDraggingVertically = false;
 
   int swipeCount = 0;
   bool showPartnerSignal = false;
@@ -37,37 +38,53 @@ class PetAlbumSwipeController {
   String? memoryText;
   bool showEntryMessage = false;
   String? entryMessageText;
+  bool _hasCheckedEntry = false;
+  int _lastMemorySwipeCount = -10;
 
-  late AnimationController partnerSignalController;
-  late AnimationController memoryHighlightController;
+  AnimationController? _partnerSignalController;
+  AnimationController get partnerSignalController =>
+      _partnerSignalController ??= AnimationController(
+        vsync: vsync,
+        duration: const Duration(milliseconds: 800),
+      );
+
+  AnimationController? _memoryHighlightController;
+  AnimationController get memoryHighlightController =>
+      _memoryHighlightController ??= AnimationController(
+        vsync: vsync,
+        duration: const Duration(milliseconds: 600),
+      );
+
+  AnimationController? _entryMessageController;
+  AnimationController get entryMessageController =>
+      _entryMessageController ??= AnimationController(
+        vsync: vsync,
+        duration: const Duration(milliseconds: 600),
+      );
+
   late AnimationController shimmerController;
-  late AnimationController entryMessageController;
   late AnimationController fadeController;
 
   TemporaryCapturedImage? temporaryImage;
 
+  Timer? _tapTimer;
+  int _tapCount = 0;
+
+  List<PetImage>? _cachedSortedImages;
+  int _cachedImagesLength = -1;
+  String _cachedFirstImageUrl = '';
+
+  VoidCallback? onSessionEnding;
+
   void init() {
-    partnerSignalController = AnimationController(
-      vsync: vsync,
-      duration: const Duration(milliseconds: 800),
-    );
-    memoryHighlightController = AnimationController(
-      vsync: vsync,
-      duration: const Duration(milliseconds: 600),
-    );
     shimmerController = AnimationController(
       vsync: vsync,
       duration: const Duration(milliseconds: 1500),
     )..repeat();
-    entryMessageController = AnimationController(
-      vsync: vsync,
-      duration: const Duration(milliseconds: 600),
-    );
     fadeController = AnimationController(
       vsync: vsync,
       duration: const Duration(milliseconds: 400),
     );
-
     fadeController.value = 1.0;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -80,11 +97,12 @@ class PetAlbumSwipeController {
   }
 
   void dispose() {
+    _tapTimer?.cancel();
     swiperController.dispose();
-    partnerSignalController.dispose();
-    memoryHighlightController.dispose();
+    _partnerSignalController?.dispose();
+    _memoryHighlightController?.dispose();
     shimmerController.dispose();
-    entryMessageController.dispose();
+    _entryMessageController?.dispose();
     fadeController.dispose();
   }
 
@@ -99,8 +117,20 @@ class PetAlbumSwipeController {
   }
 
   List<PetImage> getSortedImages(PetAlbumState albumState) {
-    return List<PetImage>.from(albumState.images)
+    final newLength = albumState.images.length;
+    final newFirstUrl = albumState.images.isNotEmpty
+        ? albumState.images.first.imageUrl
+        : '';
+    if (_cachedSortedImages != null &&
+        _cachedImagesLength == newLength &&
+        _cachedFirstImageUrl == newFirstUrl) {
+      return _cachedSortedImages!;
+    }
+    _cachedSortedImages = List<PetImage>.from(albumState.images)
       ..sort((a, b) => b.actionAt.compareTo(a.actionAt));
+    _cachedImagesLength = newLength;
+    _cachedFirstImageUrl = newFirstUrl;
+    return _cachedSortedImages!;
   }
 
   void updateTemporaryImage(TemporaryCapturedImage? next) {
@@ -119,38 +149,43 @@ class PetAlbumSwipeController {
   }
 
   void checkEntryMessage(List<PetImage> images) {
-    if (images.isNotEmpty && !showEntryMessage && currentUserId.isNotEmpty) {
-      final newestImage = images.first;
-      final isFromPartner =
-          newestImage.userId != currentUserId &&
-          newestImage.userId == partnerId;
-      final isRecent =
-          DateTime.now().difference(newestImage.actionAt).inHours < 24;
+    if (_hasCheckedEntry) return;
+    if (images.isEmpty || currentUserId.isEmpty) return;
 
-      if (isFromPartner && isRecent) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          showEntryMessage = true;
-          entryMessageText = '❤️ Người kia vừa thêm ảnh';
-          entryMessageController.forward().then((_) {
-            Future.delayed(const Duration(milliseconds: 2500), () {
-              showEntryMessage = false;
-              entryMessageController.reset();
-              onStateChanged();
-            });
+    final newestImage = images.first;
+    final isFromPartner =
+        newestImage.userId != currentUserId && newestImage.userId == partnerId;
+    final isRecent =
+        DateTime.now().difference(newestImage.actionAt).inHours < 24;
+
+    if (isFromPartner && isRecent) {
+      _hasCheckedEntry = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showEntryMessage = true;
+        entryMessageText = '❤️ Người kia vừa thêm ảnh';
+        entryMessageController.forward().then((_) {
+          Future.delayed(const Duration(milliseconds: 2500), () {
+            showEntryMessage = false;
+            entryMessageController.reset();
+            onStateChanged();
           });
-          onStateChanged();
         });
-      }
+        onStateChanged();
+      });
     }
   }
 
   void handleVerticalDragStart() {
+    _isDraggingVertically = false;
     verticalDragOffset = 0.0;
     onStateChanged();
   }
 
   void handleVerticalDragUpdate(double deltaY) {
     verticalDragOffset += deltaY;
+    if (!_isDraggingVertically && verticalDragOffset.abs() > 20) {
+      _isDraggingVertically = true;
+    }
     onStateChanged();
   }
 
@@ -159,51 +194,63 @@ class PetAlbumSwipeController {
     VoidCallback onPop,
     VoidCallback onGoHome,
   ) {
-    if (verticalDragOffset.abs() > 100) {
-      if (canPop) {
-        onPop();
-      } else {
-        onGoHome();
-      }
-      return true;
-    } else {
+    if (!_isDraggingVertically || verticalDragOffset.abs() <= 100) {
       verticalDragOffset = 0.0;
       onStateChanged();
       return false;
     }
+    if (canPop) {
+      onPop();
+    } else {
+      onGoHome();
+    }
+    return true;
   }
 
   void handleReaction(String emoji) {
     HapticFeedback.lightImpact();
   }
 
+  void handleTap() {
+    _tapCount++;
+    if (_tapCount == 1) {
+      _tapTimer = Timer(const Duration(milliseconds: 220), () {
+        if (_tapCount == 1) {
+          nextByTap();
+        }
+        _tapCount = 0;
+      });
+    } else if (_tapCount >= 2) {
+      _tapTimer?.cancel();
+      _tapCount = 0;
+      handleDoubleTap();
+    }
+  }
+
   void handleDoubleTap() {
-    _showLikeAnimation();
+    HapticFeedback.mediumImpact();
   }
 
   void nextByTap() {
-    // 🔥 Ép thẻ ảnh chuyển sang trái (Next) ngay lập tức khi chạm
     swiperController.swipe(card_swiper.CardSwiperDirection.left);
   }
 
-  void _showLikeAnimation() {}
+  void prevByTap() {
+    if (!canPrev()) return;
+    HapticFeedback.mediumImpact();
+    swiperController.undo();
+  }
 
   void handleLongPressStart(PetImage image) {
     isHolding = true;
+    HapticFeedback.heavyImpact();
     onStateChanged();
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (isHolding) {
-        _showMoodDialog(image);
-      }
-    });
   }
 
   void handleLongPressEnd() {
     isHolding = false;
     onStateChanged();
   }
-
-  void _showMoodDialog(PetImage image) {}
 
   int realIndex = 0;
 
@@ -214,13 +261,7 @@ class PetAlbumSwipeController {
     }
   }
 
-  bool canNext(int totalCards) {
-    final result = realIndex < totalCards - 1;
-    debugPrint(
-      'SWIPE_DEBUG: realIndex=$realIndex totalCards=$totalCards -> canNext=$result',
-    );
-    return result;
-  }
+  bool canNext(int totalCards) => realIndex < totalCards - 1;
 
   bool canPrev() => realIndex > 0;
 
@@ -231,9 +272,7 @@ class PetAlbumSwipeController {
     PetAlbumState albumState,
     PetAlbumNotifier albumNotifier,
   ) {
-    // realIndex đã được sync từ onSwipe, ta chỉ xử lý logic trigger
     swipeCount++;
-
     final imageIndex = hasTemporaryImage ? realIndex - 1 : realIndex;
 
     if (imageIndex >= 0 && imageIndex < filteredImages.length) {
@@ -257,9 +296,7 @@ class PetAlbumSwipeController {
     }
   }
 
-  void prev() {
-    // Logic cho prev nếu cần ngoài việc sync index
-  }
+  void prev() {}
 
   void reset() {
     realIndex = 0;
@@ -293,11 +330,14 @@ class PetAlbumSwipeController {
 
   void checkMemoryHighlight(List<PetImage> images, int reversedIndex) {
     if (reversedIndex < 0 || reversedIndex >= images.length) return;
+    if (swipeCount - _lastMemorySwipeCount < 5) return;
 
     final image = images[reversedIndex];
     final daysDiff = DateTime.now().difference(image.actionAt).inDays;
 
-    if (daysDiff >= 7 && random.nextDouble() < 0.15) {
+    if (daysDiff >= 7) {
+      _lastMemorySwipeCount = swipeCount;
+
       if (daysDiff < 30) {
         memoryText = '📅 ${daysDiff ~/ 7} tuần trước – lần đầu chụp ảnh này';
       } else if (daysDiff < 90) {
@@ -321,55 +361,7 @@ class PetAlbumSwipeController {
 
   void showSessionEnding() {
     if (swipeCount > 0 && swipeCount % 50 != 0) return;
-
-    final context = contextGetter();
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('😴', style: TextStyle(fontSize: 64)),
-              const SizedBox(height: 16),
-              const Text(
-                'Kỷ niệm cũ rồi',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Pet nằm ngủ trong ký ức 💭',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 14,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryPink,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Quay lại hiện tại'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    onSessionEnding?.call();
   }
 
   PetImage? findUploadedImage(List<PetImage> images) {
@@ -400,16 +392,6 @@ class PetAlbumSwipeController {
     return (shouldShowTemporaryImage && uploadedImage != null)
         ? images.where((img) => img.imageUrl != uploadedImage.imageUrl).toList()
         : images;
-  }
-
-  int calculateTotalCards(
-    bool shouldShowTemporaryImage,
-    List<PetImage> filteredImages,
-    bool hasMore,
-  ) {
-    return (shouldShowTemporaryImage ? 1 : 0) +
-        filteredImages.length +
-        (hasMore ? 2 : 0);
   }
 
   IconData getMemoryIcon(DateTime dateTime) {
