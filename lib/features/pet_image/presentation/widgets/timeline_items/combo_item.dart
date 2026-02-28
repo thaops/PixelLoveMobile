@@ -130,11 +130,7 @@ class _ComboHeader extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.star,
-                  color: Colors.amber,
-                  size: 12,
-                ),
+                const Icon(Icons.star, color: Colors.amber, size: 12),
                 const SizedBox(width: 4),
                 Text(
                   '+${combo.totalExp} EXP',
@@ -162,7 +158,7 @@ class _ComboImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const aspectRatio = 4 / 3;
-    
+
     return Stack(
       children: [
         ClipRRect(
@@ -172,11 +168,8 @@ class _ComboImage extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: image.imageUrl,
               width: double.infinity,
-              fit: BoxFit.cover,
-              memCacheWidth: 800,
-              memCacheHeight: 600,
-              maxWidthDiskCache: 800,
-              maxHeightDiskCache: 800,
+              height: double.infinity,
+              fit: BoxFit.cover, // Cắt ảnh tỉ lệ chuẩn không méo
               fadeInDuration: const Duration(milliseconds: 200),
               fadeOutDuration: const Duration(milliseconds: 100),
               useOldImageOnUrlChange: true,
@@ -239,4 +232,3 @@ class _ComboImage extends StatelessWidget {
     );
   }
 }
-

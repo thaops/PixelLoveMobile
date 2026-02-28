@@ -4,10 +4,7 @@ import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/pet_image/domain/entities/pet_image.dart';
 import 'package:pixel_love/features/pet_image/presentation/utils/pet_album_formatters.dart';
 
-Future<void> showPetImageDetailDialog(
-  BuildContext context,
-  PetImage image,
-) {
+Future<void> showPetImageDetailDialog(BuildContext context, PetImage image) {
   return showDialog(
     context: context,
     builder: (context) => Dialog(
@@ -16,27 +13,31 @@ Future<void> showPetImageDetailDialog(
       child: Stack(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: CachedNetworkImage(
-              imageUrl: image.imageUrl,
-              fit: BoxFit.cover,
-              memCacheWidth: (MediaQuery.of(context).size.width * 3).toInt(),
-              memCacheHeight:
-                  (MediaQuery.of(context).size.height * 3).toInt(),
-              maxWidthDiskCache: 2000,
-              maxHeightDiskCache: 2000,
-              fadeInDuration: const Duration(milliseconds: 300),
-              fadeOutDuration: const Duration(milliseconds: 150),
-              useOldImageOnUrlChange: true,
-              placeholder: (context, url) => Container(
-                color: Colors.grey.shade900,
-                child: const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+            borderRadius: BorderRadius.circular(
+              44,
+            ), // Chuẩn góc bo 44 hệt như Swipe Card
+            child: AspectRatio(
+              aspectRatio:
+                  3.9 / 4, // Tỷ lệ chính xác của SwipeCard (Width * 4 / 3.9)
+              child: CachedNetworkImage(
+                imageUrl: image.imageUrl,
+                width: double.infinity,
+                fit: BoxFit.cover, // Cắt đẹp, không méo tỷ lệ, không rớt khung
+                maxWidthDiskCache: 1200,
+                maxHeightDiskCache: 1200,
+                fadeInDuration: const Duration(milliseconds: 300),
+                fadeOutDuration: const Duration(milliseconds: 150),
+                useOldImageOnUrlChange: true,
+                placeholder: (context, url) => Container(
+                  color: Colors.grey.shade900,
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
                 ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey.shade900,
-                child: const Icon(Icons.error, color: Colors.white, size: 60),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.grey.shade900,
+                  child: const Icon(Icons.error, color: Colors.white, size: 60),
+                ),
               ),
             ),
           ),
@@ -53,8 +54,8 @@ Future<void> showPetImageDetailDialog(
                   colors: [Colors.transparent, Colors.black.withOpacity(0.9)],
                 ),
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(16),
-                  bottomRight: Radius.circular(16),
+                  bottomLeft: Radius.circular(44), // Góc bo bằng với card Swipe
+                  bottomRight: Radius.circular(44),
                 ),
               ),
               child: Column(
@@ -107,10 +108,7 @@ Future<void> showPetImageDetailDialog(
                           ),
                           child: const Text(
                             'Bonus!',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                            ),
+                            style: TextStyle(color: Colors.white, fontSize: 10),
                           ),
                         ),
                       ],
@@ -128,10 +126,7 @@ Future<void> showPetImageDetailDialog(
                     const SizedBox(height: 8),
                     Text(
                       image.text!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
                     ),
                   ],
                 ],
@@ -158,4 +153,3 @@ Future<void> showPetImageDetailDialog(
     ),
   );
 }
-
