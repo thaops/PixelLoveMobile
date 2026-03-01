@@ -10,6 +10,9 @@ import 'package:pixel_love/core/utils/image_cache_helper.dart';
 import 'package:pixel_love/core/widgets/app_loader_overlay.dart';
 import 'package:pixel_love/core/services/notification_service.dart';
 import 'package:pixel_love/firebase_options.dart';
+import 'package:audio_service/audio_service.dart';
+import 'package:pixel_love/features/audio_player/presentation/notifiers/audio_handler.dart';
+import 'package:pixel_love/features/audio_player/providers/audio_providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +27,16 @@ void main() async {
 
   await NotificationService.initialize();
 
+  // Initialize Audio Service
+  final audioHandler = await AudioService.init(
+    builder: () => MyAudioHandler(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.pixcellove.audio',
+      androidNotificationChannelName: 'PixelLove Audio',
+      androidShowNotificationBadge: true,
+    ),
+  );
+
   // Initialize SharedPreferences before ProviderScope
   final sharedPreferences = await SharedPreferences.getInstance();
 
@@ -31,6 +44,7 @@ void main() async {
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        audioHandlerProvider.overrideWithValue(audioHandler),
       ],
       child: const PixelLoveApp(),
     ),

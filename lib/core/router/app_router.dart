@@ -18,6 +18,7 @@ import 'package:pixel_love/features/user/presentation/pages/settings_screen.dart
 import 'package:pixel_love/features/user/presentation/pages/user_profile_screen.dart';
 import 'package:pixel_love/features/radio/presentation/pages/radio_screen.dart';
 import 'package:pixel_love/features/tarot/presentation/pages/tarot_screen.dart';
+import 'package:pixel_love/features/audio_player/presentation/pages/audio_player_screen.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 
 /// App Router configuration
@@ -181,6 +182,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.tarot,
         builder: (context, state) => const TarotScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.player,
+        builder: (context, state) => const AudioPlayerScreen(),
       ),
     ],
   );

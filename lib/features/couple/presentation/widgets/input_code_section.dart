@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/couple/providers/couple_providers.dart';
+import 'package:pixel_love/features/user/providers/user_providers.dart';
 
 class InputCodeSection extends ConsumerWidget {
   const InputCodeSection({super.key});
@@ -9,6 +10,8 @@ class InputCodeSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final coupleState = ref.watch(coupleConnectionNotifierProvider);
+    final userState = ref.watch(userNotifierProvider);
+    final userAvatar = userState.currentUser?.avatar;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -26,13 +29,28 @@ class InputCodeSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Nhập mã ghép nối của đối tác bạn',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: AppColors.primaryPink.withValues(alpha: 0.1),
+                backgroundImage: userAvatar != null && userAvatar.isNotEmpty
+                    ? NetworkImage(userAvatar)
+                    : null,
+                child: userAvatar == null || userAvatar.isEmpty
+                    ? Icon(Icons.person, color: AppColors.primaryPink, size: 14)
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Nhập mã ghép nối của đối tác bạn',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           _buildInputRow(ref),

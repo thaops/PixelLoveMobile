@@ -56,6 +56,7 @@ class UserNotifier extends Notifier<UserState> {
         mode: authUser.mode,
         coupleCode: authUser.coupleCode,
         coupleRoomId: authUser.coupleRoomId,
+        partnerId: authUser.partnerId,
         coins: authUser.coins,
         createdAt: null,
       );

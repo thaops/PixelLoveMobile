@@ -33,6 +33,11 @@ class SocketService {
   void Function(Map<String, dynamic>)? onTarotReady;
   void Function(Map<String, dynamic>)? onTarotReveal;
 
+  // Callbacks cho Audio Player
+  void Function(Map<String, dynamic>)? onPlayerUpdate;
+  void Function(Map<String, dynamic>)? onQueueUpdate;
+  void Function(Map<String, dynamic>)? onQueueProgress;
+
   // Connect socket với namespace /events để listen couple events
   Future<void> connectEvents() async {
     if (_eventsSocket != null && _eventsSocket!.connected) {
@@ -118,6 +123,22 @@ class SocketService {
     _eventsSocket!.on('pet:image_consumed', (data) {
       print('📸 [events] Pet image consumed: $data');
       onPetImageConsumed?.call(data as Map<String, dynamic>);
+    });
+
+    // Audio Player events
+    _eventsSocket!.on('player:update', (data) {
+      print('🎵 Player update: $data');
+      onPlayerUpdate?.call(data as Map<String, dynamic>);
+    });
+
+    _eventsSocket!.on('queue:update', (data) {
+      print('🎵 Queue update: $data');
+      onQueueUpdate?.call(data as Map<String, dynamic>);
+    });
+
+    _eventsSocket!.on('queue:progress', (data) {
+      print('🎵 Queue progress: $data');
+      onQueueProgress?.call(data as Map<String, dynamic>);
     });
   }
 
@@ -235,6 +256,13 @@ class SocketService {
       onCoupleBrokenUp = null;
       onServerConnected = null;
       onPetImageConsumed = null;
+    }
+  }
+
+  void joinCoupleRoom(String coupleRoomId) {
+    if (_eventsSocket != null && _eventsSocket!.connected) {
+      _eventsSocket!.emit('joinCoupleRoom', {'coupleRoomId': coupleRoomId});
+      print('🏠 Sent joinCoupleRoom: $coupleRoomId');
     }
   }
 

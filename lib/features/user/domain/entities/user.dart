@@ -11,6 +11,7 @@ class User extends Equatable {
   final String mode;
   final String? coupleCode;
   final String? coupleRoomId;
+  final String? partnerId;
   final int coins;
   final DateTime? createdAt;
 
@@ -25,6 +26,7 @@ class User extends Equatable {
     required this.mode,
     this.coupleCode,
     this.coupleRoomId,
+    this.partnerId,
     required this.coins,
     this.createdAt,
   });
@@ -39,6 +41,7 @@ class User extends Equatable {
     String? mode,
     String? coupleCode,
     String? coupleRoomId,
+    String? partnerId,
     int? coins,
   }) {
     return User(
@@ -52,6 +55,7 @@ class User extends Equatable {
       mode: mode ?? this.mode,
       coupleCode: coupleCode ?? this.coupleCode,
       coupleRoomId: coupleRoomId ?? this.coupleRoomId,
+      partnerId: partnerId ?? this.partnerId,
       coins: coins ?? this.coins,
       createdAt: createdAt,
     );
@@ -59,17 +63,18 @@ class User extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        avatar,
-        email,
-        phone,
-        dob,
-        zodiac,
-        mode,
-        coupleCode,
-        coupleRoomId,
-        coins,
-        createdAt,
-      ];
+    id,
+    name,
+    avatar,
+    email,
+    phone,
+    dob,
+    zodiac,
+    mode,
+    coupleCode,
+    coupleRoomId,
+    partnerId,
+    coins,
+    createdAt,
+  ];
 }

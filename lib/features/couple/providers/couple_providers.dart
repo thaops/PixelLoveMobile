@@ -7,6 +7,8 @@ import 'package:pixel_love/features/couple/domain/usecases/break_up_usecase.dart
 import 'package:pixel_love/features/couple/domain/usecases/create_code_usecase.dart';
 import 'package:pixel_love/features/couple/domain/usecases/pair_couple_usecase.dart';
 import 'package:pixel_love/features/couple/domain/usecases/preview_code_usecase.dart';
+import 'package:pixel_love/features/couple/domain/usecases/get_couple_info_usecase.dart';
+
 import 'package:pixel_love/features/couple/presentation/notifiers/couple_connection_notifier.dart';
 
 // ============================================
@@ -47,6 +49,12 @@ final pairCoupleUseCaseProvider = Provider<PairCoupleUseCase>((ref) {
 final breakUpUseCaseProvider = Provider<BreakUpUseCase>((ref) {
   final repository = ref.watch(coupleRepositoryProvider);
   return BreakUpUseCase(repository);
+});
+
+/// Get Couple Info UseCase provider
+final getCoupleInfoUseCaseProvider = Provider<GetCoupleInfoUseCase>((ref) {
+  final repository = ref.watch(coupleRepositoryProvider);
+  return GetCoupleInfoUseCase(repository);
 });
 
 /// Couple Connection Notifier provider (Riverpod v3)
