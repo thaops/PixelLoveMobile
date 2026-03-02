@@ -61,4 +61,9 @@ class AudioRepositoryImpl implements AudioRepository {
   Future<ApiResult<String>> nextTrack() async {
     return _remoteDataSource.nextTrack();
   }
+
+  @override
+  Future<ApiResult<String>> previousTrack() async {
+    return _remoteDataSource.previousTrack();
+  }
 }

@@ -11,4 +11,5 @@ abstract class AudioRepository {
   Future<ApiResult<void>> pauseTrack();
   Future<ApiResult<void>> seekTrack(num time);
   Future<ApiResult<String>> nextTrack();
+  Future<ApiResult<String>> previousTrack();
 }

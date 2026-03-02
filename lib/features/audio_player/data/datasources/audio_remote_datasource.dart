@@ -63,4 +63,11 @@ class AudioRemoteDataSource {
       fromJson: (data) => (data as Map<String, dynamic>)['trackId'] ?? '',
     );
   }
+
+  Future<ApiResult<String>> previousTrack() async {
+    return _dioApi.post(
+      '/player/previous',
+      fromJson: (data) => (data as Map<String, dynamic>)['trackId'] ?? '',
+    );
+  }
 }

@@ -389,6 +389,19 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
     _setCommandPending(false);
   }
 
+  Future<void> previous() async {
+    if (_isCommandPending) return;
+    _setCommandPending(true);
+
+    if (state.currentTime > 5) {
+      await seek(0);
+    } else {
+      await _repository.previousTrack();
+    }
+
+    _setCommandPending(false);
+  }
+
   void _setCommandPending(bool value) {
     _isCommandPending = value;
   }

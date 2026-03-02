@@ -66,21 +66,30 @@ class AudioPlayerScreen extends ConsumerWidget {
                             // 1. Artwork - Responsive Size
                             Flexible(
                               flex: isSmallDevice ? 6 : 8,
-                              child: PlayerArtwork(
-                                track: state.currentTrack,
-                                isPartnerOnline: state.isPartnerOnline,
-                                meAvatar: currentUser?.avatar,
-                                partnerAvatar: state.partnerAvatar,
-                                meLabel:
-                                    (currentUser?.name != null &&
-                                        currentUser!.name!.isNotEmpty)
-                                    ? currentUser.name![0].toUpperCase()
-                                    : 'M',
-                                partnerLabel:
-                                    (state.partnerName != null &&
-                                        state.partnerName!.isNotEmpty)
-                                    ? state.partnerName![0].toUpperCase()
-                                    : 'V',
+                              child: GestureDetector(
+                                onHorizontalDragEnd: (details) {
+                                  if (details.primaryVelocity! < -500) {
+                                    notifier.next();
+                                  } else if (details.primaryVelocity! > 500) {
+                                    notifier.previous();
+                                  }
+                                },
+                                child: PlayerArtwork(
+                                  track: state.currentTrack,
+                                  isPartnerOnline: state.isPartnerOnline,
+                                  meAvatar: currentUser?.avatar,
+                                  partnerAvatar: state.partnerAvatar,
+                                  meLabel:
+                                      (currentUser?.name != null &&
+                                          currentUser!.name!.isNotEmpty)
+                                      ? currentUser.name![0].toUpperCase()
+                                      : 'M',
+                                  partnerLabel:
+                                      (state.partnerName != null &&
+                                          state.partnerName!.isNotEmpty)
+                                      ? state.partnerName![0].toUpperCase()
+                                      : 'V',
+                                ),
                               ),
                             ),
 
@@ -119,7 +128,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                                     }
                                   },
                                   onNext: () => notifier.next(),
-                                  onPrevious: () {},
+                                  onPrevious: () => notifier.previous(),
                                 ),
                               ],
                             ),
