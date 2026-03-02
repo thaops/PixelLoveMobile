@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 class PlayerControls extends StatelessWidget {
   final bool isPlaying;
   final bool isLoading;
+  final String? timerEndsAt;
   final VoidCallback onPlayPause;
   final VoidCallback onNext;
   final VoidCallback onPrevious;
+  final VoidCallback onTimerTap;
 
   const PlayerControls({
     super.key,
@@ -13,6 +15,8 @@ class PlayerControls extends StatelessWidget {
     required this.onPlayPause,
     required this.onNext,
     required this.onPrevious,
+    required this.onTimerTap,
+    this.timerEndsAt,
     this.isLoading = false,
   });
 
@@ -35,7 +39,7 @@ class PlayerControls extends StatelessWidget {
             ),
             onPressed: onPrevious,
           ),
-          // Play/Pause Button with Premium Gradient
+          // Play/Pause Button
           GestureDetector(
             onTap: onPlayPause,
             child: Container(
@@ -89,12 +93,12 @@ class PlayerControls extends StatelessWidget {
             onPressed: onNext,
           ),
           IconButton(
-            icon: const Icon(
-              Icons.repeat_rounded,
-              color: Colors.white38,
-              size: 24,
+            icon: Icon(
+              timerEndsAt != null ? Icons.timer : Icons.timer_outlined,
+              color: timerEndsAt != null ? Colors.pinkAccent : Colors.white38,
+              size: 26,
             ),
-            onPressed: () {},
+            onPressed: onTimerTap,
           ),
         ],
       ),

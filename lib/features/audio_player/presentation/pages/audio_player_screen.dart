@@ -8,16 +8,86 @@ import 'package:pixel_love/features/audio_player/presentation/widgets/player_con
 import 'package:pixel_love/features/audio_player/presentation/widgets/player_progress_bar.dart';
 import 'package:pixel_love/features/audio_player/presentation/widgets/queue_bottom_sheet.dart';
 import 'package:pixel_love/features/audio_player/presentation/widgets/add_song_bottom_sheet.dart';
+import 'package:pixel_love/features/audio_player/presentation/notifiers/audio_player_notifier.dart';
+import 'package:pixel_love/features/audio_player/domain/entities/audio_player_state.dart';
 import 'package:pixel_love/features/user/providers/user_providers.dart';
+import 'package:pixel_love/features/audio_player/presentation/widgets/sleep_timer_bottom_sheet.dart';
 
-class AudioPlayerScreen extends ConsumerWidget {
+class AudioPlayerScreen extends ConsumerStatefulWidget {
   const AudioPlayerScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AudioPlayerScreen> createState() => _AudioPlayerScreenState();
+}
+
+class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
+  late PageController _pageController;
+  int _currentPage = 0;
+  bool _isManualScrolling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final state = ref.read(audioPlayerNotifierProvider);
+    _currentPage = _getInitialPage(state);
+    _pageController = PageController(
+      initialPage: _currentPage,
+      viewportFraction: 0.85,
+    );
+  }
+
+  int _getInitialPage(AudioPlayerState state) {
+    if (state.currentTrack == null || state.queue.isEmpty) return 0;
+    final index = state.queue.indexWhere((t) => t.id == state.currentTrack!.id);
+    return index != -1 ? index : 0;
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _handlePageChanged(
+    int index,
+    AudioPlayerState state,
+    AudioPlayerNotifier notifier,
+  ) {
+    if (!_isManualScrolling) return;
+
+    final targetTrack = state.queue[index];
+    if (targetTrack.id != state.currentTrack?.id) {
+      if (index > _currentPage) {
+        notifier.next();
+      } else if (index < _currentPage) {
+        notifier.previous();
+      }
+    }
+    _currentPage = index;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(audioPlayerNotifierProvider);
     final notifier = ref.read(audioPlayerNotifierProvider.notifier);
     final currentUser = ref.watch(userNotifierProvider).currentUser;
+
+    // Sync PageController when track changes from outside (e.g., partner or auto-next)
+    ref.listen(audioPlayerNotifierProvider, (previous, next) {
+      if (!_isManualScrolling) {
+        final nextIndex = next.queue.indexWhere(
+          (t) => t.id == next.currentTrack?.id,
+        );
+        if (nextIndex != -1 && nextIndex != _currentPage) {
+          _currentPage = nextIndex;
+          _pageController.animateToPage(
+            nextIndex,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOutCubic,
+          );
+        }
+      }
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F12),
@@ -55,7 +125,6 @@ class AudioPlayerScreen extends ConsumerWidget {
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      // Adjust spacing and sizes based on available height
                       final isSmallDevice = constraints.maxHeight < 600;
 
                       return Padding(
@@ -63,32 +132,88 @@ class AudioPlayerScreen extends ConsumerWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            // 1. Artwork - Responsive Size
+                            // 1. Artwork - Smooth Scrollable PageView
                             Flexible(
                               flex: isSmallDevice ? 6 : 8,
-                              child: GestureDetector(
-                                onHorizontalDragEnd: (details) {
-                                  if (details.primaryVelocity! < -500) {
-                                    notifier.next();
-                                  } else if (details.primaryVelocity! > 500) {
-                                    notifier.previous();
+                              child: NotificationListener<ScrollNotification>(
+                                onNotification: (notification) {
+                                  if (notification is ScrollStartNotification) {
+                                    if (notification.dragDetails != null) {
+                                      _isManualScrolling = true;
+                                    }
+                                  } else if (notification
+                                      is ScrollEndNotification) {
+                                    _isManualScrolling = false;
                                   }
+                                  return false;
                                 },
-                                child: PlayerArtwork(
-                                  track: state.currentTrack,
-                                  isPartnerOnline: state.isPartnerOnline,
-                                  meAvatar: currentUser?.avatar,
-                                  partnerAvatar: state.partnerAvatar,
-                                  meLabel:
-                                      (currentUser?.name != null &&
-                                          currentUser!.name!.isNotEmpty)
-                                      ? currentUser.name![0].toUpperCase()
-                                      : 'M',
-                                  partnerLabel:
-                                      (state.partnerName != null &&
-                                          state.partnerName!.isNotEmpty)
-                                      ? state.partnerName![0].toUpperCase()
-                                      : 'V',
+                                child: PageView.builder(
+                                  controller: _pageController,
+                                  onPageChanged: (index) => _handlePageChanged(
+                                    index,
+                                    state,
+                                    notifier,
+                                  ),
+                                  itemCount: state.queue.isEmpty
+                                      ? 1
+                                      : state.queue.length,
+                                  physics: const BouncingScrollPhysics(),
+                                  itemBuilder: (context, index) {
+                                    final track = state.queue.isEmpty
+                                        ? state.currentTrack
+                                        : state.queue[index];
+
+                                    return AnimatedBuilder(
+                                      animation: _pageController,
+                                      builder: (context, child) {
+                                        double value = 1.0;
+                                        if (_pageController
+                                            .position
+                                            .haveDimensions) {
+                                          value =
+                                              (_pageController.page! - index)
+                                                  .abs();
+                                          value = (1 - (value * 0.15)).clamp(
+                                            0.0,
+                                            1.0,
+                                          );
+                                        } else {
+                                          // Initial build
+                                          value =
+                                              (_currentPage - index).abs() == 0
+                                              ? 1.0
+                                              : 0.85;
+                                        }
+
+                                        return Center(
+                                          child: Transform.scale(
+                                            scale: value,
+                                            child: Opacity(
+                                              opacity: value.clamp(0.5, 1.0),
+                                              child: child,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: PlayerArtwork(
+                                        track: track,
+                                        isPartnerOnline: state.isPartnerOnline,
+                                        meAvatar: currentUser?.avatar,
+                                        partnerAvatar: state.partnerAvatar,
+                                        meLabel:
+                                            (currentUser?.name != null &&
+                                                currentUser!.name!.isNotEmpty)
+                                            ? currentUser.name![0].toUpperCase()
+                                            : 'M',
+                                        partnerLabel:
+                                            (state.partnerName != null &&
+                                                state.partnerName!.isNotEmpty)
+                                            ? state.partnerName![0]
+                                                  .toUpperCase()
+                                            : 'V',
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
@@ -99,7 +224,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                               child: _buildSongInfo(state, isSmallDevice),
                             ),
 
-                            // 3. Progress + Controls - Ensuring they are always visible
+                            // 3. Progress + Controls
                             Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -118,6 +243,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                                 PlayerControls(
                                   isPlaying: state.isPlaying,
                                   isLoading: state.isLoading,
+                                  timerEndsAt: state.timerEndsAt,
                                   onPlayPause: () {
                                     if (state.isPlaying) {
                                       notifier.pauseTrack();
@@ -127,8 +253,15 @@ class AudioPlayerScreen extends ConsumerWidget {
                                       );
                                     }
                                   },
-                                  onNext: () => notifier.next(),
+                                  onNext: () {
+                                    notifier.next();
+                                  },
                                   onPrevious: () => notifier.previous(),
+                                  onTimerTap: () => _showTimerBottomSheet(
+                                    context,
+                                    state,
+                                    notifier,
+                                  ),
                                 ),
                               ],
                             ),
@@ -148,7 +281,7 @@ class AudioPlayerScreen extends ConsumerWidget {
         onPressed: () => _showAddSongBottomSheet(context, notifier),
         backgroundColor: Colors.white.withOpacity(0.1),
         elevation: 0,
-        mini: true, // Mini FAB to save space on small devices
+        mini: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -216,10 +349,7 @@ class AudioPlayerScreen extends ConsumerWidget {
           onTap: () => _showQueueBottomSheet(context, state, notifier),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(
-              top: 12,
-              bottom: 20,
-            ), // Reduced bottom padding
+            padding: const EdgeInsets.only(top: 12, bottom: 20),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
               border: const Border(top: BorderSide(color: Colors.white10)),
@@ -289,7 +419,17 @@ class AudioPlayerScreen extends ConsumerWidget {
         onPlay: (id) => notifier.playTrack(id),
         onDelete: (id) => notifier.removeTrack(id),
       ),
-    );
+    ).then((_) {
+      // Re-sync after sheet closed in case queue changed
+      final newState = ref.read(audioPlayerNotifierProvider);
+      final newIndex = newState.queue.indexWhere(
+        (t) => t.id == newState.currentTrack?.id,
+      );
+      if (newIndex != -1 && newIndex != _currentPage) {
+        _currentPage = newIndex;
+        _pageController.jumpToPage(newIndex);
+      }
+    });
   }
 
   void _showAddSongBottomSheet(context, notifier) {
@@ -299,6 +439,18 @@ class AudioPlayerScreen extends ConsumerWidget {
       isScrollControlled: true,
       builder: (context) =>
           AddSongBottomSheet(onAdd: (url) => notifier.addTrack(url)),
+    );
+  }
+
+  void _showTimerBottomSheet(BuildContext context, state, notifier) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => SleepTimerBottomSheet(
+        currentTimerEndsAt: state.timerEndsAt,
+        onTimerSelected: (minutes) => notifier.setTimer(minutes),
+      ),
     );
   }
 }

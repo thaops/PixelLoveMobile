@@ -37,6 +37,7 @@ class SocketService {
   void Function(Map<String, dynamic>)? onPlayerUpdate;
   void Function(Map<String, dynamic>)? onQueueUpdate;
   void Function(Map<String, dynamic>)? onQueueProgress;
+  void Function(Map<String, dynamic>)? onPlayerTimerUpdate;
 
   // Connect socket với namespace /events để listen couple events
   Future<void> connectEvents() async {
@@ -139,6 +140,11 @@ class SocketService {
     _eventsSocket!.on('queue:progress', (data) {
       print('🎵 Queue progress: $data');
       onQueueProgress?.call(data as Map<String, dynamic>);
+    });
+
+    _eventsSocket!.on('player:timer-update', (data) {
+      print('🎵 Player timer update: $data');
+      onPlayerTimerUpdate?.call(data as Map<String, dynamic>);
     });
   }
 
@@ -256,6 +262,7 @@ class SocketService {
       onCoupleBrokenUp = null;
       onServerConnected = null;
       onPetImageConsumed = null;
+      onPlayerTimerUpdate = null;
     }
   }
 

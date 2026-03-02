@@ -70,4 +70,12 @@ class AudioRemoteDataSource {
       fromJson: (data) => (data as Map<String, dynamic>)['trackId'] ?? '',
     );
   }
+
+  Future<ApiResult<void>> setTimer(int minutes) async {
+    return _dioApi.post(
+      '/player/timer',
+      data: {'minutes': minutes},
+      fromJson: (_) => null,
+    );
+  }
 }

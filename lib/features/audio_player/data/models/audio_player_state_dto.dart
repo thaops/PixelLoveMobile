@@ -7,12 +7,14 @@ class AudioPlayerStateDto {
   final bool isPlaying;
   final num currentTime;
   final List<TrackDto> queue;
+  final String? timerEndsAt;
 
   AudioPlayerStateDto({
     this.currentTrack,
     required this.isPlaying,
     required this.currentTime,
     required this.queue,
+    this.timerEndsAt,
   });
 
   factory AudioPlayerStateDto.fromJson(Map<String, dynamic> json) {
@@ -30,6 +32,7 @@ class AudioPlayerStateDto {
       isPlaying: json['isPlaying'] ?? false,
       currentTime: json['currentTime'] ?? 0,
       queue: queueList,
+      timerEndsAt: json['timerEndsAt'],
     );
   }
 
@@ -39,6 +42,7 @@ class AudioPlayerStateDto {
       isPlaying: isPlaying,
       currentTime: currentTime,
       queue: queue.map((e) => e.toEntity()).toList(),
+      timerEndsAt: timerEndsAt,
     );
   }
 }

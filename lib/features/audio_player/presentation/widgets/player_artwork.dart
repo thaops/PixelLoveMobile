@@ -47,13 +47,6 @@ class PlayerArtwork extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.5),
-                blurRadius: 30,
-                offset: const Offset(0, 15),
-              ),
-            ],
             image: DecorationImage(
               image: NetworkImage(track!.thumbnail),
               fit: BoxFit.cover,

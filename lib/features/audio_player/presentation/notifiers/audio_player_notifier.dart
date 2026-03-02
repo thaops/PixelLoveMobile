@@ -278,6 +278,12 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
         state = state.copyWith(isPartnerOnline: true);
       }
     };
+
+    _socketService.onPlayerTimerUpdate = (data) {
+      final timerEndsAt = data['timerEndsAt'] as String?;
+      print('🎵 Timer update from socket: $timerEndsAt');
+      state = state.copyWith(timerEndsAt: timerEndsAt);
+    };
   }
 
   Future<void> fetchState() async {
@@ -420,5 +426,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
       success: (queue) => state = state.copyWith(queue: queue),
       error: (_) => null,
     );
+  }
+
+  Future<void> setTimer(int minutes) async {
+    await _repository.setTimer(minutes);
   }
 }

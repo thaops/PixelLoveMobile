@@ -66,4 +66,9 @@ class AudioRepositoryImpl implements AudioRepository {
   Future<ApiResult<String>> previousTrack() async {
     return _remoteDataSource.previousTrack();
   }
+
+  @override
+  Future<ApiResult<void>> setTimer(int minutes) async {
+    return _remoteDataSource.setTimer(minutes);
+  }
 }

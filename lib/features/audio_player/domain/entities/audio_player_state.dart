@@ -9,6 +9,7 @@ class AudioPlayerState {
   final String? partnerName;
   final bool isPartnerOnline;
   final bool isLoading;
+  final String? timerEndsAt;
 
   AudioPlayerState({
     this.currentTrack,
@@ -19,6 +20,7 @@ class AudioPlayerState {
     this.partnerName,
     this.isPartnerOnline = true,
     this.isLoading = false,
+    this.timerEndsAt,
   });
 
   AudioPlayerState copyWith({
@@ -30,6 +32,7 @@ class AudioPlayerState {
     String? partnerName,
     bool? isPartnerOnline,
     bool? isLoading,
+    String? timerEndsAt,
   }) {
     return AudioPlayerState(
       currentTrack: currentTrack ?? this.currentTrack,
@@ -40,6 +43,7 @@ class AudioPlayerState {
       partnerName: partnerName ?? this.partnerName,
       isPartnerOnline: isPartnerOnline ?? this.isPartnerOnline,
       isLoading: isLoading ?? this.isLoading,
+      timerEndsAt: timerEndsAt ?? this.timerEndsAt,
     );
   }
 }
