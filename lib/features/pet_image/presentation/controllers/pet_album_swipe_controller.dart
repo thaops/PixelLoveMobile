@@ -297,8 +297,15 @@ class PetAlbumSwipeController {
 
   void prevByTap() {
     if (!canPrev()) return;
+    if (isUndoing) return;
+    debugPrint(
+      '[UNDO] prevByTap: realIndex=$realIndex, canPrev=${canPrev()}, isUndoing=$isUndoing',
+    );
     HapticFeedback.mediumImpact();
+    isUndoing = true;
+    onStateChanged();
     swiperController.undo();
+    debugPrint('[UNDO] prevByTap: swiperController.undo() called');
   }
 
   void handleLongPressStart(PetImage image) {
@@ -312,6 +319,7 @@ class PetAlbumSwipeController {
     onStateChanged();
   }
 
+  bool isUndoing = false;
   int realIndex = 0;
 
   void syncIndex(int index) {
@@ -444,8 +452,13 @@ class PetAlbumSwipeController {
       // Nếu đã tìm thấy ảnh từ Server khớp với ảnh Temporary, lập tức xoá luôn Temporary cache đi
       // Tránh việc UI bị render 2 card trùng lặp nhau hoặc card trắng.
       if (found.imageUrl.isNotEmpty && temporaryImage != null) {
+        debugPrint(
+          '[TEMP] Found uploaded image, clearing temporaryImage and resetting to index 0',
+        );
         WidgetsBinding.instance.addPostFrameCallback((_) {
           temporaryImage = null;
+          realIndex = 0;
+          swiperController.moveTo(0);
           onStateChanged();
         });
       }

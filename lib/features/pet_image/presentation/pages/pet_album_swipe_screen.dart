@@ -252,7 +252,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     return Stack(
       children: [
         card_swiper.CardSwiper(
-          key: ValueKey("swiper_$shouldShowTemporaryImage"),
+          key: const ValueKey("pet_album_swiper"),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
           controller: _controller.swiperController,
           cardsCount: totalCards,
@@ -262,13 +262,27 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               const card_swiper.AllowedSwipeDirection.symmetric(
                 horizontal: true,
               ),
+          isDisabled: _controller.isUndoing,
           showBackCardOnUndo: true,
           undoDirection: card_swiper.UndoDirection.right,
           onUndo: (previousIndex, currentIndex, direction) {
-            _controller.syncIndex(currentIndex);
+            debugPrint(
+              '[UNDO] onUndo called: previousIndex=$previousIndex, currentIndex=$currentIndex, direction=${direction.name}',
+            );
+            debugPrint(
+              '[UNDO] realIndex before=${_controller.realIndex}, isUndoing=${_controller.isUndoing}',
+            );
+            _controller.realIndex = currentIndex;
+            Future.delayed(const Duration(milliseconds: 300), () {
+              _controller.isUndoing = false;
+              _controller.onStateChanged();
+            });
             return true;
           },
           onSwipe: (previousIndex, currentIndex, direction) {
+            debugPrint(
+              '[SWIPE] onSwipe called: previousIndex=$previousIndex, currentIndex=$currentIndex, direction=${direction.name}, isUndoing=${_controller.isUndoing}',
+            );
             if (direction == card_swiper.CardSwiperDirection.left) {
               if (!_controller.canNext(totalCards)) return false;
               _controller.syncIndex(currentIndex ?? 0);
@@ -282,8 +296,12 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               return true;
             }
             if (direction == card_swiper.CardSwiperDirection.right) {
-              // Custom haptic for when bounce back happens, since native code prevents swipe completion
-              HapticFeedback.heavyImpact();
+              HapticFeedback.mediumImpact();
+              if (_controller.canPrev() && !_controller.isUndoing) {
+                Future.delayed(const Duration(milliseconds: 220), () {
+                  _controller.prevByTap();
+                });
+              }
               return false;
             }
             return false;
@@ -293,6 +311,9 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
           backCardOffset: Offset.zero,
           scale: 0.95,
           cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
+            debugPrint(
+              '[CARD] cardBuilder index=$index, realIndex=${_controller.realIndex}, totalCards=$totalCards, shouldShowTemp=$shouldShowTemporaryImage',
+            );
             try {
               final real = index;
 
