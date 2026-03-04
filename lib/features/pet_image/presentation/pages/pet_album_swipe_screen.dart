@@ -298,8 +298,12 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
             if (direction == card_swiper.CardSwiperDirection.right) {
               HapticFeedback.mediumImpact();
               if (_controller.canPrev() && !_controller.isUndoing) {
-                Future.delayed(const Duration(milliseconds: 220), () {
-                  _controller.prevByTap();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!_controller.isUndoing) {
+                      _controller.prevByTap();
+                    }
+                  });
                 });
               }
               return false;
