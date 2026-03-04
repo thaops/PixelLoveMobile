@@ -262,27 +262,17 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               const card_swiper.AllowedSwipeDirection.symmetric(
                 horizontal: true,
               ),
+          duration: const Duration(milliseconds: 200),
           isDisabled: _controller.isUndoing,
           showBackCardOnUndo: true,
           undoDirection: card_swiper.UndoDirection.right,
           onUndo: (previousIndex, currentIndex, direction) {
-            debugPrint(
-              '[UNDO] onUndo called: previousIndex=$previousIndex, currentIndex=$currentIndex, direction=${direction.name}',
-            );
-            debugPrint(
-              '[UNDO] realIndex before=${_controller.realIndex}, isUndoing=${_controller.isUndoing}',
-            );
             _controller.realIndex = currentIndex;
-            Future.delayed(const Duration(milliseconds: 300), () {
-              _controller.isUndoing = false;
-              _controller.onStateChanged();
-            });
+            _controller.isUndoing = false;
+            _controller.onStateChanged();
             return true;
           },
           onSwipe: (previousIndex, currentIndex, direction) {
-            debugPrint(
-              '[SWIPE] onSwipe called: previousIndex=$previousIndex, currentIndex=$currentIndex, direction=${direction.name}, isUndoing=${_controller.isUndoing}',
-            );
             if (direction == card_swiper.CardSwiperDirection.left) {
               if (!_controller.canNext(totalCards)) return false;
               _controller.syncIndex(currentIndex ?? 0);
@@ -296,15 +286,9 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
               return true;
             }
             if (direction == card_swiper.CardSwiperDirection.right) {
-              HapticFeedback.mediumImpact();
               if (_controller.canPrev() && !_controller.isUndoing) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (!_controller.isUndoing) {
-                      _controller.prevByTap();
-                    }
-                  });
-                });
+                // Trigger Undo ngay lập tức khi vuốt đủ lực
+                _controller.prevByTap();
               }
               return false;
             }
@@ -315,9 +299,6 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
           backCardOffset: Offset.zero,
           scale: 0.95,
           cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
-            debugPrint(
-              '[CARD] cardBuilder index=$index, realIndex=${_controller.realIndex}, totalCards=$totalCards, shouldShowTemp=$shouldShowTemporaryImage',
-            );
             try {
               final real = index;
 
@@ -332,7 +313,7 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                   image: uploadedImage,
                   cardWidth: cardWidth,
                   cardHeight: cardHeight,
-                  isNextCard: percentThresholdX != 0,
+                  isNextCard: percentThresholdX != 0 && !_controller.isUndoing,
                   isFromPartner: false,
                   isLastImage: images.length == 1 && !albumState.hasMore,
                   showMemoryHighlight: false,
@@ -356,11 +337,21 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
 
               final imageIndex = shouldShowTemporaryImage ? real - 1 : real;
 
-              if (imageIndex < 0) {
+              // LOGIC QUAN TRỌNG: Quyết định ảnh nào nằm ở dưới
+              // Nếu là thẻ phía sau (index > current) và đang kéo sang phải (percent > 0)
+              // -> Hiển thị ảnh TRƯỚC ĐÓ để tạo cảm giác mượt mà
+              int effectiveImageIndex = imageIndex;
+              if (real > _controller.realIndex && percentThresholdX > 0) {
+                effectiveImageIndex = shouldShowTemporaryImage
+                    ? real - 2
+                    : real - 2;
+              }
+
+              if (effectiveImageIndex < 0) {
                 return const SizedBox.shrink();
               }
 
-              if (imageIndex >= filteredImages.length) {
+              if (effectiveImageIndex >= filteredImages.length) {
                 return SwipeGhostCard(
                   cardWidth: cardWidth,
                   cardHeight: cardHeight,
@@ -368,8 +359,9 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                 );
               }
 
-              final image = filteredImages[imageIndex];
-              final isNextCard = percentThresholdX != 0;
+              final image = filteredImages[effectiveImageIndex];
+              final isNextCard =
+                  percentThresholdX != 0 && !_controller.isUndoing;
 
               final isLastImage =
                   imageIndex == filteredImages.length - 1 &&

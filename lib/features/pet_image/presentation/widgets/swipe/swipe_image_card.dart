@@ -141,6 +141,7 @@ class SwipeImageCard extends StatelessWidget {
                         ),
                 ),
               _buildGradientOverlay(context),
+              _buildDateBadge(),
               if (isLastImage) _buildLastImageBadge(),
             ],
           ),
@@ -262,12 +263,20 @@ class SwipeImageCard extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: isUploading
                 ? Colors.white.withOpacity(0.3)
                 : AppColors.primaryPink,
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              if (!isUploading)
+                BoxShadow(
+                  color: AppColors.primaryPink.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+            ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -277,17 +286,18 @@ class SwipeImageCard extends StatelessWidget {
                 color: Colors.white,
                 size: 16,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               Text(
                 isUploading ? 'Đang gửi...' : '+$totalExp EXP',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
               if (image?.hasBonus ?? false) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 6,
@@ -310,18 +320,18 @@ class SwipeImageCard extends StatelessWidget {
             ],
           ),
         ),
-        if (image != null && image!.reactionTotalCount > 0) ...[
-          const SizedBox(width: 8),
+        if (image != null && (image!.reactionTotalCount) > 0) ...[
+          const SizedBox(width: 10),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => showReactionHistoryBottomSheet(context, image!),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.35),
+                color: Colors.black.withOpacity(0.4),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withOpacity(0.2),
                   width: 1,
                 ),
               ),
@@ -332,19 +342,19 @@ class SwipeImageCard extends StatelessWidget {
                       .take(3)
                       .map(
                         (g) => Padding(
-                          padding: const EdgeInsets.only(right: 2),
+                          padding: const EdgeInsets.only(right: 3),
                           child: Text(
                             g.emoji,
-                            style: const TextStyle(fontSize: 12),
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ),
                       ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   Text(
                     image!.reactionTotalCount.toString(),
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -353,28 +363,46 @@ class SwipeImageCard extends StatelessWidget {
             ),
           ),
         ],
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: showMemoryHighlight
-                ? AppColors.primaryPink.withOpacity(0.8)
-                : Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(memoryIcon, color: Colors.white, size: 14),
-              const SizedBox(width: 4),
-              Text(
-                formattedDate,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
       ],
+    );
+  }
+
+  Widget _buildDateBadge() {
+    return Positioned(
+      top: isLastImage ? 60 : 16,
+      right: 16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: showMemoryHighlight
+              ? AppColors.primaryPink.withOpacity(0.9)
+              : Colors.black.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(memoryIcon, color: Colors.white, size: 14),
+            const SizedBox(width: 6),
+            Text(
+              formattedDate,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
