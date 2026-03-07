@@ -4,7 +4,14 @@ import '../entities/track.dart';
 
 abstract class AudioRepository {
   Future<ApiResult<AudioPlayerState>> getPlayerState();
-  Future<ApiResult<Track>> addTrack(String youtubeUrl);
+  Future<ApiResult<Track>> addTrack({
+    required String youtubeUrl,
+    String? title,
+    String? thumbnail,
+    String? audioUrl,
+    num? duration,
+  });
+  Future<ApiResult<Map<String, dynamic>>> checkTrack(String youtubeUrl);
   Future<ApiResult<void>> removeTrack(String trackId);
   Future<ApiResult<List<Track>>> getQueue();
   Future<ApiResult<void>> playTrack(String trackId, {num? startTime});

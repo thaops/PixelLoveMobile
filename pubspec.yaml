@@ -111,6 +111,8 @@ dependencies:
   audio_service: ^0.18.18
   audio_session: ^0.1.21
   rxdart: ^0.28.0
+  youtube_explode_dart: ^3.0.5
+  ffmpeg_kit_flutter_full_gpl: ^6.0.3
 
 dev_dependencies:
   flutter_test:

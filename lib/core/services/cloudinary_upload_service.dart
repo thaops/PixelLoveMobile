@@ -104,11 +104,18 @@ class CloudinaryUploadService {
       }
 
       final fileName = file.path.split(RegExp(r'[/\\]')).last;
+      final extension = fileName.split('.').last.toLowerCase();
+
+      String mimeType = 'audio/mpeg';
+      if (extension == 'm4a') {
+        mimeType = 'audio/mp4';
+      }
+
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(
           file.path,
           filename: fileName,
-          contentType: DioMediaType('audio', 'mpeg'),
+          contentType: DioMediaType('audio', mimeType.split('/').last),
         ),
       });
 

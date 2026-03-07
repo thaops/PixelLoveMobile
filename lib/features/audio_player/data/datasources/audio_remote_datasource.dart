@@ -15,10 +15,30 @@ class AudioRemoteDataSource {
     );
   }
 
-  Future<ApiResult<TrackDto>> addTrack(String youtubeUrl) async {
+  Future<ApiResult<Map<String, dynamic>>> checkTrack(String youtubeUrl) async {
+    return _dioApi.post(
+      '/rooms/tracks/check',
+      data: {'youtubeUrl': youtubeUrl},
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  Future<ApiResult<TrackDto>> addTrack({
+    required String youtubeUrl,
+    String? title,
+    String? thumbnail,
+    String? audioUrl,
+    num? duration,
+  }) async {
     return _dioApi.post(
       '/rooms/tracks',
-      data: {'youtubeUrl': youtubeUrl},
+      data: {
+        'youtubeUrl': youtubeUrl,
+        if (title != null) 'title': title,
+        if (thumbnail != null) 'thumbnail': thumbnail,
+        if (audioUrl != null) 'audioUrl': audioUrl,
+        if (duration != null) 'duration': duration,
+      },
       fromJson: (data) => TrackDto.fromJson(data),
     );
   }
