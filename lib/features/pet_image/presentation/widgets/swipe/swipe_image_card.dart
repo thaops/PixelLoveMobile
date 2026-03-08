@@ -76,15 +76,15 @@ class SwipeImageCard extends StatelessWidget {
               // 🔥 1. Lớp nền: Hiển thị ngay ảnh local nếu có, xoay đúng hướng
               if (localImageBytes != null)
                 Center(
-                  child: RotatedBox(
-                    quarterTurns: (localRotation ?? 0) ~/ 90,
-                    child: Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.identity()
-                        ..scale(
-                          localPosition == SensorPosition.front ? -1.0 : 1.0,
-                          1.0,
-                        ),
+                  child: Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..scale(
+                        localPosition == SensorPosition.front ? -1.0 : 1.0,
+                        1.0,
+                      ),
+                    child: RotatedBox(
+                      quarterTurns: (localRotation ?? 0) ~/ 90,
                       child: Image.memory(
                         localImageBytes!,
                         width: ((localRotation ?? 0) ~/ 90) % 2 != 0
@@ -94,6 +94,7 @@ class SwipeImageCard extends StatelessWidget {
                             ? cardWidth
                             : cardHeight,
                         fit: BoxFit.cover,
+                        alignment: const Alignment(0, -0.5),
                       ),
                     ),
                   ),
@@ -112,7 +113,7 @@ class SwipeImageCard extends StatelessWidget {
                         image: DecorationImage(
                           image: imageProvider,
                           fit: BoxFit.cover,
-                          alignment: Alignment.center,
+                          alignment: const Alignment(0, -0.5),
                         ),
                       ),
                       child: isNextCard

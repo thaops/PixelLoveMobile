@@ -52,20 +52,21 @@ class SwipeTemporaryImageCard extends StatelessWidget {
           children: [
             // 🔥 Tự động xoay và lật ảnh dựa trên metadata để hiển thị đúng hướng ngay lập tức
             Center(
-              child: RotatedBox(
-                quarterTurns: sensorRotation ~/ 90,
-                child: Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..scale(
-                      sensorPosition == SensorPosition.front ? -1.0 : 1.0,
-                      1.0,
-                    ),
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..scale(
+                    sensorPosition == SensorPosition.front ? -1.0 : 1.0,
+                    1.0,
+                  ),
+                child: RotatedBox(
+                  quarterTurns: sensorRotation ~/ 90,
                   child: Image.memory(
                     imageBytes,
                     width: cardWidth,
                     height: cardHeight,
                     fit: BoxFit.cover,
+                    alignment: const Alignment(0, -0.5),
                   ),
                 ),
               ),

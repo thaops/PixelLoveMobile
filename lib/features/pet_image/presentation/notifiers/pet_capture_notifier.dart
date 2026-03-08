@@ -66,7 +66,7 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
   int _sensorRotation = 0;
   double _currentZoom = 1.0;
 
-  static const double _previewAspectRatio = 4 / 3.9;
+  static const double _previewAspectRatio = 1.0;
 
   @override
   PetCaptureState build() {
@@ -223,9 +223,7 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
       if (state.sensorRotation != 0) {
         image = img.copyRotate(image, angle: state.sensorRotation);
       }
-      if (state.sensorPosition == SensorPosition.front) {
-        image = img.flipHorizontal(image);
-      }
+      // 🔥 Bỏ flipHorizontal thủ công cho front camera vì nhiều máy tự xử lý hoặc gây ngược text
 
       var processed = _cropCenter(image, _previewAspectRatio);
 
@@ -468,12 +466,14 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
     final center = Offset(outW / 2, outH / 2);
     canvas.translate(center.dx, center.dy);
 
-    if (state.sensorRotation != 0) {
-      canvas.rotate(state.sensorRotation * 3.1415926535897932 / 180);
-    }
-
+    // 1️⃣ Mirror nếu là camera trước (áp dụng lên kết quả cuối cùng)
     if (state.sensorPosition == SensorPosition.front) {
       canvas.scale(-1, 1);
+    }
+
+    // 2️⃣ Xoay canvas
+    if (state.sensorRotation != 0) {
+      canvas.rotate(state.sensorRotation * 3.1415926535897932 / 180);
     }
 
     canvas.drawImage(
@@ -508,7 +508,8 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
     }
 
     final x = (src.width - w) ~/ 2;
-    final y = (src.height - h) ~/ 2;
+    // 🔥 Khớp với Alignment(0, -0.5) của camera preview (25% từ trên xuống thay vì 50%)
+    final y = ((src.height - h) * 0.25).round();
     return img.copyCrop(src, x: x, y: y, width: w, height: h);
   }
 

@@ -325,19 +325,21 @@ class FrozenMaskPainter extends CustomPainter {
     final dst = containerRect.outerRect;
     final center = dst.center;
 
-    // 🔥 Xoay canvas
-    if (rotation != 0) {
-      canvas.translate(center.dx, center.dy);
-      canvas.rotate(rotation * 3.1415926535897932 / 180);
-      canvas.translate(-center.dx, -center.dy);
+    // 🔥 Áp dụng transformation quanh tâm của RRect
+    canvas.translate(center.dx, center.dy);
+
+    // 1️⃣ Mirror nếu là camera trước (áp dụng lên hệ tọa độ màn hình)
+    if (position == SensorPosition.front) {
+      canvas.scale(-1, 1);
     }
 
-    // 🔥 Mirror nếu là camera trước
-    if (position == SensorPosition.front) {
-      canvas.translate(center.dx, center.dy);
-      canvas.scale(-1, 1);
-      canvas.translate(-center.dx, -center.dy);
+    // 2️⃣ Xoay canvas theo cảm biến
+    if (rotation != 0) {
+      canvas.rotate(rotation * 3.1415926535897932 / 180);
     }
+
+    // 3️⃣ Trở lại tọa độ để vẽ ảnh (drawImageRect dùng dst nên cần translate ngược)
+    canvas.translate(-center.dx, -center.dy);
 
     final double imgW = image.width.toDouble();
     final double imgH = image.height.toDouble();
@@ -354,20 +356,30 @@ class FrozenMaskPainter extends CustomPainter {
   }
 
   Rect _calculateSrcRect(double w, double h, double aspect) {
-    // 🔥 Zoom rất nhẹ (1.06x) để cân đối bố cục
     const double zoom = 1.06;
 
     if (w / h > aspect) {
       final newH = h / zoom;
       final newW = newH * aspect;
-      // Khớp với previewAlignment -0.5: dùng 0.22 (22%) để dịch chuyển vùng cắt lên trên
-      final double offset = (w - newW) * 0.22;
+
+      // 🔥 Alignment -0.5 tương ứng với việc dịch chuyển 25% (0.25) so với trung tâm
+      double shiftFactor = 0.25;
+      if (rotation == 270 || rotation == 180) {
+        shiftFactor = -0.25;
+      }
+
+      final double offset = (w - newW) * shiftFactor;
       return Rect.fromLTWH((w - newW) / 2 - offset, (h - newH) / 2, newW, newH);
     } else {
       final newW = w / zoom;
       final newH = newW / aspect;
-      // Khớp với previewAlignment -0.5: dịch vùng cắt lên trên
-      final double offset = (h - newH) * 0.22;
+
+      double shiftFactor = 0.25;
+      if (rotation == 270 || rotation == 180) {
+        shiftFactor = -0.25;
+      }
+
+      final double offset = (h - newH) * shiftFactor;
       return Rect.fromLTWH((w - newW) / 2, (h - newH) / 2 - offset, newW, newH);
     }
   }
