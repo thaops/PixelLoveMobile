@@ -16,4 +16,6 @@ class AppRoutes {
   static const String radio = '/radio';
   static const String tarot = '/tarot';
   static const String player = '/player';
+  static const String letterAuth = '/letter-auth';
+  static const String letterViewer = '/letter-viewer';
 }

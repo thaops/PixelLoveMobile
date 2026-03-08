@@ -19,6 +19,8 @@ import 'package:pixel_love/features/user/presentation/pages/user_profile_screen.
 import 'package:pixel_love/features/radio/presentation/pages/radio_screen.dart';
 import 'package:pixel_love/features/tarot/presentation/pages/tarot_screen.dart';
 import 'package:pixel_love/features/audio_player/presentation/pages/audio_player_screen.dart';
+import 'package:pixel_love/features/home/presentation/pages/birthday_input_screen.dart';
+import 'package:pixel_love/features/home/presentation/pages/letter_webview_screen.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 
 /// App Router configuration
@@ -186,6 +188,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.player,
         builder: (context, state) => const AudioPlayerScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.letterAuth,
+        builder: (context, state) => const BirthdayInputScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.letterViewer,
+        builder: (context, state) => const LetterWebviewScreen(),
       ),
     ],
   );
