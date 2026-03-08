@@ -10,7 +10,7 @@ import audio_session
 import audioplayers_darwin
 import device_info_plus
 import facebook_auth_desktop
-import ffmpeg_kit_flutter_full_gpl
+import ffmpeg_kit_flutter_new_gpl
 import file_selector_macos
 import firebase_core
 import flutter_image_compress_macos

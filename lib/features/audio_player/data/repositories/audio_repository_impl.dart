@@ -19,29 +19,12 @@ class AudioRepositoryImpl implements AudioRepository {
   }
 
   @override
-  Future<ApiResult<Track>> addTrack({
-    required String youtubeUrl,
-    String? title,
-    String? thumbnail,
-    String? audioUrl,
-    num? duration,
-  }) async {
-    final result = await _remoteDataSource.addTrack(
-      youtubeUrl: youtubeUrl,
-      title: title,
-      thumbnail: thumbnail,
-      audioUrl: audioUrl,
-      duration: duration,
-    );
+  Future<ApiResult<Track>> addTrack({required String youtubeUrl}) async {
+    final result = await _remoteDataSource.addTrack(youtubeUrl: youtubeUrl);
     return result.when(
       success: (dto) => ApiResult.success(dto.toEntity()),
       error: (failure) => ApiResult.error(failure),
     );
-  }
-
-  @override
-  Future<ApiResult<Map<String, dynamic>>> checkTrack(String youtubeUrl) async {
-    return _remoteDataSource.checkTrack(youtubeUrl);
   }
 
   @override

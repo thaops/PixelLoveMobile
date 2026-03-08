@@ -11,11 +11,6 @@ import 'package:pixel_love/features/user/providers/user_providers.dart';
 import 'package:pixel_love/features/couple/providers/couple_providers.dart';
 
 import 'package:pixel_love/features/audio_player/providers/audio_providers.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt_exp;
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart' as dio_pkg;
-import 'dart:io';
 import 'audio_handler.dart';
 
 class AudioPlayerNotifier extends Notifier<AudioPlayerState>
@@ -419,83 +414,27 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
 
   Future<void> addTrack(String youtubeUrl) async {
     try {
-      // Step 1: Check Track (Scenario A)
-      final checkResult = await _repository.checkTrack(youtubeUrl);
+      print('🚀 Gửi url $youtubeUrl lên Server xử lý...');
+      final result = await _repository.addTrack(youtubeUrl: youtubeUrl);
 
-      bool found = false;
-      checkResult.when(
-        success: (data) {
-          found = data['found'] ?? false;
+      result.when(
+        success: (track) {
+          print(
+            '✅ Backend đã nhận bài hát: ${track.title} - Status: ${track.status}',
+          );
+          final existingIndex = state.queue.indexWhere((t) => t.id == track.id);
+          if (existingIndex >= 0) {
+            final newQueue = List<Track>.from(state.queue);
+            newQueue[existingIndex] = track;
+            state = state.copyWith(queue: newQueue);
+          } else {
+            state = state.copyWith(queue: [...state.queue, track]);
+          }
         },
-        error: (failure) => print('⚠️ Check track failed: $failure'),
+        error: (failure) => print('❌ Gửi URL Track thất bại: $failure'),
       );
-
-      if (found) return;
-
-      // Step 2: Optimal Path (Scenario B)
-      print('🔍 Optimizing metadata extraction using Isolate...');
-
-      // Use compute to extract metadata in background isolate for UI smoothness
-      final metadata = await compute(_extractYoutubeMetadata, youtubeUrl);
-
-      if (metadata == null) {
-        print('⚠️ Metadata extraction failed. Falling back to Scenario C...');
-        await _repository.addTrack(youtubeUrl: youtubeUrl);
-        return;
-      }
-
-      print('🎼 Processing .m4a audio only...');
-      final tempDir = await getTemporaryDirectory();
-      final audioFile = File('${tempDir.path}/audio_${metadata['id']}.m4a');
-
-      // Download stream
-      final dio = dio_pkg.Dio();
-      try {
-        await dio.download(metadata['streamUrl'], audioFile.path);
-
-        // Upload to Cloudinary
-        print('☁️ Uploading .m4a to Cloudinary...');
-        final uploadService = ref.read(cloudinaryUploadServiceProvider);
-        final uploadResult = await uploadService.uploadAudio(audioFile);
-
-        String? finalAudioUrl;
-        uploadResult.when(
-          success: (url) => finalAudioUrl = url,
-          error: (failure) => print('❌ Audio upload failed: $failure'),
-        );
-
-        if (finalAudioUrl != null) {
-          final result = await _repository.addTrack(
-            youtubeUrl: youtubeUrl,
-            title: metadata['title'],
-            thumbnail: metadata['thumbnail'],
-            audioUrl: finalAudioUrl,
-            duration: metadata['duration'],
-          );
-
-          result.when(
-            success: (track) => print('✅ Track added: ${track.title}'),
-            error: (failure) => print('❌ Add track failed: $failure'),
-          );
-        } else {
-          // Fallback
-          await _repository.addTrack(
-            youtubeUrl: youtubeUrl,
-            title: metadata['title'],
-            thumbnail: metadata['thumbnail'],
-            audioUrl: metadata['streamUrl'], // Direct stream fallback
-            duration: metadata['duration'],
-          );
-        }
-
-        // Clean up
-        if (await audioFile.exists()) await audioFile.delete();
-      } catch (e) {
-        print('⚠️ Error processing audio: $e');
-        await _repository.addTrack(youtubeUrl: youtubeUrl);
-      }
     } catch (e) {
-      print('❌ Error in addTrack workflow: $e');
+      print('❌ Lỗi addTrack: $e');
     }
   }
 
@@ -513,28 +452,5 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
 
   Future<void> setTimer(int minutes) async {
     await _repository.setTimer(minutes);
-  }
-}
-
-// Top-level function for compute (Isolate)
-Future<Map<String, dynamic>?> _extractYoutubeMetadata(String url) async {
-  final yt = yt_exp.YoutubeExplode();
-  try {
-    final video = await yt.videos.get(url);
-    final manifest = await yt.videos.streamsClient.getManifest(video.id);
-    final audioStream = manifest.audioOnly.withHighestBitrate();
-
-    return {
-      'id': video.id.value,
-      'title': video.title,
-      'thumbnail': video.thumbnails.highResUrl,
-      'duration': video.duration?.inSeconds ?? 0,
-      'streamUrl': audioStream.url.toString(),
-    };
-  } catch (e) {
-    print('❌ Isolate error extracting metadata: $e');
-    return null;
-  } finally {
-    yt.close();
   }
 }
