@@ -58,6 +58,8 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
       );
       if (image != null && mounted) {
         final file = File(image.path);
+        // 🔥 Đánh dấu camera ready ngay lập tức để ẩn splash loading
+        setState(() => _isCameraReady = true);
         final notifier = ref.read(petCaptureNotifierProvider.notifier);
         notifier.setPreviewFile(file);
       }
@@ -200,15 +202,19 @@ class _PetCaptureScreenState extends ConsumerState<PetCaptureScreen> {
 
                         return Stack(
                           children: [
-                            PetPreviewMask(metrics: metrics),
-                            if (captureState.isFrozen &&
-                                captureState.frozenImage != null)
+                            if (!captureState.isFrozen)
+                              PetPreviewMask(metrics: metrics),
+                            if (captureState.isFrozen)
                               _FrozenPreviewOverlay(
-                                image: captureState.frozenImage!,
+                                image:
+                                    captureState.frozenImage ??
+                                    captureState
+                                        .frozenImage!, // 🔥 Sẽ crash nếu null nhưng logic đảm bảo có
                                 metrics: metrics,
                                 state: captureState,
                               ),
-                            const DecorativeHearts(),
+                            if (!captureState.isFrozen)
+                              const DecorativeHearts(),
                             _UnifiedOverlayUI(
                               state: captureState,
                               notifier: captureNotifier,
@@ -448,7 +454,7 @@ class _UnifiedOverlayUI extends StatelessWidget {
         // 🔥 Caption input (luôn có, chỉ đổi opacity khi không frozen)
         Positioned(
           bottom:
-              actionBarBottom + 360.0, // 🔥 Vị trí cố định phía trên action bar
+              actionBarBottom + 340.0, // 🔥 Vị trí cố định phía trên action bar
           left: 16,
           right: 16,
           child: AnimatedOpacity(
@@ -679,32 +685,47 @@ class _CaptionSectionState extends State<_CaptionSection> {
 
   @override
   Widget build(BuildContext context) {
-    final hasText = widget.notifier.captionController.text.isNotEmpty;
     final isFocused = _focusNode.hasFocus;
-    final showHint = !isFocused && !hasText;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: TextField(
-        controller: widget.notifier.captionController,
-        focusNode: _focusNode,
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: Colors.white),
-        cursorColor: AppColors.primaryPink,
-        maxLines: 1,
-        maxLength: 60,
-        onChanged: (_) => setState(() {}),
-        decoration: InputDecoration(
-          isDense: true,
-          counterText: '',
-          border: InputBorder.none,
-          hintText: showHint ? 'Đang nghĩ gì?' : '',
-          hintStyle: TextStyle(
-            color: Colors.white.withOpacity(0.7),
-            fontSize: 14,
+    return Align(
+      alignment: Alignment.center,
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.4,
+        margin: EdgeInsets.zero,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(
+            color: isFocused
+                ? AppColors.primaryPink.withOpacity(0.5)
+                : Colors.white.withOpacity(0.15),
+            width: 1.2,
           ),
         ),
-        inputFormatters: [LengthLimitingTextInputFormatter(60)],
+        child: TextField(
+          controller: widget.notifier.captionController,
+          focusNode: _focusNode,
+          textAlign: TextAlign.left,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+          ),
+          cursorColor: AppColors.primaryPink,
+          maxLines: 1,
+          maxLength: 60,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            isDense: true,
+            counterText: '',
+            border: InputBorder.none,
+            hintText: 'Thêm một tin nhắn',
+            hintStyle: TextStyle(color: Colors.white, fontSize: 14),
+            contentPadding: EdgeInsets.zero,
+          ),
+          inputFormatters: [LengthLimitingTextInputFormatter(60)],
+        ),
       ),
     );
   }

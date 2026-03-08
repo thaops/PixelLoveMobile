@@ -200,12 +200,20 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
       final file = File(path);
       final bytes = await file.readAsBytes();
 
+      // 🔥 Decode to ui.Image for preview
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frameInfo = await codec.getNextFrame();
+      final uiImage = frameInfo.image;
+
       state = state.copyWith(
         isFrozen: true,
         bytes: bytes,
         previewFile: file,
+        frozenImage: uiImage,
         capturedAt: DateTime.now(),
         isCapturing: false,
+        sensorRotation: 0, // 🔥 Gallery images - no sensor rotation
+        sensorPosition: SensorPosition.back, // 🔥 No mirroring for gallery
       );
     } catch (e) {
       state = state.copyWith(isCapturing: false);
@@ -295,11 +303,20 @@ class PetCaptureNotifier extends Notifier<PetCaptureState> {
   Future<void> setPreviewFile(File file) async {
     try {
       final bytes = await file.readAsBytes();
+
+      // 🔥 Decode to ui.Image for preview
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frameInfo = await codec.getNextFrame();
+      final uiImage = frameInfo.image;
+
       state = state.copyWith(
         isFrozen: true,
         bytes: bytes,
         previewFile: file,
+        frozenImage: uiImage,
         capturedAt: DateTime.now(),
+        sensorRotation: 0, // 🔥 Reset rotation for gallery
+        sensorPosition: SensorPosition.back, // 🔥 No mirror for gallery image
       );
     } catch (_) {}
   }
