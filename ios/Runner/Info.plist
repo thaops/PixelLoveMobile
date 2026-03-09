@@ -84,5 +84,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>OneSignal_app_groups_key</key>
+	<string>group.com.namphuong.npjailbreak.onesignal</string>
 </dict>
 </plist>

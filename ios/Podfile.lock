@@ -29,11 +29,6 @@ PODS:
   - FBSDKCoreKit_Basics (17.0.3)
   - FBSDKLoginKit (17.0.3):
     - FBSDKCoreKit (= 17.0.3)
-  - ffmpeg_kit_flutter_new_gpl (1.0.0):
-    - ffmpeg_kit_flutter_new_gpl/full-gpl-lts (= 1.0.0)
-    - Flutter
-  - ffmpeg_kit_flutter_new_gpl/full-gpl-lts (1.0.0):
-    - Flutter
   - Firebase/CoreOnly (11.15.0):
     - FirebaseCore (~> 11.15.0)
   - firebase_core (3.15.2):
@@ -195,7 +190,6 @@ DEPENDENCIES:
   - audioplayers_darwin (from `.symlinks/plugins/audioplayers_darwin/darwin`)
   - camerawesome (from `.symlinks/plugins/camerawesome/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
-  - ffmpeg_kit_flutter_new_gpl (from `.symlinks/plugins/ffmpeg_kit_flutter_new_gpl/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - Flutter (from `Flutter`)
   - flutter_facebook_auth (from `.symlinks/plugins/flutter_facebook_auth/ios`)
@@ -251,8 +245,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/camerawesome/ios"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
-  ffmpeg_kit_flutter_new_gpl:
-    :path: ".symlinks/plugins/ffmpeg_kit_flutter_new_gpl/ios"
   firebase_core:
     :path: ".symlinks/plugins/firebase_core/ios"
   Flutter:
@@ -302,7 +294,6 @@ SPEC CHECKSUMS:
   FBSDKCoreKit: 0791f8f68a8630931a4c12aa23a56cc021551596
   FBSDKCoreKit_Basics: 46d6b472c0dd0a5a7e972c025033d1c567f54eb4
   FBSDKLoginKit: b4a4eba1d62eb452544411824f41689adabd5bd2
-  ffmpeg_kit_flutter_new_gpl: 159b9381d2bacbc9f850af891c1293db09c45de0
   Firebase: d99ac19b909cd2c548339c2241ecd0d1599ab02e
   firebase_core: 995454a784ff288be5689b796deb9e9fa3601818
   FirebaseCore: efb3893e5b94f32b86e331e3bd6dadf18b66568e
