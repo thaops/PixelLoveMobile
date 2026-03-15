@@ -52,7 +52,7 @@ class StartupNotifier extends AsyncNotifier<StartupState> {
 
       if (kDebugMode) {
         const debugToken =
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTMzZmViNzk1NTkwOThkZmQ0NGUwNmYiLCJwcm92aWRlciI6Imdvb2dsZSIsImlhdCI6MTc3MDU1NzY2NiwiZXhwIjoxNzczMTQ5NjY2fQ.Z2ug0Zr6eTUy4yOVP4k8P3eYthW68BPVdBK6uTG2K-g';
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTMzZmViNzk1NTkwOThkZmQ0NGUwNmYiLCJwcm92aWRlciI6Imdvb2dsZSIsImlhdCI6MTc3MzU0NjA1MywiZXhwIjoxNzc2MTM4MDUzfQ.EySOCxnQj70bS_vObltWBfrVm4CKMFnL8v7KFdDohpk';
         await storageService.saveToken(debugToken);
       }
 

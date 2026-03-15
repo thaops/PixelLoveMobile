@@ -8,7 +8,6 @@ import 'package:pixel_love/features/audio_player/presentation/widgets/player_con
 import 'package:pixel_love/features/audio_player/presentation/widgets/player_progress_bar.dart';
 import 'package:pixel_love/features/audio_player/presentation/widgets/queue_bottom_sheet.dart';
 import 'package:pixel_love/features/audio_player/presentation/widgets/add_song_bottom_sheet.dart';
-import 'package:pixel_love/features/audio_player/presentation/notifiers/audio_player_notifier.dart';
 import 'package:pixel_love/features/audio_player/domain/entities/audio_player_state.dart';
 import 'package:pixel_love/features/user/providers/user_providers.dart';
 import 'package:pixel_love/features/audio_player/presentation/widgets/sleep_timer_bottom_sheet.dart';
@@ -48,21 +47,8 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
     super.dispose();
   }
 
-  void _handlePageChanged(
-    int index,
-    AudioPlayerState state,
-    AudioPlayerNotifier notifier,
-  ) {
+  void _handlePageChanged(int index) {
     if (!_isManualScrolling) return;
-
-    final targetTrack = state.queue[index];
-    if (targetTrack.id != state.currentTrack?.id) {
-      if (index > _currentPage) {
-        notifier.next();
-      } else if (index < _currentPage) {
-        notifier.previous();
-      }
-    }
     _currentPage = index;
   }
 
@@ -74,17 +60,29 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
     // Sync PageController when track changes from outside (e.g., partner or auto-next)
     ref.listen(audioPlayerNotifierProvider, (previous, next) {
-      if (!_isManualScrolling) {
-        final nextIndex = next.queue.indexWhere(
-          (t) => t.id == next.currentTrack?.id,
-        );
-        if (nextIndex != -1 && nextIndex != _currentPage) {
-          _currentPage = nextIndex;
-          _pageController.animateToPage(
-            nextIndex,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOutCubic,
-          );
+      // LUÔN LUÔN bỏ qua nếu người dùng đang chủ động lướt
+      if (_isManualScrolling) return;
+
+      final prevId = previous?.currentTrack?.id;
+      final nextId = next.currentTrack?.id;
+
+      // CHỈ đồng bộ vị trí trang khi ID bài hát thực sự thay đổi trên Server
+      // Điều này ngăn chặn hiện tượng "giật lùi" do Socket gửi bài cũ khi user đang lướt
+      if (nextId != null && nextId != prevId) {
+        final nextIndex = next.queue.indexWhere((t) => t.id == nextId);
+        if (nextIndex != -1) {
+          final controllerPage = _pageController.hasClients
+              ? _pageController.page?.round()
+              : _currentPage;
+
+          if (nextIndex != controllerPage) {
+            _currentPage = nextIndex;
+            _pageController.animateToPage(
+              nextIndex,
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeInOutCubic,
+            );
+          }
         }
       }
     });
@@ -111,7 +109,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                     ),
                   ),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+                    filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
                     child: Container(color: Colors.transparent),
                   ),
                 ),
@@ -144,16 +142,26 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                                   } else if (notification
                                       is ScrollEndNotification) {
                                     _isManualScrolling = false;
+                                    // Khi lướt xong hẳn, mới gọi lệnh phát nhạc bài đó
+                                    final index =
+                                        _pageController.page?.round() ?? 0;
+                                      if (index >= 0 &&
+                                          index < state.queue.length) {
+                                        final targetTrack = state.queue[index];
+                                        if (targetTrack.id !=
+                                            state.currentTrack?.id) {
+                                          notifier.playTrack(
+                                            targetTrack.id,
+                                            optimisticTrack: targetTrack,
+                                          );
+                                        }
+                                      }
                                   }
                                   return false;
                                 },
                                 child: PageView.builder(
                                   controller: _pageController,
-                                  onPageChanged: (index) => _handlePageChanged(
-                                    index,
-                                    state,
-                                    notifier,
-                                  ),
+                                  onPageChanged: _handlePageChanged,
                                   itemCount: state.queue.isEmpty
                                       ? 1
                                       : state.queue.length,
@@ -473,7 +481,7 @@ class _MeshBackground extends StatelessWidget {
               color: Colors.pinkAccent.withOpacity(0.15),
             ),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+              filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
               child: Container(color: Colors.transparent),
             ),
           ),
@@ -489,7 +497,7 @@ class _MeshBackground extends StatelessWidget {
               color: Colors.deepPurple.withOpacity(0.2),
             ),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
+              filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
               child: Container(color: Colors.transparent),
             ),
           ),

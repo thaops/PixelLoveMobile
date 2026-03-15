@@ -112,6 +112,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
     };
     _audioHandler.onPauseRequested = () => pauseTrack();
     _audioHandler.onSkipNextRequested = () => next();
+    _audioHandler.onSkipPreviousRequested = () => previous();
     _audioHandler.onSeekRequested = (duration) => seek(duration.inSeconds);
   }
 
@@ -121,6 +122,10 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
       // Khi quay lại app, LUÔN LUÔN fetch state mới nhất từ server
       print('📱 App resumed, syncing audio state...');
       fetchState();
+    } else if (state == AppLifecycleState.detached) {
+      // Khi app bị đóng hoàn toàn
+      print('📱 App detached, stopping audio service...');
+      _audioHandler.stop();
     }
   }
 
@@ -152,7 +157,12 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
             currentTime: currentTime,
             isLoading: true, // Bật loading khi đổi bài
           );
+
+          // Update metadata for lock screen & system controls
+          _audioHandler.updateMetadata(trackInQueue);
+
           _playLocal(trackInQueue);
+          _handleTicker(); // Khởi chạy ticker ngay lập tức để UI cập nhật thời gian
           return;
         } else {
           print('🔍 Track not in local queue, fetching full state from server');
@@ -336,8 +346,13 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
 
   Future<void> _playLocal(Track track) async {
     try {
+      // Đảm bảo UI bắt đầu chuyển động mượt mà trước khi thực hiện logic nặng
+      await Future.delayed(const Duration(milliseconds: 100));
+      
       print('💿 Loading audio URL: ${track.audioUrl}');
-      state = state.copyWith(isLoading: true);
+      if (!state.isLoading) {
+        state = state.copyWith(isLoading: true);
+      }
 
       await _audioHandler.setAudioUrl(track.audioUrl);
 
@@ -352,9 +367,11 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
       if (state.isPlaying) {
         _audioHandler.playbackPlay();
       }
+      _handleTicker();
     } catch (e) {
       print('❌ Error loading music: $e');
-      state = state.copyWith(isLoading: false);
+      if (state.isLoading) state = state.copyWith(isLoading: false);
+      _handleTicker();
     }
   }
 
@@ -367,20 +384,71 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
     }
   }
 
-  Future<void> playTrack(String trackId) async {
+  Future<void> playTrack(String trackId, {Track? optimisticTrack}) async {
+    final trackToPlay = optimisticTrack ?? state.queue.where((t) => t.id == trackId).firstOrNull;
+
+    // Trường hợp 1: Chuyển sang bài hoàn toàn mới
+    if (trackToPlay != null && state.currentTrack?.id != trackId) {
+      print('⚡ Optimistic Play (New): ${trackToPlay.title}');
+      Future.microtask(() => _audioHandler.updateMetadata(trackToPlay));
+      state = state.copyWith(
+        currentTrack: trackToPlay,
+        isPlaying: true,
+        currentTime: 0,
+        isLoading: true,
+      );
+      _playLocal(trackToPlay);
+    } 
+    // Trường hợp 2: Tiếp tục phát (Resume) chính bài đang chọn nhưng đang bị Pause
+    else if (state.currentTrack?.id == trackId && !state.isPlaying) {
+      print('⚡ Optimistic Resume: ${state.currentTrack?.title}');
+      state = state.copyWith(isPlaying: true);
+      _audioHandler.playbackPlay();
+      _handleTicker();
+    }
+
     if (_isCommandPending) return;
     _setCommandPending(true);
 
-    // Mobile không tự quyết định thời gian phát, để Server (SSoT) xử lý logic Resume
-    await _repository.playTrack(trackId);
-    _setCommandPending(false);
+    try {
+      final result = await _repository.playTrack(trackId);
+      // Nếu API trả về lỗi, fetch lại state thực tế từ server
+      if (!result.isSuccess) {
+        print('❌ Play API failed, reverting state...');
+        await fetchState();
+      }
+    } catch (e) {
+      print('❌ Play API exception: $e');
+      await fetchState();
+    } finally {
+      _setCommandPending(false);
+    }
   }
 
   Future<void> pauseTrack() async {
+    // Optimistic Update: Pause ngay lập tức trong local
+    if (state.isPlaying) {
+      print('⚡ Optimistic Pause');
+      state = state.copyWith(isPlaying: false);
+      _audioHandler.playbackPause();
+      _handleTicker(); // Ticker sẽ tự dừng vì isPlaying = false
+    }
+
     if (_isCommandPending) return;
     _setCommandPending(true);
-    await _repository.pauseTrack();
-    _setCommandPending(false);
+
+    try {
+      final result = await _repository.pauseTrack();
+      if (!result.isSuccess) {
+        print('❌ Pause API failed, syncing state...');
+        await fetchState();
+      }
+    } catch (e) {
+      print('❌ Pause exception: $e');
+      await fetchState();
+    } finally {
+      _setCommandPending(false);
+    }
   }
 
   Future<void> seek(num time) async {
@@ -389,23 +457,55 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
   }
 
   Future<void> next() async {
-    if (_isCommandPending) return;
-    _setCommandPending(true);
-    await _repository.nextTrack();
-    _setCommandPending(false);
+    if (_isCommandPending || state.queue.isEmpty) return;
+
+    final currentIndex =
+        state.currentTrack != null
+            ? state.queue.indexWhere((t) => t.id == state.currentTrack!.id)
+            : -1;
+    final nextIndex = currentIndex + 1;
+
+    if (nextIndex < state.queue.length) {
+      final nextTrack = state.queue[nextIndex];
+      await playTrack(nextTrack.id, optimisticTrack: nextTrack);
+    } else {
+      // Nếu hết danh sách, gọi API để server xử lý (vòng lặp hoặc dừng)
+      _setCommandPending(true);
+      try {
+        await _repository.nextTrack();
+      } finally {
+        _setCommandPending(false);
+      }
+    }
   }
 
   Future<void> previous() async {
     if (_isCommandPending) return;
-    _setCommandPending(true);
 
     if (state.currentTime > 5) {
       await seek(0);
-    } else {
-      await _repository.previousTrack();
+      return;
     }
 
-    _setCommandPending(false);
+    if (state.queue.isEmpty) return;
+
+    final currentIndex =
+        state.currentTrack != null
+            ? state.queue.indexWhere((t) => t.id == state.currentTrack!.id)
+            : -1;
+    final prevIndex = currentIndex - 1;
+
+    if (prevIndex >= 0) {
+      final prevTrack = state.queue[prevIndex];
+      await playTrack(prevTrack.id, optimisticTrack: prevTrack);
+    } else {
+      _setCommandPending(true);
+      try {
+        await _repository.previousTrack();
+      } finally {
+        _setCommandPending(false);
+      }
+    }
   }
 
   void _setCommandPending(bool value) {

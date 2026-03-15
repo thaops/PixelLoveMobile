@@ -34,6 +34,7 @@ void main() async {
       androidNotificationChannelId: 'com.pixcellove.audio',
       androidNotificationChannelName: 'PixelLove Audio',
       androidShowNotificationBadge: true,
+      androidStopForegroundOnPause: true,
     ),
   );
 
