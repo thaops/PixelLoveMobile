@@ -285,7 +285,7 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
     final user = authState.currentUser;
     String label = '';
     String content = '';
-    Color themeColor = const Color(0xFFFF9DBE);
+    Color themeColor = const Color(0xFFFF5794);
 
     if (_revealedStep == 0) {
       label = 'NĂNG LƯỢNG';
@@ -435,6 +435,13 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
                                       fontSize: 12,
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: 2,
+                                      shadows: [
+                                        Shadow(
+                                          color: themeColor.withOpacity(0.3),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -461,12 +468,10 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
                                   child: Container(
                                     padding: const EdgeInsets.all(20),
                                     decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFF1E0B2E,
-                                      ).withOpacity(0.65),
+                                      color: Colors.white.withOpacity(0.75),
                                       border: Border(
                                         top: BorderSide(
-                                          color: Colors.white.withOpacity(0.12),
+                                          color: themeColor.withOpacity(0.2),
                                           width: 1,
                                         ),
                                       ),
@@ -478,9 +483,7 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
                                           content,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            color: Colors.white.withOpacity(
-                                              0.98,
-                                            ),
+                                            color: themeColor,
                                             fontSize: _revealedStep == 0
                                                 ? 21
                                                 : 16.5,
@@ -489,6 +492,19 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
                                                 : FontWeight.w600,
                                             height: 1.6,
                                             letterSpacing: 0.2,
+                                            shadows: [
+                                              Shadow(
+                                                color: Colors.white,
+                                                blurRadius: 10,
+                                              ),
+                                              Shadow(
+                                                color: themeColor.withOpacity(
+                                                  0.2,
+                                                ),
+                                                blurRadius: 2,
+                                                offset: const Offset(0, 1),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),
