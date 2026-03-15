@@ -2,6 +2,8 @@ import 'package:pixel_love/core/network/api_result.dart';
 import 'package:pixel_love/core/network/dio_api.dart';
 import '../models/audio_player_state_dto.dart';
 import '../models/track_dto.dart';
+import '../models/music_library_response_dto.dart';
+import '../models/paginated_queue_response_dto.dart';
 
 class AudioRemoteDataSource {
   final DioApi _dioApi;
@@ -27,13 +29,19 @@ class AudioRemoteDataSource {
     return _dioApi.delete('/rooms/tracks/$trackId', fromJson: (_) => null);
   }
 
-  Future<ApiResult<List<TrackDto>>> getQueue() async {
+  Future<ApiResult<PaginatedQueueResponseDto>> getQueue({
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) async {
     return _dioApi.get(
       '/player/queue',
-      fromJson: (data) {
-        final list = data as List;
-        return list.map((e) => TrackDto.fromJson(e)).toList();
+      queryParameters: {
+        'page': page,
+        'limit': limit,
+        if (search != null && search.isNotEmpty) 'search': search,
       },
+      fromJson: (data) => PaginatedQueueResponseDto.fromJson(data),
     );
   }
 
@@ -76,6 +84,29 @@ class AudioRemoteDataSource {
       '/player/timer',
       data: {'minutes': minutes},
       fromJson: (_) => null,
+    );
+  }
+
+  Future<ApiResult<MusicLibraryResponseDto>> getMusicLibrary({
+    required int page,
+    int limit = 20,
+    String? search,
+  }) async {
+    return _dioApi.get(
+      '/rooms/tracks/library',
+      queryParameters: {
+        'page': page,
+        'limit': limit,
+        if (search != null && search.isNotEmpty) 'search': search,
+      },
+      fromJson: (data) => MusicLibraryResponseDto.fromJson(data),
+    );
+  }
+
+  Future<ApiResult<TrackDto>> addTrackFromLibrary(String trackId) async {
+    return _dioApi.post(
+      '/rooms/tracks/library/$trackId',
+      fromJson: (data) => TrackDto.fromJson(data),
     );
   }
 }

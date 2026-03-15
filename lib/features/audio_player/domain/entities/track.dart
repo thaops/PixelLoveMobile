@@ -24,4 +24,24 @@ class Track {
 
   @override
   int get hashCode => id.hashCode;
+
+  Track copyWith({
+    String? id,
+    String? title,
+    String? thumbnail,
+    String? audioUrl,
+    num? duration,
+    String? status,
+    int? progress,
+  }) {
+    return Track(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      thumbnail: thumbnail ?? this.thumbnail,
+      audioUrl: audioUrl ?? this.audioUrl,
+      duration: duration ?? this.duration,
+      status: status ?? this.status,
+      progress: progress ?? this.progress,
+    );
+  }
 }

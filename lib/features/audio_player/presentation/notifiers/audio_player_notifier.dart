@@ -512,6 +512,28 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
     _isCommandPending = value;
   }
 
+  Future<void> addTrackFromLibrary(Track libraryTrack) async {
+    // Optimistic UI: Add to queue immediately since library tracks are 'ready'
+    final newTrack = libraryTrack.copyWith(status: 'ready');
+    state = state.copyWith(queue: [...state.queue, newTrack]);
+
+    final result = await _repository.addTrackFromLibrary(libraryTrack.id);
+
+    result.when(
+      success: (track) {
+        // Sync specifically with returned data to be sure
+        final updatedQueue = state.queue.map((t) => t.id == libraryTrack.id ? track : t).toList();
+        state = state.copyWith(queue: updatedQueue);
+      },
+      error: (failure) {
+        // Revert on error
+        state = state.copyWith(
+          queue: state.queue.where((t) => t.id != libraryTrack.id).toList(),
+        );
+      },
+    );
+  }
+
   Future<void> addTrack(String youtubeUrl) async {
     try {
       print('🚀 Gửi url $youtubeUrl lên Server xử lý...');
@@ -543,9 +565,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
   }
 
   Future<void> updateQueue() async {
-    final result = await _repository.getQueue();
+    final result = await _repository.getQueue(page: 1, limit: 10);
     result.when(
-      success: (queue) => state = state.copyWith(queue: queue),
+      success: (response) => state = state.copyWith(queue: response.data),
       error: (_) => null,
     );
   }

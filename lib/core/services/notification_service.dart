@@ -2,10 +2,13 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pixel_love/core/env/env.dart';
 import 'package:pixel_love/core/network/dio_api.dart';
 import 'package:pixel_love/core/services/storage_service.dart';
+import 'package:pixel_love/routes/app_routes.dart';
+import 'package:pixel_love/core/router/app_router.dart';
 import 'package:uuid/uuid.dart';
 
 class NotificationService {
@@ -29,6 +32,7 @@ class NotificationService {
     });
   }
 
+
   static Future<void> initialize() async {
     debugPrint('Initializing OneSignal with ID: ${Env.oneSignalKey}');
     OneSignal.initialize(Env.oneSignalKey);
@@ -37,7 +41,32 @@ class NotificationService {
     OneSignal.User.pushSubscription.addObserver((event) {
       debugPrint('OneSignal Subscription Changed: ${event.current.id}');
     });
+
+    // Lắng nghe click notification (Dùng static để chạy được ngay cả khi app bị kill)
+    OneSignal.Notifications.addClickListener((event) {
+      final data = event.notification.additionalData;
+      debugPrint('Notification clicked with data: $data');
+
+      if (data != null && data['type'] == 'music_listening') {
+        _handleGlobalNavigation(AppRoutes.player);
+      }
+    });
   }
+
+  static void _handleGlobalNavigation(String route) {
+    final context = rootNavigatorKey.currentContext;
+    if (context != null) {
+      debugPrint('🚀 Performing global navigation to: $route');
+      context.push(route);
+    } else {
+      debugPrint('⚠️ Cannot navigate to $route: Navigator context is null');
+      // Nếu context chưa sẵn sàng (vừa mở app), thử lại sau 500ms
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _handleGlobalNavigation(route);
+      });
+    }
+  }
+
 
   Future<String> _getDeviceId() async {
     String? storedId = _storageService.getDeviceId();

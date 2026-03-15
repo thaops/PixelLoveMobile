@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pixel_love/routes/app_routes.dart';
 
 class AddSongBottomSheet extends StatefulWidget {
   final Function(String) onAdd;
@@ -54,7 +55,7 @@ class _AddSongBottomSheetState extends State<AddSongBottomSheet> {
                 prefixIcon: const Icon(Icons.link, color: Colors.white54),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
                 if (_controller.text.isNotEmpty) {
@@ -75,6 +76,30 @@ class _AddSongBottomSheetState extends State<AddSongBottomSheet> {
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'OR',
+                style: TextStyle(color: Colors.white24, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                context.pop(); // Close sheet
+                context.push(AppRoutes.library);
+              },
+              icon: const Icon(Icons.library_music, size: 18),
+              label: const Text('Pick from Library'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white10),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
             ),

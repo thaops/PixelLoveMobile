@@ -89,6 +89,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F12),
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           const _MeshBackground(),
@@ -422,9 +423,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => QueueBottomSheet(
-        currentTrack: state.currentTrack,
-        queue: state.queue,
-        onPlay: (id) => notifier.playTrack(id),
+        onPlay: (track) => notifier.playTrack(track.id, optimisticTrack: track),
         onDelete: (id) => notifier.removeTrack(id),
       ),
     ).then((_) {
