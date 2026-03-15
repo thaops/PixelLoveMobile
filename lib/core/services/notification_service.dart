@@ -13,10 +13,19 @@ class NotificationService {
   final StorageService _storageService;
 
   NotificationService(this._dioApi, this._storageService) {
+    if (OneSignal.User.pushSubscription.id != null) {
+      syncDevice();
+    }
+
     OneSignal.User.pushSubscription.addObserver((state) {
-      if (state.current.id != null) {
+      if (state.current.id != state.previous.id && state.current.id != null) {
         syncDevice();
       }
+    });
+
+    OneSignal.Notifications.addForegroundWillDisplayListener((event) {
+      debugPrint('Foreground notification: ${event.notification.title}');
+      event.notification.display();
     });
   }
 
