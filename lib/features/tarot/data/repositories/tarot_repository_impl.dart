@@ -22,4 +22,9 @@ class TarotRepositoryImpl implements TarotRepository {
   Future<ApiResult<TarotResult>> revealTarot() {
     return _remoteDataSource.revealTarot();
   }
+
+  @override
+  Future<ApiResult<void>> resetTarot() {
+    return _remoteDataSource.resetTarot();
+  }
 }

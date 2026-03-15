@@ -142,29 +142,71 @@ class _TarotCardWidgetState extends State<TarotCardWidget>
     return Container(
       key: key,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.amber.shade200, width: 2),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '${widget.id}',
-              style: const TextStyle(
-                fontSize: 50,
-                fontWeight: FontWeight.bold,
-                color: Colors.indigo,
-              ),
-            ),
-            const Icon(Icons.auto_awesome, color: Colors.amber, size: 30),
-          ],
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2B2D42), Color(0xFF1A1B2E)],
         ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.5), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.1,
+              child: CustomPaint(painter: _CardPatternPainter()),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.3)),
+                  ),
+                  child: const Icon(
+                    Icons.stars_rounded,
+                    color: Color(0xFFFFD700),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'CARD ${widget.id}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                    color: Color(0xFFFFD700),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: 40,
+                  height: 2,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD700).withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
-
   Widget _buildBack({required Key key}) {
     return Container(
       key: key,
@@ -184,6 +226,26 @@ class _TarotCardWidgetState extends State<TarotCardWidget>
       ),
     );
   }
+}
+
+class _CardPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.1)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    for (var i = 0; i < size.width; i += 20) {
+      canvas.drawLine(Offset(i.toDouble(), 0), Offset(i.toDouble(), size.height), paint);
+    }
+    for (var i = 0; i < size.height; i += 20) {
+      canvas.drawLine(Offset(0, i.toDouble()), Offset(size.width, i.toDouble()), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 class _GlowBorder extends StatefulWidget {

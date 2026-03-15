@@ -17,14 +17,18 @@ enum TarotStatus {
 class TarotResult extends Equatable {
   final int cardA;
   final int cardB;
-  final String text;
+  final String energy;
+  final String message;
+  final String advice;
   final String question;
   final int? streak;
 
   const TarotResult({
     required this.cardA,
     required this.cardB,
-    required this.text,
+    required this.energy,
+    required this.message,
+    required this.advice,
     required this.question,
     this.streak,
   });
@@ -33,14 +37,16 @@ class TarotResult extends Equatable {
     return TarotResult(
       cardA: json['cardA'] ?? 0,
       cardB: json['cardB'] ?? 0,
-      text: json['text'] ?? '',
+      energy: json['energy'] ?? '',
+      message: json['message'] ?? '',
+      advice: json['advice'] ?? '',
       question: json['question'] ?? '',
       streak: json['streak'],
     );
   }
 
   @override
-  List<Object?> get props => [cardA, cardB, text, question, streak];
+  List<Object?> get props => [cardA, cardB, energy, message, advice, question, streak];
 }
 
 class TarotResponse extends Equatable {

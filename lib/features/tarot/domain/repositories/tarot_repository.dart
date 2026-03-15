@@ -5,4 +5,5 @@ abstract class TarotRepository {
   Future<ApiResult<TarotResponse>> getTodayTarot();
   Future<ApiResult<TarotResponse>> selectCard(int cardId);
   Future<ApiResult<TarotResult>> revealTarot();
+  Future<ApiResult<void>> resetTarot();
 }

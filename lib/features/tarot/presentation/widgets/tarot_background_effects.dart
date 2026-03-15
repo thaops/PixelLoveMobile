@@ -123,3 +123,17 @@ class _TarotBackgroundShimmerState extends State<TarotBackgroundShimmer>
     );
   }
 }
+
+class TarotBackgroundEffects extends StatelessWidget {
+  const TarotBackgroundEffects({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Stack(
+      children: [
+        TarotBackgroundShimmer(),
+        TarotParticles(),
+      ],
+    );
+  }
+}

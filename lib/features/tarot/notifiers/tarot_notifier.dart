@@ -25,22 +25,23 @@ class TarotNotifier extends Notifier<TarotState> {
     final socketService = ref.read(socketServiceProvider);
 
     socketService.onTarotSelected = (data) {
+      print('🔮 [Socket] tarotSelected message received: $data');
       state = state.copyWith(partnerSelected: true);
     };
 
     socketService.onTarotReady = (data) {
-      _updateToReady();
+      print('🔮 [Socket] tarotReady! Automatically revealing results...');
+      revealTarot();
     };
 
     socketService.onTarotReveal = (data) {
+      print('🔮 [Socket] tarotReveal received with data: $data');
       final result = TarotResult.fromJson(data);
       state = state.copyWith(status: TarotStatus.REVEALED, result: result);
     };
   }
 
-  void _updateToReady() {
-    state = state.copyWith(status: TarotStatus.READY);
-  }
+
 
   Future<void> syncStatus() async {
     try {
@@ -76,7 +77,7 @@ class TarotNotifier extends Notifier<TarotState> {
 
   Future<void> selectCard(int cardId) async {
     try {
-      state = state.copyWith(isLoading: true, errorMessage: null);
+      state = state.copyWith(errorMessage: null);
       final repo = ref.read(tarotRepositoryProvider);
       final result = await repo.selectCard(cardId);
 
@@ -90,7 +91,7 @@ class TarotNotifier extends Notifier<TarotState> {
           );
 
           if (response.status == TarotStatus.READY) {
-            _updateToReady();
+            revealTarot();
           }
         },
         error: (failure) {
@@ -106,23 +107,46 @@ class TarotNotifier extends Notifier<TarotState> {
   }
 
   Future<void> revealTarot() async {
+    print('🚀 [TarotNotifier] Calling revealTarot API...');
     try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
       final repo = ref.read(tarotRepositoryProvider);
       final result = await repo.revealTarot();
 
       result.when(
         success: (tarotResult) {
           state = state.copyWith(
+            isLoading: false,
             status: TarotStatus.REVEALED,
             result: tarotResult,
           );
         },
         error: (failure) {
-          state = state.copyWith(errorMessage: failure.message);
+          state = state.copyWith(isLoading: false, errorMessage: failure.message);
         },
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> resetTarot() async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      final repo = ref.read(tarotRepositoryProvider);
+      final result = await repo.resetTarot();
+
+      result.when(
+        success: (_) {
+          state = const TarotState(); // Reset state locally
+          syncStatus(); // Sync with server for fresh IDLE state
+        },
+        error: (failure) {
+          state = state.copyWith(isLoading: false, errorMessage: failure.message);
+        },
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 }

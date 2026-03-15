@@ -6,6 +6,7 @@ abstract class TarotRemoteDataSource {
   Future<ApiResult<TarotResponse>> getTodayTarot();
   Future<ApiResult<TarotResponse>> selectCard(int cardId);
   Future<ApiResult<TarotResult>> revealTarot();
+  Future<ApiResult<void>> resetTarot();
 }
 
 class TarotRemoteDataSourceImpl implements TarotRemoteDataSource {
@@ -36,5 +37,10 @@ class TarotRemoteDataSourceImpl implements TarotRemoteDataSource {
       '/tarot/reveal',
       fromJson: (json) => TarotResult.fromJson(json),
     );
+  }
+
+  @override
+  Future<ApiResult<void>> resetTarot() {
+    return _dioApi.post('/tarot/reset', fromJson: (_) => null);
   }
 }
