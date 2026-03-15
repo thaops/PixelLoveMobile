@@ -146,6 +146,22 @@ class SocketService {
       print('🎵 Player timer update: $data');
       onPlayerTimerUpdate?.call(data as Map<String, dynamic>);
     });
+
+    // Tarot events (EventsGateway)
+    _eventsSocket!.on('tarotSelected', (data) {
+      print('🔮 [events] Tarot selected: $data');
+      onTarotSelected?.call(data as Map<String, dynamic>);
+    });
+
+    _eventsSocket!.on('tarotReady', (data) {
+      print('🔮 [events] Tarot ready: $data');
+      onTarotReady?.call(data as Map<String, dynamic>);
+    });
+
+    _eventsSocket!.on('tarotReveal', (data) {
+      print('🔮 [events] Tarot reveal: $data');
+      onTarotReveal?.call(data as Map<String, dynamic>);
+    });
   }
 
   // Connect socket với coupleRoomId (cho couple space)

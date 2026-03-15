@@ -51,8 +51,10 @@ class StartupNotifier extends AsyncNotifier<StartupState> {
       final storageService = ref.read(storageServiceProvider);
 
       if (kDebugMode) {
-        const debugToken =
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTMzZmViNzk1NTkwOThkZmQ0NGUwNmYiLCJwcm92aWRlciI6Imdvb2dsZSIsImlhdCI6MTc3MzU0NjA1MywiZXhwIjoxNzc2MTM4MDUzfQ.EySOCxnQj70bS_vObltWBfrVm4CKMFnL8v7KFdDohpk';
+        // const debugToken =
+        //     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTMzZmViNzk1NTkwOThkZmQ0NGUwNmYiLCJwcm92aWRlciI6Imdvb2dsZSIsImlhdCI6MTc3MzU0NjA1MywiZXhwIjoxNzc2MTM4MDUzfQ.EySOCxnQj70bS_vObltWBfrVm4CKMFnL8v7KFdDohpk';
+        final debugToken =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTg4OTBlOTY2ZmVhYjZmM2UwZDYxZjAiLCJwcm92aWRlciI6Imdvb2dsZSIsImlhdCI6MTc3MzU2NTAwMywiZXhwIjoxNzc2MTU3MDAzfQ.T-Fs1P5hiMLAOej1KdbE_vuGXGhEeULIWeiSng1kwD0";
         await storageService.saveToken(debugToken);
       }
 

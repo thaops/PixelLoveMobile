@@ -23,6 +23,8 @@ class TarotResult extends Equatable {
   final String question;
   final int? streak;
 
+  int get cardId => cardA;
+
   const TarotResult({
     required this.cardA,
     required this.cardB,

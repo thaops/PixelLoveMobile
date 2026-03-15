@@ -1,7 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pixel_love/core/theme/app_colors.dart';
 import 'package:pixel_love/features/auth/providers/auth_providers.dart';
 import 'package:pixel_love/core/widgets/app_back_icon.dart';
 import 'package:pixel_love/features/tarot/data/models/tarot_response.dart';
@@ -18,13 +18,19 @@ class TarotScreen extends ConsumerStatefulWidget {
 }
 
 class _TarotScreenState extends ConsumerState<TarotScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   int? _localSelectedId;
+  int _revealedStep = 0; // 0: Energy, 1: Message, 2: Advice
+  late AnimationController _idleController;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _idleController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
     Future.microtask(() {
       ref.read(tarotNotifierProvider.notifier).syncStatus();
     });
@@ -33,6 +39,7 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _idleController.dispose();
     super.dispose();
   }
 
@@ -50,6 +57,18 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
     ref.read(tarotNotifierProvider.notifier).selectCard(id);
   }
 
+  void _nextStep() {
+    if (_revealedStep < 2) {
+      setState(() => _revealedStep++);
+      HapticFeedback.selectionClick();
+    } else {
+      setState(() {
+        _revealedStep = 0;
+        _localSelectedId = null;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(tarotNotifierProvider);
@@ -60,6 +79,7 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
         leading: Padding(
           padding: const EdgeInsets.only(left: 8.0),
           child: InkWell(
@@ -69,8 +89,9 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFF2B2D42)),
+            icon: const Icon(Icons.refresh, color: Colors.white70),
             onPressed: () {
+              setState(() => _revealedStep = 0);
               ref.read(tarotNotifierProvider.notifier).resetTarot();
             },
           ),
@@ -98,11 +119,9 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
   }
 
   Widget _buildContent(state, authState) {
-    if (state.status == TarotStatus.IDLE && _localSelectedId != null && !state.isLoading) {
-      Future.microtask(() => setState(() => _localSelectedId = null));
-    }
-
-    if (state.isLoading && state.status == TarotStatus.IDLE) {
+    if (state.isLoading &&
+        state.status == TarotStatus.IDLE &&
+        _localSelectedId == null) {
       return const Center(
         child: CircularProgressIndicator(
           color: Color(0xFFFF6FAE),
@@ -112,63 +131,61 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
     }
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 1000),
-      switchInCurve: Curves.easeInOutCubic,
-      switchOutCurve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 800),
+      switchInCurve: Curves.easeInOutQuart,
+      switchOutCurve: Curves.easeInOutQuart,
       child: _buildStateUI(state, authState),
     );
   }
 
   Widget _buildStateUI(state, authState) {
-    switch (state.status) {
-      case TarotStatus.IDLE:
-        return _buildIdleState(state);
-      case TarotStatus.WAITING:
-        return _buildWaitingState(state, authState);
-      case TarotStatus.READY:
-        return _buildWaitingState(state, authState, isDecoding: true);
-      case TarotStatus.REVEALED:
-        return _buildRevealedState(state);
-      default:
-        return const SizedBox();
+    if (state.status == TarotStatus.REVEALED) {
+      return _buildRevealedState(state, authState);
     }
+
+    if (state.status == TarotStatus.WAITING ||
+        state.status == TarotStatus.READY ||
+        _localSelectedId != null) {
+      return _buildWaitingState(
+        state,
+        authState,
+        isDecoding: state.status == TarotStatus.READY,
+      );
+    }
+
+    return _buildIdleState(state, authState);
   }
 
-  Widget _buildIdleState(state) {
+  Widget _buildIdleState(state, authState) {
+    final user = authState.currentUser;
+
     return Container(
       key: const ValueKey('idle'),
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          const Text(
-            'Chạm vào một lá bài',
+          SizedBox(height: MediaQuery.of(context).size.height * 0.06),
+          TarotConnectionWidget(
+            myAvatar: user?.avatar,
+            partnerAvatar: null,
+            isReady: state.partnerSelected,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            "Hãy chọn một lá bài, xem bạn và đối phương ngày hôm nãy đang như nào nhé",
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF5C5470),
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
-              shadows: [Shadow(color: Colors.white, blurRadius: 15)],
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              shadows: [
+                Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Lắng nghe nhịp đập trái tim và chọn lá bài dành cho cả hai',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF5C5470),
-              fontSize: 15,
-              fontWeight: FontWeight.w400,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 60),
-          Hero(
-            tag: 'selection_grid',
-            child: _buildSelectionGrid(),
-          ),
-          const SizedBox(height: 100),
+          const SizedBox(height: 44),
+          Hero(tag: 'selection_grid', child: _buildSelectionGrid()),
         ],
       ),
     );
@@ -227,257 +244,288 @@ class _TarotScreenState extends ConsumerState<TarotScreen>
       key: ValueKey(isDecoding ? 'ready' : 'waiting'),
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
+          SizedBox(height: MediaQuery.of(context).size.height * 0.06),
           TarotConnectionWidget(
             myAvatar: user?.avatar,
             partnerAvatar: null,
             isReady: (mySelected && state.partnerSelected) || isDecoding,
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 48),
           Text(
             isDecoding
-                ? 'Năng lượng đang hội tụ...'
-                : (mySelected ? 'Kết nối đã được thiết lập' : 'Người ấy đang đợi bạn'),
-            textAlign: TextAlign.center,
+                ? 'Đang giải mã huyễn mộng...'
+                : (mySelected ? 'Kết nối đã sẵn sàng' : 'Waiting...'),
             style: const TextStyle(
-              color: Color(0xFFFF6FAE),
+              color: Colors.white,
               fontSize: 20,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-              shadows: [Shadow(color: Colors.white, blurRadius: 10)],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            isDecoding
-                ? 'AI đang giải mã thông điệp dành cho cả hai'
-                : (mySelected ? 'Đang cảm nhận năng lượng của người ấy...' : 'Hãy chọn một lá bài để bắt đầu'),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF5C5470),
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
             ),
           ),
           const SizedBox(height: 60),
           if (mySelected)
             Center(
-              child: Hero(
-                tag: 'selected_card',
-                child: TarotCardWidget(
-                  id: state.myCard ?? 0,
-                  isGlow: true,
-                  scale: isDecoding ? 1.4 : 1.3,
-                ),
+              child: TarotCardWidget(
+                id: state.myCard ?? 0,
+                isGlow: true,
+                scale: isDecoding ? 1.2 : 1.1,
               ),
             )
           else
-            Hero(
-              tag: 'selection_grid',
-              child: _buildSelectionGrid(),
-            ),
-          const SizedBox(height: 80),
+            _buildSelectionGrid(),
         ],
       ),
     );
   }
 
-  Widget _buildRevealedState(state) {
+  Widget _buildRevealedState(state, authState) {
     final result = state.result!;
+    final user = authState.currentUser;
+    String label = '';
+    String content = '';
+    Color themeColor = const Color(0xFFFF9DBE);
 
-    return ListView(
-      key: const ValueKey('revealed'),
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      physics: const BouncingScrollPhysics(),
-      children: [
-        const SizedBox(height: 40),
-        Center(
-          child: Hero(
-            tag: 'selected_card',
-            child: TarotCardWidget(
-              id: result.cardId,
-              isGlow: true,
-              scale: 1.2,
-            ),
-          ),
-        ),
-        const SizedBox(height: 48),
-        Column(
-          children: [
-            if (result.streak > 0) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6FAE), Color(0xFFB794F4)],
-                  ),
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFF6FAE).withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+    if (_revealedStep == 0) {
+      label = 'NĂNG LƯỢNG';
+      content = result.energy;
+    } else if (_revealedStep == 1) {
+      label = 'THÔNG ĐIỆP';
+      content = result.message;
+    } else {
+      label = 'LỜI KHUYÊN';
+      content = result.advice;
+    }
+
+    return GestureDetector(
+      onTap: _nextStep,
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
+        children: [
+          Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              SizedBox(height: MediaQuery.of(context).size.height * 0.001),
+              TarotConnectionWidget(
+                myAvatar: user?.avatar,
+                partnerAvatar: null,
+                isReady: true,
+              ),
+              const SizedBox(height: 0),
+              AnimatedBuilder(
+                animation: _idleController,
+                builder: (context, switcherChild) {
+                  return Transform.translate(
+                    offset: Offset(0, -16 + (12 * _idleController.value)),
+                    child: Transform.rotate(
+                      angle: 0.015 * (_idleController.value - 0.5),
+                      child: switcherChild,
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🔥', style: TextStyle(fontSize: 18)),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Chuỗi ${result.streak} ngày gắn kết',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
-                        letterSpacing: 0.5,
+                  );
+                },
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 1000),
+                  layoutBuilder:
+                      (Widget? currentChild, List<Widget> previousChildren) {
+                        return Stack(
+                          alignment: Alignment.center,
+                          children: <Widget>[
+                            ...previousChildren,
+                            if (currentChild != null) currentChild,
+                          ],
+                        );
+                      },
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                        final isIncoming = child.key == ValueKey(_revealedStep);
+                        final flipAnimation =
+                            Tween<double>(begin: 1.5, end: 0.0).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOutQuart,
+                              ),
+                            );
+
+                        return AnimatedBuilder(
+                          animation: flipAnimation,
+                          child: child,
+                          builder: (context, child) {
+                            final value = isIncoming
+                                ? flipAnimation.value
+                                : -flipAnimation.value;
+                            final rotation = value.clamp(-1.5, 1.5);
+                            final scale =
+                                1.0 -
+                                (animation.value < 0.5
+                                    ? (1.0 - animation.value) * 0.08
+                                    : (animation.value) * 0.08);
+
+                            return Opacity(
+                              opacity: animation.value,
+                              child: Transform(
+                                transform: Matrix4.identity()
+                                  ..setEntry(3, 2, 0.001)
+                                  ..rotateY(rotation)
+                                  ..scale(scale),
+                                alignment: Alignment.center,
+                                child: child,
+                              ),
+                            );
+                          },
+                        );
+                      },
+                  child: Center(
+                    key: ValueKey(_revealedStep),
+                    child: Container(
+                      width: MediaQuery.of(context).size.width * 0.82,
+                      height: MediaQuery.of(context).size.height * 0.72,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(40),
+                        image: const DecorationImage(
+                          image: AssetImage('assets/images/img_tarot.png'),
+                          fit: BoxFit.cover,
+                        ),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.15),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.4),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(40),
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              bottom:
+                                  MediaQuery.of(context).size.height *
+                                      0.72 *
+                                      0.65 +
+                                  16,
+                              left: 40,
+                              right: 40,
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(100),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    label,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: themeColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              height:
+                                  MediaQuery.of(context).size.height *
+                                  0.72 *
+                                  0.65,
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(40),
+                                  topRight: Radius.circular(40),
+                                ),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 10,
+                                    sigmaY: 10,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFF1E0B2E,
+                                      ).withOpacity(0.65),
+                                      border: Border(
+                                        top: BorderSide(
+                                          color: Colors.white.withOpacity(0.12),
+                                          width: 1,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: SingleChildScrollView(
+                                        physics: const BouncingScrollPhysics(),
+                                        child: Text(
+                                          content,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(
+                                              0.98,
+                                            ),
+                                            fontSize: _revealedStep == 0
+                                                ? 21
+                                                : 16.5,
+                                            fontWeight: _revealedStep == 0
+                                                ? FontWeight.w900
+                                                : FontWeight.w600,
+                                            height: 1.6,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-            ],
-            _buildInfoSection(
-              title: '✨ GIAO THOA NĂNG LƯỢNG',
-              content: result.energy,
-              isHighlight: true,
-              icon: Icons.auto_awesome,
-              accentColor: const Color(0xFFFF6FAE),
-            ),
-            const SizedBox(height: 20),
-            _buildInfoSection(
-              title: '💬 THÔNG ĐIỆP TRÁI TIM',
-              content: result.message,
-              icon: Icons.favorite_rounded,
-              accentColor: const Color(0xFFB794F4),
-            ),
-            const SizedBox(height: 20),
-            _buildInfoSection(
-              title: '🌱 LỜI KHUYÊN GẮN KẾT',
-              content: result.advice,
-              icon: Icons.eco_rounded,
-              accentColor: const Color(0xFF48BB78),
-            ),
-            const SizedBox(height: 32),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: const Color(0xFFFF6FAE).withOpacity(0.2)),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFF6FAE).withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'Câu hỏi dành cho hai bạn',
-                    style: TextStyle(
-                      color: Color(0xFF5C5470),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    result.question,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF2B2D42),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 48),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2B2D42),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                minimumSize: const Size(double.infinity, 64),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              child: const Text(
-                'Lưu giữ kỷ niệm',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-            const SizedBox(height: 60),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoSection({
-    required String title,
-    required String content,
-    required IconData icon,
-    required Color accentColor,
-    bool isHighlight = false,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white),
-        boxShadow: [
-          BoxShadow(
-            color: accentColor.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 18, color: accentColor),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: TextStyle(
-                  color: accentColor.withOpacity(0.8),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            content,
-            style: TextStyle(
-              color: const Color(0xFF2B2D42),
-              fontSize: isHighlight ? 18 : 16,
-              fontWeight: isHighlight ? FontWeight.w800 : FontWeight.w500,
-              height: 1.6,
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(3, (index) {
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                  width: _revealedStep == index ? 12 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _revealedStep == index
+                        ? themeColor
+                        : themeColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                );
+              }),
             ),
           ),
         ],

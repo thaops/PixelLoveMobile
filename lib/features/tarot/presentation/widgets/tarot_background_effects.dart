@@ -103,23 +103,23 @@ class _TarotBackgroundShimmerState extends State<TarotBackgroundShimmer>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Container(
-          decoration: BoxDecoration(
+    return IgnorePointer(
+      child: FadeTransition(
+        opacity: Tween<double>(begin: 0.1, end: 0.2).animate(_controller),
+        child: Container(
+          decoration: const BoxDecoration(
             gradient: RadialGradient(
-              center: const Alignment(0, -0.3),
+              center: Alignment(0, -0.3),
               radius: 1.5,
               colors: [
-                Colors.purple.withOpacity(0.1 + 0.1 * _controller.value),
-                Colors.indigo.withOpacity(0.05),
-                Colors.black.withOpacity(0.5),
+                Colors.purple,
+                Colors.indigo,
+                Colors.transparent,
               ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -129,11 +129,13 @@ class TarotBackgroundEffects extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Stack(
-      children: [
-        TarotBackgroundShimmer(),
-        TarotParticles(),
-      ],
+    return RepaintBoundary(
+      child: Stack(
+        children: const [
+          TarotBackgroundShimmer(),
+          TarotParticles(),
+        ],
+      ),
     );
   }
 }
