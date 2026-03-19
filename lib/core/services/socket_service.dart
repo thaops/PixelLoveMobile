@@ -33,7 +33,7 @@ class SocketService {
   void Function(Map<String, dynamic>)? onTarotReady;
   void Function(Map<String, dynamic>)? onTarotReveal;
 
-  // Callbacks cho Audio Player
+  void Function(Map<String, dynamic>)? onPlayerPartnerPresence;
   void Function(Map<String, dynamic>)? onPlayerUpdate;
   void Function(Map<String, dynamic>)? onQueueUpdate;
   void Function(Map<String, dynamic>)? onQueueProgress;
@@ -145,6 +145,11 @@ class SocketService {
     _eventsSocket!.on('player:timer-update', (data) {
       print('🎵 Player timer update: $data');
       onPlayerTimerUpdate?.call(data as Map<String, dynamic>);
+    });
+
+    _eventsSocket!.on('player:partner-presence', (data) {
+      print('🎵 [events] Player partner presence: $data');
+      onPlayerPartnerPresence?.call(data as Map<String, dynamic>);
     });
 
     // Tarot events (EventsGateway)
@@ -279,6 +284,21 @@ class SocketService {
       onServerConnected = null;
       onPetImageConsumed = null;
       onPlayerTimerUpdate = null;
+      onPlayerPartnerPresence = null;
+    }
+  }
+
+  void emitPlayerEnter() {
+    if (_eventsSocket != null && _eventsSocket!.connected) {
+      _eventsSocket!.emit('player:enter');
+      print('🎵 [events] Sent player:enter');
+    }
+  }
+
+  void emitPlayerLeave() {
+    if (_eventsSocket != null && _eventsSocket!.connected) {
+      _eventsSocket!.emit('player:leave');
+      print('🎵 [events] Sent player:leave');
     }
   }
 

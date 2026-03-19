@@ -69,15 +69,16 @@ class PlayerArtwork extends StatelessWidget {
                             true,
                             meAvatar,
                           ),
-                          Positioned(
-                            left: 22,
-                            child: _buildAvatarItem(
-                              partnerLabel,
-                              Colors.blue,
-                              isPartnerOnline,
-                              partnerAvatar,
+                          if (isPartnerOnline)
+                            Positioned(
+                              left: 22,
+                              child: _buildAvatarItem(
+                                partnerLabel,
+                                Colors.blue,
+                                isPartnerOnline,
+                                partnerAvatar,
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),

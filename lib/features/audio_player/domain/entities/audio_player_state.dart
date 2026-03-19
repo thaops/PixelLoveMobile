@@ -18,7 +18,7 @@ class AudioPlayerState {
     this.queue = const [],
     this.partnerAvatar,
     this.partnerName,
-    this.isPartnerOnline = true,
+    this.isPartnerOnline = false,
     this.isLoading = false,
     this.timerEndsAt,
   });

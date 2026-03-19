@@ -77,11 +77,16 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
           if (nextIndex != controllerPage) {
             _currentPage = nextIndex;
-            _pageController.animateToPage(
-              nextIndex,
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeInOutCubic,
-            );
+            // Delay animation to ensure PageView has rebuilt with new itemCount
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_pageController.hasClients) {
+                _pageController.animateToPage(
+                  nextIndex,
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeInOutCubic,
+                );
+              }
+            });
           }
         }
       }

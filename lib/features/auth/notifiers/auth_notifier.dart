@@ -20,6 +20,9 @@ class AuthNotifier extends Notifier<AuthState> {
     final user = storageService.getUser();
     if (user != null) {
       state = state.copyWith(currentUser: user);
+      
+      // Tự động kết nối lại socket khi restart app
+      ref.read(socketServiceProvider).connectEvents();
     }
   }
 

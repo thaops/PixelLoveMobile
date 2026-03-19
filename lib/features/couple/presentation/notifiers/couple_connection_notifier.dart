@@ -54,6 +54,12 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
   CoupleConnectionState build() {
     ref.onDispose(() {
       _debounceTimer?.cancel();
+      
+      // Dọn dẹp socket listeners
+      final socketService = ref.read(socketServiceProvider);
+      socketService.onCouplePaired = null;
+      socketService.onCoupleRoomUpdated = null;
+      socketService.onCoupleBrokenUp = null;
     });
 
     // Setup socket listeners
@@ -255,13 +261,3 @@ class CoupleConnectionNotifier extends Notifier<CoupleConnectionState> {
     // QR scan logic sẽ được handle ở UI layer
   }
 }
-
-/// Provider để cleanup socket listeners khi notifier bị dispose
-final coupleConnectionNotifierDisposerProvider = Provider<void>((ref) {
-  ref.onDispose(() {
-    final socketService = ref.read(socketServiceProvider);
-    socketService.onCouplePaired = null;
-    socketService.onCoupleRoomUpdated = null;
-    socketService.onCoupleBrokenUp = null;
-  });
-});

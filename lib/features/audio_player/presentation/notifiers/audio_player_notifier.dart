@@ -31,6 +31,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
     Future.microtask(() => _setup());
 
     ref.onDispose(() {
+      _socketService.emitPlayerLeave();
       WidgetsBinding.instance.removeObserver(this);
       _ticker?.cancel();
     });
@@ -55,6 +56,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
     await _socketService.connectEvents();
     _setupSocketListeners();
     _attachAudioHandlerCallbacks();
+
+    // 2.2 Thông báo đã vào màn hình nhạc cho server
+    _socketService.emitPlayerEnter();
 
     // 2.5 Manual Join Room (Đảm bảo nhận được Socket Event)
     final currentUser = ref.read(userNotifierProvider).currentUser;
@@ -294,6 +298,24 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
       print('🎵 Timer update from socket: $timerEndsAt');
       state = state.copyWith(timerEndsAt: timerEndsAt);
     };
+
+    _socketService.onPlayerPartnerPresence = (data) {
+      final status = data['status'] as String?;
+      final isOnline = status == 'online';
+
+      if (isOnline) {
+        final avatar = data['avatar']?.toString();
+        final nickname = data['nickname']?.toString();
+
+        state = state.copyWith(
+          isPartnerOnline: true,
+          partnerAvatar: avatar ?? state.partnerAvatar,
+          partnerName: nickname ?? state.partnerName,
+        );
+      } else {
+        state = state.copyWith(isPartnerOnline: false);
+      }
+    };
   }
 
   Future<void> fetchState() async {
@@ -306,7 +328,19 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
         final currentPartnerName = state.partnerName;
         final currentIsPartnerOnline = state.isPartnerOnline;
 
+        // Giữ lại queue hiện tại nếu nó dài hơn queue từ server trả về trong getPlayerState
+        // Điều này giúp tránh việc UI bị giới hạn 5-10 bài khi server trả về ít
+        List<Track> finalQueue = data.queue;
+        if (state.queue.length > data.queue.length) {
+          finalQueue = state.queue;
+          // Cập nhật lại item currentTrack trong queue nếu cần
+          if (data.currentTrack != null) {
+             finalQueue = finalQueue.map((t) => t.id == data.currentTrack!.id ? data.currentTrack! : t).toList();
+          }
+        }
+
         state = data.copyWith(
+          queue: finalQueue,
           partnerAvatar: currentPartnerAvatar,
           partnerName: currentPartnerName,
           isPartnerOnline: currentIsPartnerOnline,
@@ -391,11 +425,19 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
     if (trackToPlay != null && state.currentTrack?.id != trackId) {
       print('⚡ Optimistic Play (New): ${trackToPlay.title}');
       Future.microtask(() => _audioHandler.updateMetadata(trackToPlay));
+      
+      // Ensure the track is in the queue list for UI synchronization (PageView)
+      List<Track> updatedQueue = state.queue;
+      if (!state.queue.any((t) => t.id == trackId)) {
+        updatedQueue = [...state.queue, trackToPlay];
+      }
+
       state = state.copyWith(
         currentTrack: trackToPlay,
         isPlaying: true,
         currentTime: 0,
         isLoading: true,
+        queue: updatedQueue,
       );
       _playLocal(trackToPlay);
     } 
@@ -565,9 +607,16 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
   }
 
   Future<void> updateQueue() async {
-    final result = await _repository.getQueue(page: 1, limit: 10);
+    final result = await _repository.getQueue(page: 1, limit: 30);
     result.when(
-      success: (response) => state = state.copyWith(queue: response.data),
+      success: (response) {
+        // Luôn đảm bảo currentTrack nằm trong queue nếu nó tồn tại
+        List<Track> newQueue = response.data;
+        if (state.currentTrack != null && !newQueue.any((t) => t.id == state.currentTrack!.id)) {
+          newQueue = [state.currentTrack!, ...newQueue];
+        }
+        state = state.copyWith(queue: newQueue);
+      },
       error: (_) => null,
     );
   }
