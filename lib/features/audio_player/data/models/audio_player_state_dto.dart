@@ -1,5 +1,4 @@
 import '../../domain/entities/audio_player_state.dart';
-import '../../domain/entities/track.dart';
 import 'track_dto.dart';
 
 class AudioPlayerStateDto {
@@ -8,6 +7,8 @@ class AudioPlayerStateDto {
   final num currentTime;
   final List<TrackDto> queue;
   final String? timerEndsAt;
+  final int currentIndex;
+  final int totalItems;
 
   AudioPlayerStateDto({
     this.currentTrack,
@@ -15,6 +16,8 @@ class AudioPlayerStateDto {
     required this.currentTime,
     required this.queue,
     this.timerEndsAt,
+    required this.currentIndex,
+    required this.totalItems,
   });
 
   factory AudioPlayerStateDto.fromJson(Map<String, dynamic> json) {
@@ -33,6 +36,8 @@ class AudioPlayerStateDto {
       currentTime: json['currentTime'] ?? 0,
       queue: queueList,
       timerEndsAt: json['timerEndsAt'],
+      currentIndex: json['currentIndex'] ?? 0,
+      totalItems: json['totalItems'] ?? 0,
     );
   }
 
@@ -43,6 +48,8 @@ class AudioPlayerStateDto {
       currentTime: currentTime,
       queue: queue.map((e) => e.toEntity()).toList(),
       timerEndsAt: timerEndsAt,
+      currentIndex: currentIndex,
+      totalItems: totalItems,
     );
   }
 }

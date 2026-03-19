@@ -59,33 +59,26 @@ class PlayerArtwork extends StatelessWidget {
                 left: 16,
                 child: Row(
                   children: [
-                    SizedBox(
-                      width: 52,
-                      child: Stack(
-                        children: [
-                          _buildAvatarItem(
-                            meLabel,
-                            Colors.pink,
-                            true,
-                            meAvatar,
-                          ),
-                          if (isPartnerOnline)
-                            Positioned(
-                              left: 22,
-                              child: _buildAvatarItem(
-                                partnerLabel,
-                                Colors.blue,
-                                isPartnerOnline,
-                                partnerAvatar,
-                              ),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        _buildAvatarItem(meLabel, Colors.pink, true, meAvatar),
+                        if (isPartnerOnline)
+                          Positioned(
+                            left: 18,
+                            child: _buildAvatarItem(
+                              partnerLabel,
+                              Colors.blue,
+                              isPartnerOnline,
+                              partnerAvatar,
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: isPartnerOnline ? 28 : 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
+                        horizontal: 10,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
@@ -98,15 +91,31 @@ class PlayerArtwork extends StatelessWidget {
                           width: 0.5,
                         ),
                       ),
-                      child: Text(
-                        isPartnerOnline ? 'Sync: Dual' : 'Sync: Solo',
-                        style: TextStyle(
-                          color: isPartnerOnline
-                              ? Colors.greenAccent
-                              : Colors.white70,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isPartnerOnline) ...[
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Colors.greenAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(
+                            isPartnerOnline ? 'Sync: Dual' : 'Sync: Solo',
+                            style: TextStyle(
+                              color: isPartnerOnline
+                                  ? Colors.greenAccent
+                                  : Colors.white70,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

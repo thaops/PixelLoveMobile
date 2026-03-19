@@ -334,7 +334,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                 const Icon(Icons.sync, color: Colors.pinkAccent, size: 12),
                 const SizedBox(width: 4),
                 Text(
-                  'SYNCING',
+                  'SYNCING ${state.totalItems > 0 ? "• ${state.currentIndex + 1} / ${state.totalItems}" : ""}',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 9,
@@ -394,9 +394,11 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          state.queue.isNotEmpty
-                              ? 'Next: ${state.queue.first.title}'
-                              : 'Up Next: Empty Queue',
+                          state.totalItems > 0 && state.currentIndex + 1 < state.totalItems
+                              ? 'Up Next (${state.currentIndex + 2}/${state.totalItems})'
+                              : state.queue.isNotEmpty 
+                                ? 'Next: ${state.queue.first.title}'
+                                : 'Up Next: Empty Queue',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,

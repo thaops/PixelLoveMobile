@@ -10,6 +10,8 @@ class AudioPlayerState {
   final bool isPartnerOnline;
   final bool isLoading;
   final String? timerEndsAt;
+  final int currentIndex;
+  final int totalItems;
 
   AudioPlayerState({
     this.currentTrack,
@@ -21,6 +23,8 @@ class AudioPlayerState {
     this.isPartnerOnline = false,
     this.isLoading = false,
     this.timerEndsAt,
+    this.currentIndex = 0,
+    this.totalItems = 0,
   });
 
   AudioPlayerState copyWith({
@@ -33,6 +37,8 @@ class AudioPlayerState {
     bool? isPartnerOnline,
     bool? isLoading,
     String? timerEndsAt,
+    int? currentIndex,
+    int? totalItems,
   }) {
     return AudioPlayerState(
       currentTrack: currentTrack ?? this.currentTrack,
@@ -44,6 +50,8 @@ class AudioPlayerState {
       isPartnerOnline: isPartnerOnline ?? this.isPartnerOnline,
       isLoading: isLoading ?? this.isLoading,
       timerEndsAt: timerEndsAt ?? this.timerEndsAt,
+      currentIndex: currentIndex ?? this.currentIndex,
+      totalItems: totalItems ?? this.totalItems,
     );
   }
 }

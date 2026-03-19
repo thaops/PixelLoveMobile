@@ -19,6 +19,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
   Timer? _ticker;
   bool _isCommandPending = false;
   bool get isCommandPending => _isCommandPending;
+  int _currentQueuePage = 1;
 
   @override
   AudioPlayerState build() {
@@ -151,6 +152,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
             .where((t) => t.id == trackId)
             .firstOrNull;
 
+        final newIndex = data['currentIndex'] as int? ?? state.currentIndex;
+        final total = data['totalItems'] as int? ?? state.totalItems;
+
         if (trackInQueue != null) {
           print(
             '✅ Found track in local queue, updating and loading immediately',
@@ -160,6 +164,8 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
             isPlaying: isPlaying ?? state.isPlaying,
             currentTime: currentTime,
             isLoading: true, // Bật loading khi đổi bài
+            currentIndex: newIndex,
+            totalItems: total,
           );
 
           // Update metadata for lock screen & system controls
@@ -335,8 +341,18 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
           finalQueue = state.queue;
           // Cập nhật lại item currentTrack trong queue nếu cần
           if (data.currentTrack != null) {
-             finalQueue = finalQueue.map((t) => t.id == data.currentTrack!.id ? data.currentTrack! : t).toList();
+            finalQueue = finalQueue
+                .map(
+                  (t) => t.id == data.currentTrack!.id ? data.currentTrack! : t,
+                )
+                .toList();
           }
+        }
+
+        // Luôn đảm bảo currentTrack nằm trong queue để PageView hiển thị đúng ảnh
+        if (data.currentTrack != null &&
+            !finalQueue.any((t) => t.id == data.currentTrack!.id)) {
+          finalQueue = [data.currentTrack!, ...finalQueue];
         }
 
         state = data.copyWith(
@@ -344,6 +360,8 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
           partnerAvatar: currentPartnerAvatar,
           partnerName: currentPartnerName,
           isPartnerOnline: currentIsPartnerOnline,
+          currentIndex: data.currentIndex,
+          totalItems: data.totalItems,
         );
 
         if (state.currentTrack != null) {
@@ -418,7 +436,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
     }
   }
 
-  Future<void> playTrack(String trackId, {Track? optimisticTrack}) async {
+  Future<void> playTrack(String trackId, {Track? optimisticTrack, int? index}) async {
     final trackToPlay = optimisticTrack ?? state.queue.where((t) => t.id == trackId).firstOrNull;
 
     // Trường hợp 1: Chuyển sang bài hoàn toàn mới
@@ -432,12 +450,15 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
         updatedQueue = [...state.queue, trackToPlay];
       }
 
+      final newIndex = index ?? (updatedQueue.indexWhere((t) => t.id == trackId));
+
       state = state.copyWith(
         currentTrack: trackToPlay,
         isPlaying: true,
         currentTime: 0,
         isLoading: true,
         queue: updatedQueue,
+        currentIndex: newIndex != -1 ? newIndex : state.currentIndex,
       );
       _playLocal(trackToPlay);
     } 
@@ -501,15 +522,17 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
   Future<void> next() async {
     if (_isCommandPending || state.queue.isEmpty) return;
 
-    final currentIndex =
+    final localIndex =
         state.currentTrack != null
             ? state.queue.indexWhere((t) => t.id == state.currentTrack!.id)
             : -1;
-    final nextIndex = currentIndex + 1;
+    final nextIndex = localIndex + 1;
 
     if (nextIndex < state.queue.length) {
       final nextTrack = state.queue[nextIndex];
-      await playTrack(nextTrack.id, optimisticTrack: nextTrack);
+      // Optimistic currentIndex increment
+      state = state.copyWith(currentIndex: state.currentIndex + 1);
+      await playTrack(nextTrack.id, optimisticTrack: nextTrack, index: state.currentIndex);
     } else {
       // Nếu hết danh sách, gọi API để server xử lý (vòng lặp hoặc dừng)
       _setCommandPending(true);
@@ -531,15 +554,17 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
 
     if (state.queue.isEmpty) return;
 
-    final currentIndex =
+    final localIndex =
         state.currentTrack != null
             ? state.queue.indexWhere((t) => t.id == state.currentTrack!.id)
             : -1;
-    final prevIndex = currentIndex - 1;
+    final prevIndex = localIndex - 1;
 
     if (prevIndex >= 0) {
       final prevTrack = state.queue[prevIndex];
-      await playTrack(prevTrack.id, optimisticTrack: prevTrack);
+      // Optimistic currentIndex decrement
+      state = state.copyWith(currentIndex: state.currentIndex - 1);
+      await playTrack(prevTrack.id, optimisticTrack: prevTrack, index: state.currentIndex);
     } else {
       _setCommandPending(true);
       try {
@@ -606,8 +631,34 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
     await _repository.removeTrack(trackId);
   }
 
+  Future<void> loadMoreQueue() async {
+    if (state.queue.length >= state.totalItems && state.totalItems > 0) return;
+    
+    _currentQueuePage++;
+    final result = await _repository.getQueue(page: _currentQueuePage, limit: 50);
+    
+    result.when(
+      success: (response) {
+        // Lọc bỏ trùng lặp nếu có
+        final existingIds = state.queue.map((t) => t.id).toSet();
+        final newTracks = response.data.where((t) => !existingIds.contains(t.id)).toList();
+        
+        if (newTracks.isNotEmpty) {
+          state = state.copyWith(
+            queue: [...state.queue, ...newTracks],
+            totalItems: response.pagination.total,
+          );
+        }
+      },
+      error: (_) {
+        _currentQueuePage--;
+      },
+    );
+  }
+
   Future<void> updateQueue() async {
-    final result = await _repository.getQueue(page: 1, limit: 30);
+    _currentQueuePage = 1;
+    final result = await _repository.getQueue(page: 1, limit: 50);
     result.when(
       success: (response) {
         // Luôn đảm bảo currentTrack nằm trong queue nếu nó tồn tại
@@ -615,7 +666,10 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState>
         if (state.currentTrack != null && !newQueue.any((t) => t.id == state.currentTrack!.id)) {
           newQueue = [state.currentTrack!, ...newQueue];
         }
-        state = state.copyWith(queue: newQueue);
+        state = state.copyWith(
+          queue: newQueue,
+          totalItems: response.pagination.total,
+        );
       },
       error: (_) => null,
     );
