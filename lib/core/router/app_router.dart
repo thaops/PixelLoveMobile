@@ -8,6 +8,7 @@ import 'package:pixel_love/features/couple/presentation/pages/couple_connection_
 import 'package:pixel_love/features/fridge/presentation/pages/create_note_screen.dart';
 import 'package:pixel_love/features/fridge/presentation/pages/fridge_screen.dart';
 import 'package:pixel_love/features/home/presentation/pages/home_screen.dart';
+import 'package:pixel_love/features/leaderboard/presentation/pages/leaderboard_screen.dart';
 import 'package:pixel_love/features/pet_image/presentation/pages/pet_album_screen.dart';
 import 'package:pixel_love/features/pet_image/presentation/pages/pet_album_swipe_screen.dart';
 import 'package:pixel_love/features/pet_image/presentation/pages/pet_capture_screen.dart';
@@ -209,6 +210,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.watchTogether,
         builder: (context, state) => const WatchTogetherScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.leaderboard,
+        builder: (context, state) => const LeaderboardScreen(),
       ),
     ],
   );

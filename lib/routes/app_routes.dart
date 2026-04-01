@@ -20,4 +20,5 @@ class AppRoutes {
   static const String letterAuth = '/letter-auth';
   static const String letterViewer = '/letter-viewer';
   static const String watchTogether = '/watch-together';
+  static const String leaderboard = '/leaderboard';
 }

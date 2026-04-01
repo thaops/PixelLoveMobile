@@ -104,19 +104,32 @@ class _MusicLibraryScreenState extends ConsumerState<MusicLibraryScreen> {
             ),
             Expanded(
               child: state.isLoading && state.tracks.isEmpty
-                  ? const Center(child: CircularProgressIndicator(color: Colors.pinkAccent))
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.pinkAccent,
+                      ),
+                    )
                   : RefreshIndicator(
-                      onRefresh: () => ref.read(musicLibraryProvider.notifier).refresh(),
+                      onRefresh: () =>
+                          ref.read(musicLibraryProvider.notifier).refresh(),
                       color: Colors.pinkAccent,
                       child: ListView.builder(
                         controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        itemCount: state.tracks.length + (state.isLoadingMore ? 1 : 0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        itemCount:
+                            state.tracks.length + (state.isLoadingMore ? 1 : 0),
                         itemBuilder: (context, index) {
                           if (index == state.tracks.length) {
                             return const Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(child: CircularProgressIndicator(color: Colors.pinkAccent)),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.pinkAccent,
+                                ),
+                              ),
                             );
                           }
 
@@ -126,7 +139,9 @@ class _MusicLibraryScreenState extends ConsumerState<MusicLibraryScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.05),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.white.withOpacity(0.05)),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.05),
+                              ),
                             ),
                             child: ListTile(
                               contentPadding: const EdgeInsets.all(8),
@@ -157,12 +172,21 @@ class _MusicLibraryScreenState extends ConsumerState<MusicLibraryScreen> {
                                 ),
                               ),
                               trailing: IconButton(
-                                icon: const Icon(Icons.add_circle_outline, color: Colors.pinkAccent),
+                                icon: const Icon(
+                                  Icons.add_circle_outline,
+                                  color: Colors.pinkAccent,
+                                ),
                                 onPressed: () {
-                                  ref.read(audioPlayerNotifierProvider.notifier).addTrackFromLibrary(track);
+                                  ref
+                                      .read(
+                                        audioPlayerNotifierProvider.notifier,
+                                      )
+                                      .addTrackFromLibrary(track);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Added ${track.title} to queue'),
+                                      content: Text(
+                                        'Added ${track.title} to queue',
+                                      ),
                                       backgroundColor: Colors.pinkAccent,
                                       duration: const Duration(seconds: 1),
                                     ),

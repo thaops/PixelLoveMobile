@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,9 @@ import 'package:pixel_love/features/pet_image/providers/pet_image_providers.dart
 import 'package:pixel_love/routes/app_routes.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart' as card_swiper;
 import 'package:pixel_love/features/pet_image/presentation/widgets/swipe_reaction_particle_overlay.dart';
+import 'dart:io';
+import 'package:pixel_love/core/providers/core_providers.dart';
+import 'package:pixel_love/features/leaderboard/provider/leaderboard_provider.dart';
 
 class PetAlbumSwipeScreen extends ConsumerStatefulWidget {
   const PetAlbumSwipeScreen({super.key});
@@ -26,6 +30,7 @@ class PetAlbumSwipeScreen extends ConsumerStatefulWidget {
 class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
     with TickerProviderStateMixin {
   late PetAlbumSwipeController _controller;
+  bool _isUploadingGallery = false;
 
   @override
   void initState() {
@@ -106,6 +111,87 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _addCurrentImageToGallery(List<PetImage> filteredImages) async {
+    if (_isUploadingGallery) return;
+
+    // Xác định ảnh đang hiển thị
+    final hasTemporaryImage = _controller.temporaryImage != null;
+    final index = _controller.realIndex;
+    String? imageUrl;
+
+    if (hasTemporaryImage && index == 0) {
+      // Đang xem ảnh temporary (local bytes)
+      final temp = _controller.temporaryImage!;
+      setState(() => _isUploadingGallery = true);
+      
+      try {
+        // Tạo file tạm từ bytes để upload
+        final tempDir = Directory.systemTemp;
+        final tempFile = File('${tempDir.path}/temp_gallery_upload.jpg');
+        await tempFile.writeAsBytes(temp.bytes);
+        
+        final uploadService = ref.read(cloudinaryUploadServiceProvider);
+        final uploadResult = await uploadService.uploadImage(tempFile);
+        
+        await uploadResult.when(
+          success: (url) => imageUrl = url,
+          error: (error) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Lỗi upload ảnh vừa chụp: ${error.message}')),
+              );
+            }
+          },
+        );
+        
+        // Xoá file tạm sau khi dùng
+        if (await tempFile.exists()) await tempFile.delete();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi xử lý ảnh tạm: $e')),
+          );
+        }
+      }
+    } else {
+      // Đang xem ảnh đã có trên server
+      final imageIndex = hasTemporaryImage ? index - 1 : index;
+      if (imageIndex >= 0 && imageIndex < filteredImages.length) {
+        imageUrl = filteredImages[imageIndex].imageUrl;
+      }
+    }
+
+    if (imageUrl == null) {
+      setState(() => _isUploadingGallery = false);
+      return;
+    }
+
+    try {
+      setState(() => _isUploadingGallery = true);
+      final leaderboardNotifier = ref.read(leaderboardProvider.notifier);
+      await leaderboardNotifier.uploadGalleryImage(imageUrl!);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã thêm ảnh đang xem vào kỷ niệm! ✨'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đã có lỗi xảy ra: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingGallery = false);
+      }
+    }
   }
 
   @override
@@ -420,6 +506,53 @@ class _PetAlbumSwipeScreenState extends ConsumerState<PetAlbumSwipeScreen>
                 context.pushReplacement(AppRoutes.petCapture);
               }
             },
+          ),
+        ),
+        Positioned(
+          bottom: 24,
+          right: 96,
+          child: GestureDetector(
+            onTap: () => _addCurrentImageToGallery(filteredImages),
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryPink.withValues(alpha: 0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+                border: Border.all(
+                  color: AppColors.primaryPink.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: ClipOval(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                  child: Center(
+                    child: _isUploadingGallery
+                        ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primaryPink,
+                          ),
+                        )
+                        : const Icon(
+                          Icons.favorite_rounded,
+                          color: AppColors.primaryPink,
+                          size: 30,
+                        ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
         Positioned(
