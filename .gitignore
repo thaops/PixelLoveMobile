@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Linux related
+/linux/
+
 # Symbolication related
 app.*.symbols
 

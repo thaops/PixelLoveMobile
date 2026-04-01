@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:pixel_love/core/env/env.dart';
 import 'package:pixel_love/core/services/storage_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -39,25 +40,37 @@ class SocketService {
   void Function(Map<String, dynamic>)? onQueueProgress;
   void Function(Map<String, dynamic>)? onPlayerTimerUpdate;
 
-  // Connect socket với namespace /events để listen couple events
-  Future<void> connectEvents() async {
+  // watch together
+  void Function(Map<String, dynamic>)? onPlayerState;
+  void Function(Map<String, dynamic>)? onPlayerVideoUpdate;
+  void Function(Map<String, dynamic>)? onPlayerQueueUpdated;
+
+  void emitToEvents(String event, [dynamic data]) {
     if (_eventsSocket != null && _eventsSocket!.connected) {
-      print('✅ Events socket already connected');
-      return;
+      if (data != null) {
+        _eventsSocket!.emit(event, data);
+      } else {
+        _eventsSocket!.emit(event);
+      }
+    } else {
+      print('❌ [events] Socket not connected, cannot emit: $event');
+    }
+  }
+
+  // Connect socket với namespace /events để listen couple events
+  Future<bool> connectEvents() async {
+    if (_eventsSocket != null && _eventsSocket!.connected) {
+      return true;
     }
 
     final token = _storageService.getToken();
-    if (token == null) {
-      print('❌ No token found, cannot connect to events socket');
-      return;
-    }
+    if (token == null) return false;
+
+    final completer = Completer<bool>();
 
     try {
-      // Extract base URL without /api suffix for socket
       final baseUrl = Env.apiBaseUrl.replaceAll('/api', '');
       final socketUrl = '$baseUrl/events';
-
-      print('🔌 Connecting to events socket: $socketUrl');
 
       _eventsSocket = IO.io(
         socketUrl,
@@ -65,18 +78,25 @@ class SocketService {
             .setTransports(['websocket'])
             .setExtraHeaders({'Authorization': 'Bearer $token'})
             .setAuth({'token': token})
-            .enableAutoConnect()
-            .enableReconnection()
-            .setReconnectionDelay(1000)
-            .setReconnectionDelayMax(5000)
-            .setReconnectionAttempts(5)
             .build(),
       );
 
+      _eventsSocket!.onConnect((_) {
+        print('✅ Events socket connected');
+        if (!completer.isCompleted) completer.complete(true);
+      });
+
+      _eventsSocket!.onConnectError((err) {
+        print('❌ Events socket connection error: $err');
+        if (!completer.isCompleted) completer.complete(false);
+      });
+
       _setupEventsListeners();
     } catch (e) {
-      print('❌ Error connecting events socket: $e');
+      if (!completer.isCompleted) completer.complete(false);
     }
+
+    return completer.future;
   }
 
   void _setupEventsListeners() {
@@ -166,6 +186,19 @@ class SocketService {
     _eventsSocket!.on('tarotReveal', (data) {
       print('🔮 [events] Tarot reveal: $data');
       onTarotReveal?.call(data as Map<String, dynamic>);
+    });
+
+    // watch playtogether  setupeventsListtener
+
+    // Thêm vào _setupEventsListeners()
+    _eventsSocket!.on('player:state', (data) {
+      onPlayerState?.call(data as Map<String, dynamic>);
+    });
+    _eventsSocket!.on('player:update', (data) {
+      onPlayerVideoUpdate?.call(data as Map<String, dynamic>);
+    });
+    _eventsSocket!.on('player:queue-updated', (data) {
+      onPlayerQueueUpdated?.call(data as Map<String, dynamic>);
     });
   }
 

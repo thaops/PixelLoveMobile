@@ -22,6 +22,7 @@ import 'package:pixel_love/features/audio_player/presentation/pages/audio_player
 import 'package:pixel_love/features/audio_player/presentation/pages/music_library_screen.dart';
 import 'package:pixel_love/features/home/presentation/pages/birthday_input_screen.dart';
 import 'package:pixel_love/features/home/presentation/pages/letter_webview_screen.dart';
+import 'package:pixel_love/features/watch_together/presentation/pages/watch_together_screen.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -204,6 +205,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.letterViewer,
         builder: (context, state) => const LetterWebviewScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.watchTogether,
+        builder: (context, state) => const WatchTogetherScreen(),
       ),
     ],
   );

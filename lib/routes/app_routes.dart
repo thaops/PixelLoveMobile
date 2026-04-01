@@ -19,4 +19,5 @@ class AppRoutes {
   static const String library = '/library';
   static const String letterAuth = '/letter-auth';
   static const String letterViewer = '/letter-viewer';
+  static const String watchTogether = '/watch-together';
 }
