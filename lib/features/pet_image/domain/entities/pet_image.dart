@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 
 class PetReactionGroup extends Equatable {
   final String emoji;
-  final int count;
+  final int count; 
 
   const PetReactionGroup({required this.emoji, required this.count});
 

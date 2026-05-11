@@ -21,4 +21,5 @@ class AppRoutes {
   static const String letterViewer = '/letter-viewer';
   static const String watchTogether = '/watch-together';
   static const String leaderboard = '/leaderboard';
+  static const String cozyRoom = '/cozy-room';
 }

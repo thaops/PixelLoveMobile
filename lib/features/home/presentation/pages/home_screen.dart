@@ -14,6 +14,7 @@ import 'package:pixel_love/features/home/presentation/widgets/home_tarot_button.
 import 'package:pixel_love/features/home/presentation/widgets/home_music_button.dart';
 import 'package:pixel_love/features/home/presentation/widgets/home_letter_button.dart';
 import 'package:pixel_love/features/home/presentation/widgets/home_watch_together_button.dart';
+import 'package:pixel_love/features/home/presentation/widgets/home_cozy_room_button.dart';
 import 'package:pixel_love/features/home/providers/home_providers.dart';
 import 'package:pixel_love/core/services/notification_service.dart';
 
@@ -158,6 +159,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         const HomeLetterButton(),
         const HomeTarotButton(),
         const HomeWatchTogetherButton(),
+        const HomeCozyRoomButton(),
         const HomeBottomActionBar(),
       ],
     );

@@ -13,6 +13,7 @@ import 'package:pixel_love/firebase_options.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:pixel_love/features/audio_player/presentation/notifiers/audio_handler.dart';
 import 'package:pixel_love/features/audio_player/providers/audio_providers.dart';
+import 'package:pixel_love/features/cozy_room/presentation/pages/cozy_room_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,9 +48,23 @@ void main() async {
         sharedPreferencesProvider.overrideWithValue(sharedPreferences),
         audioHandlerProvider.overrideWithValue(audioHandler),
       ],
-      child: const PixelLoveApp(),
+      // TODO: remove CozyRoomTestApp when done testing
+      child: const CozyRoomTestApp(),
+      // child: const PixelLoveApp(),
     ),
   );
+}
+
+class CozyRoomTestApp extends StatelessWidget {
+  const CozyRoomTestApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: CozyRoomScreen(),
+    );
+  }
 }
 
 class PixelLoveApp extends ConsumerWidget {

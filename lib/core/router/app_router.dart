@@ -24,6 +24,7 @@ import 'package:pixel_love/features/audio_player/presentation/pages/music_librar
 import 'package:pixel_love/features/home/presentation/pages/birthday_input_screen.dart';
 import 'package:pixel_love/features/home/presentation/pages/letter_webview_screen.dart';
 import 'package:pixel_love/features/watch_together/presentation/pages/watch_together_screen.dart';
+import 'package:pixel_love/features/cozy_room/presentation/pages/cozy_room_screen.dart';
 import 'package:pixel_love/routes/app_routes.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -214,6 +215,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.leaderboard,
         builder: (context, state) => const LeaderboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.cozyRoom,
+        builder: (context, state) => const CozyRoomScreen(),
       ),
     ],
   );

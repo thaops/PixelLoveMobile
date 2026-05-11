@@ -135,6 +135,7 @@ flutter:
     - .env
     - assets/images/
     - assets/lotties/
+    - assets/web/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
